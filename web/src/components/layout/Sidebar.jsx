@@ -16,7 +16,10 @@ import {
     BrainCircuit,
     Calendar,
     Menu,
-    X
+    X,
+    Video,
+    ShieldAlert,
+    ShieldCheck
 } from 'lucide-react';
 
 const SidebarItem = ({ icon: Icon, label, to, active = false, collapsed = false, onClick }) => (
@@ -46,15 +49,14 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', to: '/dashboard' },
         { icon: Calendar, label: 'Diary', to: '/diary' },
+        { icon: Video, label: 'Virtual Class', to: '/virtual-class' },
         { icon: Users, label: 'Students', to: '/smart-id' },
-        { icon: UserSquare2, label: 'Teachers', to: '/teachers' },
-        { icon: GraduationCap, label: 'Classes', to: '/classes' },
-        { icon: BookOpen, label: 'Subjects', to: '/subjects' },
-        { icon: ClipboardCheck, label: 'Attendance', to: '/attendance' },
         { icon: FileText, label: 'Assessments', to: '/assessments' },
         { icon: BrainCircuit, label: 'AI Lesson Notes', to: '/ai-lesson-notes' },
+        { icon: ClipboardCheck, label: 'Attendance', to: '/attendance' },
+        { icon: ShieldAlert, label: 'Safety', to: '/safety' },
         { icon: Wallet, label: 'Finance', to: '/finance' },
-        { icon: BarChart3, label: 'Reports', to: '/reports' },
+        { icon: ShieldCheck, label: 'Security', to: '/security' },
         { icon: Settings, label: 'Settings', to: '/settings' },
     ];
 

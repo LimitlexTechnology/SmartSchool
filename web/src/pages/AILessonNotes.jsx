@@ -28,6 +28,7 @@ const AILessonNotes = () => {
     const [content, setContent] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [showAIInsights, setShowAIInsights] = useState(true);
+    const [mode, setMode] = useState('lesson'); // 'lesson' or 'remarks'
 
     const suggestions = [
         { text: "Add more interactive activities for Grade 10 students.", details: "Interactive polls and breakout groups." },
@@ -54,10 +55,24 @@ const AILessonNotes = () => {
         <div className="flex flex-col gap-8 h-[calc(100vh-140px)] animate-fade-in pb-10">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-[#0F172A]">AI Lesson Notes Editor</h1>
-                    <p className="text-muted-text mt-1">Generate and refine lesson plans with smart assistance.</p>
+                    <h1 className="text-3xl font-extrabold text-[#0F172A]">{mode === 'lesson' ? 'AI Lesson Notes' : 'AI Report Remarks'}</h1>
+                    <p className="text-muted-text mt-1">{mode === 'lesson' ? 'Generate and refine lesson plans with smart assistance.' : 'Generate professional student report card remarks.'}</p>
                 </div>
                 <div className="flex items-center gap-3">
+                    <div className="flex p-1 bg-white rounded-2xl border border-gray-100 shadow-sm mr-4">
+                        <button
+                            onClick={() => setMode('lesson')}
+                            className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${mode === 'lesson' ? 'bg-[#0F172A] text-white' : 'text-muted-text hover:text-primary-teal'}`}
+                        >
+                            Lesson Plans
+                        </button>
+                        <button
+                            onClick={() => setMode('remarks')}
+                            className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${mode === 'remarks' ? 'bg-[#0F172A] text-white' : 'text-muted-text hover:text-primary-teal'}`}
+                        >
+                            Report Remarks
+                        </button>
+                    </div>
                     <Button variant="outline" className="flex items-center gap-2 h-11 px-5 border-gray-200">
                         <History size={18} />
                         History
@@ -76,7 +91,7 @@ const AILessonNotes = () => {
                         <div className="flex flex-col gap-6 h-full">
                             <Input
                                 className="text-xl font-bold h-14 border-none border-b border-gray-100 rounded-none px-0 focus:ring-0"
-                                placeholder="Enter Lesson Topic (e.g. Introduction to Calculus)"
+                                placeholder={mode === 'lesson' ? "Enter Lesson Topic (e.g. Introduction to Calculus)" : "Enter Student Strength/Focus (e.g. Excellent Math, Needs more focus on grammar)"}
                                 value={topic}
                                 onChange={(e) => setTopic(e.target.value)}
                             />
