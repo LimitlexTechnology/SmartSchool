@@ -1,0 +1,79 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Student {
+  id            String       @id @default(uuid())
+  firstName     String
+  lastName      String
+  email         String       @unique
+  grade         String
+  wristbandId   String?      @unique
+  walletBalance Float        @default(0.0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  assessments   AssessmentSubmission[]
+  transactions  Transaction[]
+}
+
+model Teacher {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  subject   String
+  lessons   Lesson[]
+}
+
+model Class {
+  id        String    @id @default(uuid())
+  name      String
+  grade     String
+  students  Student[]
+}
+
+model Assessment {
+  id          String   @id @default(uuid())
+  title       String
+  type        String   // Quiz, Test, Homework
+  dueDate     DateTime
+  subject     String
+  submissions AssessmentSubmission[]
+}
+
+model AssessmentSubmission {
+  id           String     @id @default(uuid())
+  student      Student    @relation(fields: [studentId], references: [id])
+  studentId    String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id])
+  assessmentId String
+  score        Float?
+  status       String     // Pending, Completed, Overdue
+  submittedAt  DateTime?
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  student     Student  @relation(fields: [studentId], references: [id])
+  studentId   String
+  amount      Float
+  type        String   // Canteen, Library, Transport, Fee
+  description String
+  createdAt   DateTime @default(now())
+}
+
+model Lesson {
+  id        String   @id @default(uuid())
+  topic     String
+  content   String
+  teacher   Teacher  @relation(fields: [teacherId], references: [id])
+  teacherId String
+  createdAt DateTime @default(now())
+}
