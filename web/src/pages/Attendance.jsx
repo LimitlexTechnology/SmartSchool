@@ -14,7 +14,8 @@ import {
     ArrowUpRight,
     Bell,
     UserMinus,
-    Check
+    Check,
+    Settings
 } from 'lucide-react';
 
 const Attendance = () => {

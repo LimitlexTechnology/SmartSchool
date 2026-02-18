@@ -17,7 +17,9 @@ import {
     Calendar,
     Settings,
     Shield,
-    Bot
+    Bot,
+    Plus,
+    ChevronRight
 } from 'lucide-react';
 
 const VirtualClass = () => {
@@ -114,7 +116,7 @@ const VirtualClass = () => {
                             <div className="flex-1 p-6 space-y-4 overflow-y-auto">
                                 <div className="p-4 bg-light-bg rounded-2xl rounded-tl-none border border-gray-100">
                                     <p className="text-xs font-bold text-primary-teal mb-1">Dr. Oppen</p>
-                                    <p className="text-sm text-dark-text leading-relaxed">Let's look at the wave-particle duality equations on page 42...</p>
+                                    <p className="text-sm text-dark-text leading-relaxed">Let&apos;s look at the wave-particle duality equations on page 42...</p>
                                 </div>
                                 <div className="p-4 bg-primary-teal/5 rounded-2xl rounded-tr-none border border-primary-teal/10 ml-8">
                                     <p className="text-xs font-bold text-muted-text mb-1">Me</p>

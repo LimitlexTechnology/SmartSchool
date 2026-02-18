@@ -1,12 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const { PrismaClient } = require('@prisma/client');
 
 dotenv.config();
 
 const app = express();
-const prisma = new PrismaClient();
 const port = process.env.PORT || 5000;
 
 app.use(cors());
@@ -24,7 +22,7 @@ const auth = (req, res, next) => {
 };
 
 // Routes placeholder
-app.get('/api/dashboard/stats', auth, async (req, res) => {
+app.get('/api/dashboard/stats', auth, (req, res) => {
     res.json({
         totalStudents: 1248,
         activeClasses: 42,

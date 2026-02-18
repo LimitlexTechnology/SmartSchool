@@ -7,7 +7,6 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
 }
 
 model Student {
@@ -20,6 +19,8 @@ model Student {
   walletBalance Float        @default(0.0)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+  class         Class?       @relation(fields: [classId], references: [id])
+  classId       String?
   assessments   AssessmentSubmission[]
   transactions  Transaction[]
 }

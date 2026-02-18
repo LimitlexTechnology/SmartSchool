@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import {
-    ShieldLoader,
     Lock,
     Users,
     Key,
@@ -18,6 +17,7 @@ import {
     X,
     MoreVertical,
     Activity,
+    Clock,
     Shield
 } from 'lucide-react';
 
@@ -156,7 +156,7 @@ const Security = () => {
                             </div>
                             <h4 className="font-bold text-xl mb-2">Data Protection</h4>
                             <p className="text-white/60 text-sm leading-relaxed mb-6">
-                                Your school's data is secured with AES-256 institutional encryption. Compliance: GDPR & Student privacy Act.
+                                Your school&apos;s data is secured with AES-256 institutional encryption. Compliance: GDPR & Student privacy Act.
                             </p>
                             <div className="flex items-center gap-2 text-xs font-black text-success">
                                 <Check size={16} /> Encryption Active

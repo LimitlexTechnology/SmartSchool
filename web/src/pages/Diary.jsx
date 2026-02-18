@@ -122,7 +122,7 @@ const Diary = () => {
 
                                 <div className="p-6">
                                     <p className="text-[#0F172A] text-lg leading-relaxed mb-6 italic">
-                                        "{post.content}"
+                                        &quot;{post.content}&quot;
                                     </p>
 
                                     {post.hasImage && (

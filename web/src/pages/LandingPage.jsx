@@ -13,7 +13,10 @@ import {
     Smartphone,
     Check,
     BrainCircuit,
-    Users
+    Users,
+    ListChecks,
+    Utensils,
+    History
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -383,7 +386,7 @@ const LandingPage = () => {
 
                                     <div className="relative p-6 bg-white/5 rounded-3xl border border-white/5">
                                         <p className="text-sm font-medium italic text-soft-teal leading-relaxed">
-                                            "Generate a comprehensive lesson plan for Grade 10 Physics: The Water Cycle, including 5 interactive MCQ questions and a visual aids guide..."
+                                            &quot;Generate a comprehensive lesson plan for Grade 10 Physics: The Water Cycle, including 5 interactive MCQ questions and a visual aids guide...&quot;
                                         </p>
                                         <div className="absolute -right-2 -bottom-2 w-8 h-8 bg-soft-teal rounded-full blur-xl opacity-50"></div>
                                     </div>
@@ -393,7 +396,7 @@ const LandingPage = () => {
                                             <div key={i} className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/5">
                                                 <div className="w-2 h-2 bg-primary-teal rounded-full shadow-[0_0_10px_#09637E]"></div>
                                                 <div className="flex-1 h-3 bg-white/5 rounded-full relative overflow-hidden">
-                                                    <div className={`absolute inset-0 bg-primary-teal/30 w-[${i === 1 ? '85%' : '60%'}]`}></div>
+                                                    <div className={`absolute inset-0 bg-primary-teal/30 ${i === 1 ? 'w-[85%]' : 'w-[60%]'}`}></div>
                                                 </div>
                                             </div>
                                         ))}
