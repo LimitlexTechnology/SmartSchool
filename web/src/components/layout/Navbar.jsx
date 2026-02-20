@@ -1,7 +1,17 @@
 import React from 'react';
-import { Search, Bell, ChevronDown, Menu } from 'lucide-react';
+import { Search, Bell, ChevronDown, Menu, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Navbar = ({ onOpenMobileMenu }) => {
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        // Clear login data
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('userPhone');
+        // Redirect to home page
+        navigate('/');
+    };
     return (
         <header className="h-[70px] bg-white border-b border-gray-100 px-4 md:px-8 flex items-center justify-between sticky top-0 z-[40]">
             <div className="flex items-center gap-4">
@@ -42,6 +52,15 @@ const Navbar = ({ onOpenMobileMenu }) => {
                     </div>
                     <ChevronDown size={16} className="text-muted-text group-hover:text-primary-teal transition-colors" />
                 </div>
+
+                {/* Logout Button */}
+                <button
+                    onClick={handleLogout}
+                    className="p-2 rounded-button bg-light-bg text-muted-text hover:text-error hover:bg-error/10 transition-colors"
+                    title="Logout"
+                >
+                    <LogOut size={20} />
+                </button>
             </div>
         </header>
     );

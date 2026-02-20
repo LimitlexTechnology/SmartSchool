@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import DashboardLayout from './layouts/DashboardLayout'
 import LandingPage from './pages/LandingPage'
+import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Assessments from './pages/Assessments'
 import AILessonNotes from './pages/AILessonNotes'
@@ -12,16 +13,32 @@ import VirtualClass from './pages/VirtualClass'
 import Safety from './pages/Safety'
 import Security from './pages/Security'
 
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
+  
+  if (!isLoggedIn) {
+    return <Navigate to="/login" replace />
+  }
+  
+  return children
+}
+
 const App = () => {
   return (
     <Router>
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login />} />
 
         {/* Protected Dashboard Routes */}
-        <Route element={<DashboardLayout />}>
-          <Route path="dashboard" element={<Dashboard />} />
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <DashboardLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<Dashboard />} />
           <Route path="assessments" element={<Assessments />} />
           <Route path="ai-lesson-notes" element={<AILessonNotes />} />
           <Route path="smart-id" element={<SmartID />} />

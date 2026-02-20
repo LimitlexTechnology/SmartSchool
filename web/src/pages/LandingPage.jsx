@@ -142,7 +142,7 @@ const LandingPage = () => {
                         <a href="#features" className="text-muted-text font-medium hover:text-primary-teal transition-colors">Features</a>
                         <a href="#ai" className="text-muted-text font-medium hover:text-primary-teal transition-colors">AI Assistant</a>
                         <a href="#assessments" className="text-muted-text font-medium hover:text-primary-teal transition-colors">Assessments</a>
-                        <Link to="/dashboard">
+                        <Link to="/login">
                             <Button>Launch App</Button>
                         </Link>
                     </div>
@@ -158,7 +158,7 @@ const LandingPage = () => {
                         <a href="#features" className="text-muted-text font-medium py-2" onClick={() => setIsMenuOpen(false)}>Features</a>
                         <a href="#ai" className="text-muted-text font-medium py-2" onClick={() => setIsMenuOpen(false)}>AI Assistant</a>
                         <a href="#assessments" className="text-muted-text font-medium py-2" onClick={() => setIsMenuOpen(false)}>Assessments</a>
-                        <Link to="/dashboard" onClick={() => setIsMenuOpen(false)}>
+                        <Link to="/login" onClick={() => setIsMenuOpen(false)}>
                             <Button fullWidth>Launch App</Button>
                         </Link>
                     </div>
