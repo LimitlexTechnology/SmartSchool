@@ -1,70 +1,72 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-    LayoutDashboard,
+    Home,
     Users,
     UserSquare2,
-    BookOpen,
-    GraduationCap,
-    ClipboardCheck,
-    FileText,
-    Wallet,
-    BarChart3,
-    Settings,
+    ClipboardList,
+    Landmark,
+    Package,
+    Wrench,
+    Bus,
     ChevronLeft,
     ChevronRight,
-    BrainCircuit,
-    Calendar,
-    Menu,
     X,
-    Video,
-    ShieldAlert,
-    ShieldCheck
+    GraduationCap
 } from 'lucide-react';
 
+/* ── Single Nav Item ── */
 const SidebarItem = ({ icon: Icon, label, to, active = false, collapsed = false, onClick }) => (
-    <Link to={to} onClick={onClick} className={`
-    flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-200 no-underline relative group
-    ${active
-            ? 'bg-primary-teal/10 text-primary-teal'
-            : 'text-muted-text hover:bg-light-bg hover:text-primary-teal'}
-  `}>
-        {active && (
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-primary-teal rounded-r-full" />
+    <Link
+        to={to}
+        onClick={onClick}
+        title={label}
+        className={`
+            flex flex-col items-center gap-1 py-3 px-2 rounded-xl cursor-pointer transition-all duration-200 no-underline relative group w-full
+            ${active
+                ? 'bg-primary-teal text-white shadow-lg shadow-primary-teal/25'
+                : 'text-muted-text hover:bg-light-bg hover:text-primary-teal'}
+        `}
+    >
+        <Icon size={collapsed ? 22 : 20} strokeWidth={active ? 2.5 : 2} />
+        {!collapsed && (
+            <span className={`text-[10px] font-bold text-center leading-tight ${active ? 'text-white' : ''}`}>
+                {label}
+            </span>
         )}
-        <Icon size={20} strokeWidth={active ? 2.5 : 2} />
-        {!collapsed && <span className={`font-semibold ${active ? 'text-primary-teal' : ''}`}>{label}</span>}
+
+        {/* Tooltip on collapsed */}
         {collapsed && (
-            <div className="absolute left-full ml-4 px-3 py-1 bg-dark-text text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-[100]">
+            <div className="absolute left-full ml-3 px-3 py-1.5 bg-dark-text text-white text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-[200] shadow-xl">
                 {label}
             </div>
         )}
     </Link>
 );
 
+/* ── Sidebar ── */
 const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
     const [collapsed, setCollapsed] = useState(false);
     const location = useLocation();
 
     const navItems = [
-        { icon: LayoutDashboard, label: 'Dashboard', to: '/dashboard' },
-        { icon: Calendar, label: 'Diary', to: '/diary' },
-        { icon: Video, label: 'Virtual Class', to: '/virtual-class' },
-        { icon: Users, label: 'Students', to: '/smart-id' },
-        { icon: FileText, label: 'Assessments', to: '/assessments' },
-        { icon: BrainCircuit, label: 'AI Lesson Notes', to: '/ai-lesson-notes' },
-        { icon: ClipboardCheck, label: 'Attendance', to: '/attendance' },
-        { icon: ShieldAlert, label: 'Safety', to: '/safety' },
-        { icon: Wallet, label: 'Finance', to: '/finance' },
-        { icon: ShieldCheck, label: 'Security', to: '/security' },
-        { icon: Settings, label: 'Settings', to: '/settings' },
+        { icon: Home, label: 'School', to: '/dashboard' },
+        { icon: Users, label: 'Students', to: '/dashboard/smart-id' },
+        { icon: UserSquare2, label: 'Staff', to: '/dashboard/staff' },
+        { icon: ClipboardList, label: 'Exams', to: '/dashboard/assessments' },
+        { icon: Landmark, label: 'Accounts', to: '/dashboard/finance' },
+        { icon: Package, label: 'Inventory', to: '/dashboard/inventory' },
+        { icon: Wrench, label: 'Services', to: '/dashboard/services' },
+        { icon: Bus, label: 'Canteen & Transport', to: '/dashboard/canteen-transport' },
     ];
 
+    const sidebarWidth = collapsed ? 'w-[72px]' : 'w-[90px]';
+
     const sidebarClasses = `
-    h-screen bg-white border-r border-gray-100 flex flex-col transition-all duration-300 z-[100]
-    ${collapsed ? 'w-20' : 'w-[260px]'}
-    ${isMobileMenuOpen ? 'fixed left-0 top-0 translate-x-0' : 'fixed -translate-x-full md:relative md:translate-x-0'}
-  `;
+        h-screen bg-white border-r border-gray-100 flex flex-col transition-all duration-300 z-[100] shadow-soft-sm
+        ${sidebarWidth}
+        ${isMobileMenuOpen ? 'fixed left-0 top-0 translate-x-0' : 'fixed -translate-x-full md:relative md:translate-x-0'}
+    `;
 
     return (
         <>
@@ -77,28 +79,29 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
             )}
 
             <aside className={sidebarClasses}>
-                {/* Logo */}
-                <div className="p-6 pt-8 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary-teal rounded-xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0 animate-pulse-slow shadow-lg shadow-primary-teal/20">
-                            S
-                        </div>
-                        {!collapsed && (
-                            <span className="text-xl font-extrabold text-[#0F172A] tracking-tighter whitespace-nowrap overflow-hidden">
-                                Smart School
-                            </span>
-                        )}
+
+                {/* ── School Logo / Crest ── */}
+                <div className="flex flex-col items-center pt-5 pb-3 px-2 border-b border-gray-50">
+                    {/* Logo area – shows the school's crest / logo */}
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-teal to-secondary-teal flex items-center justify-center shadow-lg shadow-primary-teal/20 flex-shrink-0">
+                        <GraduationCap size={24} className="text-white" />
                     </div>
-                    <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-muted-text hover:text-dark-text p-2">
-                        <X size={24} />
+                    {!collapsed && (
+                        <p className="text-[9px] font-black text-muted-text uppercase tracking-widest mt-2 text-center leading-tight px-1">
+                            School
+                        </p>
+                    )}
+                    {/* Mobile close btn */}
+                    <button
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="absolute top-4 right-2 md:hidden text-muted-text hover:text-dark-text p-1"
+                    >
+                        <X size={20} />
                     </button>
                 </div>
 
-                {/* Navigation */}
-                <nav className="flex-1 px-4 py-4 flex flex-col gap-1 overflow-y-auto custom-scrollbar">
-                    <p className={`px-4 mb-2 text-[10px] font-bold text-muted-text uppercase tracking-widest ${collapsed ? 'text-center' : ''}`}>
-                        {collapsed ? '—' : 'Main Menu'}
-                    </p>
+                {/* ── Navigation ── */}
+                <nav className="flex-1 flex flex-col items-center gap-0.5 px-2 py-4 overflow-y-auto custom-scrollbar">
                     {navItems.map((item, index) => (
                         <SidebarItem
                             key={index}
@@ -112,13 +115,13 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
                     ))}
                 </nav>
 
-                {/* Collapse Toggle (Desktop only) */}
-                <div className="p-4 border-t border-gray-50 hidden md:block">
+                {/* ── Collapse Toggle (Desktop only) ── */}
+                <div className="p-3 border-t border-gray-50 hidden md:block">
                     <button
                         onClick={() => setCollapsed(!collapsed)}
-                        className="w-full flex items-center justify-center py-2 h-10 rounded-xl bg-light-bg text-primary-teal hover:bg-primary-teal hover:text-white transition-all duration-300"
+                        className="w-full flex items-center justify-center py-2 h-9 rounded-xl bg-light-bg text-primary-teal hover:bg-primary-teal hover:text-white transition-all duration-300 text-xs font-black"
                     >
-                        {collapsed ? <ChevronRight size={20} /> : <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-widest"><ChevronLeft size={16} /> Minimize</div>}
+                        {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
                     </button>
                 </div>
             </aside>
