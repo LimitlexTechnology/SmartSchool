@@ -33,17 +33,18 @@ const Login = () => {
 
       // Test credentials for demo purposes
       const testCredentials = [
-        { phone: '1234567890', password: 'admin123' },
-        { phone: '5551234567', password: 'teacher123' },
-        { phone: '9876543210', password: 'student123' }
+        { phone: '0000000000', password: 'super123', role: 'superadmin' },
+        { phone: '1234567890', password: 'admin123', role: 'admin' },
+        { phone: '5551234567', password: 'teacher123', role: 'teacher' },
+        { phone: '9876543210', password: 'student123', role: 'student' }
       ];
 
       // Validate against test credentials
-      const isValidUser = testCredentials.some(
+      const matchedUser = testCredentials.find(
         cred => cred.phone === phoneNumber && cred.password === password
       );
 
-      if (!isValidUser) {
+      if (!matchedUser) {
         throw new Error('Invalid credentials');
       }
 
@@ -52,9 +53,14 @@ const Login = () => {
       // Store login state in localStorage
       localStorage.setItem('userPhone', phoneNumber);
       localStorage.setItem('isLoggedIn', 'true');
+      localStorage.setItem('userRole', matchedUser.role);
 
-      // Redirect to dashboard
-      navigate('/dashboard');
+      // Redirect based on role
+      if (matchedUser.role === 'superadmin') {
+        navigate('/superadmin');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error) {
       alert('Login failed. Please check your phone number and password.');
     } finally {
