@@ -17,6 +17,10 @@ import Attendance from './pages/Attendance'
 import VirtualClass from './pages/VirtualClass'
 import Safety from './pages/Safety'
 import Security from './pages/Security'
+import StudentsList from './pages/StudentsList'
+import StudentGroups from './pages/StudentGroups'
+import Admissions from './pages/Admissions'
+import Guardians from './pages/Guardians'
 
 // SuperAdmin Pages
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard'
@@ -67,6 +71,10 @@ const App = () => {
           <Route path="smart-id" element={<SmartID />} />
           <Route path="diary" element={<Diary />} />
           <Route path="attendance" element={<Attendance />} />
+          <Route path="students" element={<StudentsList />} />
+          <Route path="student-groups" element={<StudentGroups />} />
+          <Route path="admissions" element={<Admissions />} />
+          <Route path="guardians" element={<Guardians />} />
           <Route path="virtual-class" element={<VirtualClass />} />
           <Route path="safety" element={<Safety />} />
           <Route path="security" element={<Security />} />
