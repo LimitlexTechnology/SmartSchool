@@ -142,6 +142,26 @@ const Dashboard = () => {
 
     const admittedData = [20, 60, 280, 140, 20];
     const leftData = [5, 8, 3, 6, 2];
+    const [stats, setStats] = useState({
+        totalStudents: null,
+        totalClasses: null,
+        totalStaff: null,
+        totalGuardians: null,
+        revenue: null,
+        status: null
+    });
+    useEffect(() => {
+        const load = async () => {
+            try {
+                const res = await fetch('http://localhost:5000/api/dashboard/stats');
+                const data = await res.json();
+                setStats(data);
+            } catch {
+                setStats(s => ({ ...s, status: 'degraded' }));
+            }
+        };
+        load();
+    }, []);
     const termLabels = ['2024 2nd term', '2024 3rd term', '2025 1st term', '2025/2026 2nd Term'];
 
     return (
@@ -207,19 +227,27 @@ const Dashboard = () => {
             {/* ── Quick Stats Row ── */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {/* Total Students */}
-                <MiniStat icon={Users} wide="377" label="Total students" male={204} female={173} />
+                <MiniStat icon={Users} wide={
+                    stats.totalStudents !== null ? String(stats.totalStudents) : '—'
+                } label="Total students" />
 
                 {/* Birthdays – Pink gradient */}
                 <MiniStat icon={Calendar} birthday={true} />
 
                 {/* Total Staff – teal gradient */}
-                <MiniStat icon={GraduationCap} wide="52" label="Total staff" male={17} female={35} accent />
+                <MiniStat icon={GraduationCap} wide={
+                    stats.totalStaff !== null ? String(stats.totalStaff) : '—'
+                } label="Total staff" accent />
 
                 {/* Guardians */}
-                <MiniStat icon={UserCheck} wide="430" label="Total guardians" />
+                <MiniStat icon={UserCheck} wide={
+                    stats.totalGuardians !== null ? String(stats.totalGuardians) : '—'
+                } label="Total guardians" />
 
                 {/* Classes */}
-                <MiniStat icon={LayoutGrid} wide="27" label="Total classes" />
+                <MiniStat icon={LayoutGrid} wide={
+                    stats.totalClasses !== null ? String(stats.totalClasses) : '—'
+                } label="Total classes" />
             </div>
 
             {/* ── Charts Row ── */}
