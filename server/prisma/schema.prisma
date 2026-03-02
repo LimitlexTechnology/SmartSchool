@@ -16,6 +16,21 @@ model Student {
   email         String       @unique
   grade         String
   wristbandId   String?      @unique
+  // Extended profile
+  gender        String?
+  birthday      DateTime?
+  admittedAt    DateTime?
+  religion      String?
+  nationality   String?
+  hometown      String?
+  address       String?
+  guardianName          String?
+  guardianRelationship  String?
+  guardianContact       String?
+  // Archiving
+  status        String       @default("active")
+  archivedAt    DateTime?
+  archiveReason String?
   walletBalance Float        @default(0.0)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt

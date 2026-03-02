@@ -1,6 +1,8 @@
 import React from 'react';
-import { Search, Bell, ChevronDown, Menu, LogOut } from 'lucide-react';
+import { Search, Bell, Menu, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import YearTermPicker from './YearTermPicker';
+import ProfileMenu from './ProfileMenu';
 
 const Navbar = ({ onOpenMobileMenu }) => {
     const navigate = useNavigate();
@@ -41,17 +43,10 @@ const Navbar = ({ onOpenMobileMenu }) => {
                     <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border-2 border-white"></span>
                 </button>
 
-                {/* Profile */}
-                <div className="flex items-center gap-3 pl-6 border-l border-gray-100 cursor-pointer group">
-                    <div className="text-right">
-                        <p className="text-sm font-bold text-dark-text group-hover:text-primary-teal transition-colors">John Doe</p>
-                        <p className="text-xs text-muted-text uppercase tracking-wider font-semibold">Administrator</p>
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-soft-teal flex items-center justify-center text-white font-bold border-2 border-transparent group-hover:border-primary-teal transition-all">
-                        JD
-                    </div>
-                    <ChevronDown size={16} className="text-muted-text group-hover:text-primary-teal transition-colors" />
-                </div>
+                {/* Academic Period */}
+                <YearTermPicker />
+
+                <ProfileMenu onLogout={handleLogout} />
 
                 {/* Logout Button */}
                 <button

@@ -13,7 +13,8 @@
     "migrate:deploy": "prisma migrate deploy",
     "db:init": "node scripts/init_schema.js",
     "db:seed": "node scripts/seed.js",
-    "db:migrate:student": "node scripts/migrate_student_fields.js"
+    "db:migrate:student": "node scripts/migrate_student_fields.js",
+    "db:migrate:archive": "node scripts/migrate_student_archive.js"
   },
   "keywords": [],
   "author": "",

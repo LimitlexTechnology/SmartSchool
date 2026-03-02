@@ -21,6 +21,7 @@ import StudentsList from './pages/StudentsList'
 import StudentGroups from './pages/StudentGroups'
 import Admissions from './pages/Admissions'
 import Guardians from './pages/Guardians'
+import AdminSettings from './pages/AdminSettings'
 
 // SuperAdmin Pages
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard'
@@ -79,6 +80,7 @@ const App = () => {
           <Route path="safety" element={<Safety />} />
           <Route path="security" element={<Security />} />
           <Route path="finance" element={<Finance />} />
+          <Route path="settings" element={<AdminSettings />} />
           <Route path="*" element={<ComingSoon />} />
         </Route>
 

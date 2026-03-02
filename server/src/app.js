@@ -126,15 +126,22 @@ app.get('/api/students', auth, async (req, res) => {
     const page = Math.max(parseInt(req.query.page || '1', 10), 1)
     const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '20', 10), 1), 100)
     const q = (req.query.q || '').toString().trim()
+    const includeArchived = (req.query.includeArchived || 'false') === 'true'
+    const baseFilter = includeArchived ? {} : { status: { not: 'archived' } }
     const where = q
       ? {
-          OR: [
-            { firstName: { contains: q, mode: 'insensitive' } },
-            { lastName: { contains: q, mode: 'insensitive' } },
-            { email: { contains: q, mode: 'insensitive' } },
+          AND: [
+            baseFilter,
+            {
+              OR: [
+                { firstName: { contains: q, mode: 'insensitive' } },
+                { lastName: { contains: q, mode: 'insensitive' } },
+                { email: { contains: q, mode: 'insensitive' } },
+              ],
+            },
           ],
         }
-      : {}
+      : baseFilter
     const [total, items] = await Promise.all([
       prisma.student.count({ where }),
       prisma.student.findMany({
@@ -249,6 +256,26 @@ app.get('/api/students/:id', auth, async (req, res) => {
     })
   } catch (e) {
     console.error('Student detail error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+});
+
+app.post('/api/students/:id/archive', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    const { reason } = req.body || {}
+    if (!reason) return res.status(400).json({ error: 'reason is required' })
+    if (reason === 'Incorrect entry') {
+      await prisma.student.delete({ where: { id } })
+      return res.json({ status: 'deleted' })
+    }
+    const updated = await prisma.student.update({
+      where: { id },
+      data: { status: 'archived', archivedAt: new Date(), archiveReason: reason },
+    })
+    res.json({ status: 'archived', id: updated.id, reason })
+  } catch (e) {
+    console.error('Archive student error:', e)
     res.status(500).json({ error: e?.message || 'unknown' })
   }
 });

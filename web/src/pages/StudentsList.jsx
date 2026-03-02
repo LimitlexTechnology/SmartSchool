@@ -30,6 +30,7 @@ const StudentsList = () => {
     guardianName: '', guardianRelationship: '', guardianContact: '',
   })
   const [saving, setSaving] = useState(false)
+  const [grid, setGrid] = useState(false)
 
   const load = async (opts = {}) => {
     const p = opts.page ?? page
@@ -69,7 +70,7 @@ const StudentsList = () => {
         <button className="px-3 py-2 rounded-lg border border-gray-200 text-xs font-bold text-dark-text hover:bg-light-bg flex items-center gap-2">
           <Filter size={14} /> Filter
         </button>
-        <button className="px-3 py-2 rounded-lg border border-gray-200 text-xs font-bold text-dark-text hover:bg-light-bg flex items-center gap-2">
+        <button onClick={() => setGrid(v=>!v)} className="px-3 py-2 rounded-lg border border-gray-200 text-xs font-bold text-dark-text hover:bg-light-bg flex items-center gap-2">
           <ListFilter size={14} /> Toggle View
         </button>
         <button onClick={() => setShowAdd(true)} className="px-3 py-2 rounded-lg border border-gray-200 text-xs font-bold text-dark-text hover:bg-light-bg flex items-center gap-2">
@@ -240,45 +241,64 @@ const StudentsList = () => {
           />
         </div>
 
-        <div className="overflow-hidden border border-gray-100 rounded-xl">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-muted-text font-bold">
-              <tr>
-                <th className="text-left px-4 py-3 w-12">#</th>
-                <th className="text-left px-4 py-3">Name</th>
-                <th className="text-left px-4 py-3 w-32">Gender</th>
-                <th className="text-left px-4 py-3 w-40">Student ID</th>
-                <th className="text-left px-4 py-3 w-40">Class</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && (
+        {!grid && (
+          <div className="overflow-hidden border border-gray-100 rounded-xl">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-muted-text font-bold">
                 <tr>
-                  <td className="px-4 py-6 text-muted-text" colSpan={5}>Loading…</td>
+                  <th className="text-left px-4 py-3 w-12">#</th>
+                  <th className="text-left px-4 py-3">Name</th>
+                  <th className="text-left px-4 py-3 w-32">Gender</th>
+                  <th className="text-left px-4 py-3 w-40">Student ID</th>
+                  <th className="text-left px-4 py-3 w-40">Class</th>
                 </tr>
-              )}
-              {!loading && data.data.length === 0 && (
-                <tr>
-                  <td className="px-4 py-6 text-muted-text" colSpan={5}>No students found</td>
-                </tr>
-              )}
-              {!loading && data.data.map((s) => {
-                const name = `${s.firstName} ${s.lastName}`
-                return (
-                  <tr key={s.id} className="border-t border-gray-50">
-                    <td className="px-4 py-3 text-muted-text">{s.index}</td>
-                    <td className="px-4 py-3">
-                      <StudentName name={name} id={s.id} initial={s} />
-                    </td>
-                    <td className="px-4 py-3">{s.gender || '—'}</td>
-                    <td className="px-4 py-3">{s.studentId}</td>
-                    <td className="px-4 py-3">{s.className || s.grade || '—'}</td>
+              </thead>
+              <tbody>
+                {loading && (
+                  <tr>
+                    <td className="px-4 py-6 text-muted-text" colSpan={5}>Loading…</td>
                   </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                )}
+                {!loading && data.data.length === 0 && (
+                  <tr>
+                    <td className="px-4 py-6 text-muted-text" colSpan={5}>No students found</td>
+                  </tr>
+                )}
+                {!loading && data.data.map((s) => {
+                  const name = `${s.firstName} ${s.lastName}`
+                  return (
+                    <tr key={s.id} className="border-t border-gray-50">
+                      <td className="px-4 py-3 text-muted-text">{s.index}</td>
+                      <td className="px-4 py-3">
+                        <StudentName name={name} id={s.id} initial={s} />
+                      </td>
+                      <td className="px-4 py-3">{s.gender || '—'}</td>
+                      <td className="px-4 py-3">{s.studentId}</td>
+                      <td className="px-4 py-3">{s.className || s.grade || '—'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {grid && (
+          <div className="border border-gray-100 rounded-xl p-6">
+            {loading && <div className="text-muted-text text-sm">Loading…</div>}
+            {!loading && data.data.length === 0 && <div className="text-muted-text text-sm">No students found</div>}
+            {!loading && data.data.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
+                {data.data.map((s) => {
+                  const name = `${s.firstName} ${s.lastName}`
+                  return (
+                    <StudentTile key={s.id} name={name} id={s.id} subtitle={s.className || s.grade || '—'} initial={s} />
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex items-center justify-between pt-2">
           <div className="text-xs text-muted-text font-bold">
@@ -369,6 +389,7 @@ const StudentsDrawer = ({ id, onClose, initial }) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <ArchiveButton id={id} onAfter={() => { setEdit(false); onClose(); window.dispatchEvent(new CustomEvent('students:refresh')) }} />
             {!edit && <button onClick={()=>setEdit(true)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold">Edit</button>}
             {edit && (
               <>
@@ -517,6 +538,73 @@ const StudentName = ({ name, id, initial }) => {
         <span className="font-bold text-dark-text hover:underline">{name}</span>
       </button>
       {open && <StudentsDrawer id={id} initial={initial} onClose={() => setOpen(false)} />}
+    </>
+  )
+}
+
+const StudentTile = ({ name, subtitle, id, initial }) => {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button onClick={()=>setOpen(true)} className="flex flex-col items-center gap-3 focus:outline-none">
+        <div className="w-24 h-24 rounded-full bg-light-bg flex items-center justify-center shadow-sm">
+          <Avatar name={name} />
+        </div>
+        <div className="text-center">
+          <div className="text-sm font-extrabold text-dark-text leading-tight">{name}</div>
+          <div className="text-xs font-bold text-muted-text leading-tight">{subtitle}</div>
+        </div>
+      </button>
+      {open && <StudentsDrawer id={id} initial={initial} onClose={()=>setOpen(false)} />}
+    </>
+  )
+}
+
+const ArchiveButton = ({ id, onAfter }) => {
+  const [open, setOpen] = useState(false)
+  const [reason, setReason] = useState('Left school')
+  const [saving, setSaving] = useState(false)
+  return (
+    <>
+      <button onClick={()=>setOpen(true)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-error">Archive</button>
+      {open && (
+        <div className="fixed inset-0 z-[3500] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={()=>setOpen(false)} />
+          <div className="relative bg-white rounded-2xl border border-gray-100 shadow-soft-sm w-full max-w-lg p-6">
+            <div className="text-lg font-bold text-dark-text mb-3">Confirm Archive</div>
+            <div className="text-xs font-bold text-muted-text mb-2">Provide a reason for archive</div>
+            <select value={reason} onChange={e=>setReason(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm">
+              <option>Left school</option>
+              <option>Completed school</option>
+              <option>Expelled</option>
+              <option>Incorrect entry</option>
+            </select>
+            <div className="flex items-center justify-end gap-2 mt-5">
+              <button onClick={()=>setOpen(false)} className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-bold">Cancel</button>
+              <button
+                disabled={saving}
+                onClick={async ()=>{
+                  setSaving(true)
+                  try{
+                    await fetch(`/api/students/${id}/archive`, {
+                      method:'POST',
+                      headers:{'Content-Type':'application/json'},
+                      body: JSON.stringify({ reason })
+                    }).then(async r=>{ if(!r.ok){ const t=await r.json().catch(()=>({})); throw new Error(t.error || 'Failed') } })
+                    setOpen(false)
+                    onAfter && onAfter()
+                  }catch(e){
+                    alert(e.message)
+                  }finally{
+                    setSaving(false)
+                  }
+                }}
+                className="px-4 py-2 rounded-lg bg-error text-white text-sm font-bold"
+              >{saving?'Archiving…':'Archive'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
