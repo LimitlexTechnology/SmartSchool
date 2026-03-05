@@ -23,6 +23,7 @@ import Admissions from './pages/Admissions'
 import Guardians from './pages/Guardians'
 import AdminSettings from './pages/AdminSettings'
 import UserSettings from './pages/UserSettings'
+import StaffList from './pages/StaffList'
 
 // SuperAdmin Pages
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard'
@@ -74,6 +75,7 @@ const App = () => {
           <Route path="diary" element={<Diary />} />
           <Route path="attendance" element={<Attendance />} />
           <Route path="students" element={<StudentsList />} />
+          <Route path="staff" element={<StaffList />} />
           <Route path="student-groups" element={<StudentGroups />} />
           <Route path="admissions" element={<Admissions />} />
           <Route path="guardians" element={<Guardians />} />

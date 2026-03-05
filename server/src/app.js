@@ -6,6 +6,7 @@ dotenv.config();
 const prisma = require('./db');
 const { randomUUID } = require('crypto');
 const fileGroups = require('./groupsStore')
+const staffStore = require('./staffStore')
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -218,6 +219,280 @@ app.get('/api/classes', auth, async (req, res) => {
     res.status(200).json([])
   }
 });
+
+// Teachers (Staff)
+app.get('/api/teachers', auth, async (req, res) => {
+  try {
+    const page = Math.max(parseInt(req.query.page || '1', 10), 1)
+    const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '20', 10), 1), 100)
+    const q = (req.query.q || '').toString().trim()
+    const where = q
+      ? {
+          OR: [
+            { name: { contains: q, mode: 'insensitive' } },
+            { email: { contains: q, mode: 'insensitive' } },
+            { subject: { contains: q, mode: 'insensitive' } },
+          ],
+        }
+      : {}
+    const [total, items] = await Promise.all([
+      prisma.teacher.count({ where }),
+      prisma.teacher.findMany({
+        where,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        orderBy: { name: 'asc' },
+      }),
+    ])
+    const data = items.map((t, i) => ({
+      id: t.id,
+      name: t.name,
+      email: t.email,
+      subject: t.subject,
+      index: (page - 1) * pageSize + i + 1,
+    }))
+    res.json({ total, page, pageSize, data })
+  } catch (e) {
+    console.error('Teachers error:', e)
+    res.status(200).json({ total: 0, page: 1, pageSize: 20, data: [], error: e?.message || 'unknown' })
+  }
+})
+
+app.post('/api/teachers', auth, async (req, res) => {
+  try {
+    const { name, email, subject } = req.body || {}
+    if (!name || !email) return res.status(400).json({ error: 'name and email are required' })
+    const created = await prisma.teacher.create({ data: { name: name.trim(), email: email.trim(), subject: subject || '' } })
+    res.status(201).json({ id: created.id, name: created.name, email: created.email, subject: created.subject })
+  } catch (e) {
+    if (e.code === 'P2002') return res.status(409).json({ error: 'Unique constraint failed' })
+    console.error('Create teacher error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.get('/api/teachers/:id', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    const t = await prisma.teacher.findUnique({ where: { id } })
+    if (!t) return res.status(404).json({ error: 'not found' })
+    res.json({ id: t.id, name: t.name, email: t.email, subject: t.subject })
+  } catch (e) {
+    console.error('Teacher detail error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.put('/api/teachers/:id', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    const { name, email, subject } = req.body || {}
+    const data = {}
+    if (name !== undefined) data.name = name
+    if (email !== undefined) data.email = email
+    if (subject !== undefined) data.subject = subject
+    const updated = await prisma.teacher.update({ where: { id }, data })
+    res.json({ id: updated.id, name: updated.name, email: updated.email, subject: updated.subject })
+  } catch (e) {
+    if (e.code === 'P2002') return res.status(409).json({ error: 'Unique constraint failed' })
+    console.error('Update teacher error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.get('/api/teachers/:id/profile', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    try {
+      const prof = await prisma.teacherProfile.findUnique({ where: { teacherId: id } })
+      if (!prof) {
+        return res.json({
+          gender: '', phone: '', staffId: '', dateEmployed: '', ssn: '', nationalId: '', dob: '',
+          momoNumber: '', accountNumber: '', bankBranch: '', bankName: '', nextOfKin: '', nextOfKinRelation: '', nextOfKinPhone: '',
+          classesTaught: [], subjectsTaught: [], formMaster: ''
+        })
+      }
+      return res.json({
+        gender: prof.gender || '',
+        phone: prof.phone || '',
+        staffId: prof.staffId || '',
+        dateEmployed: prof.dateEmployed ? prof.dateEmployed.toISOString().slice(0,10) : '',
+        ssn: prof.ssn || '',
+        nationalId: prof.nationalId || '',
+        dob: prof.dob ? prof.dob.toISOString().slice(0,10) : '',
+        momoNumber: prof.momoNumber || '',
+        accountNumber: prof.accountNumber || '',
+        bankBranch: prof.bankBranch || '',
+        bankName: prof.bankName || '',
+        nextOfKin: prof.nextOfKin || '',
+        nextOfKinRelation: prof.nextOfKinRelation || '',
+        nextOfKinPhone: prof.nextOfKinPhone || '',
+        classesTaught: prof.classesTaught || [],
+        subjectsTaught: prof.subjectsTaught || [],
+        formMaster: prof.formMaster || '',
+      })
+    } catch (_) {
+      const p = staffStore.get(id) || {}
+      return res.json({
+        gender: p.gender || '',
+        phone: p.phone || '',
+        staffId: p.staffId || '',
+        dateEmployed: p.dateEmployed || '',
+        ssn: p.ssn || '',
+        nationalId: p.nationalId || '',
+        dob: p.dob || '',
+        momoNumber: p.momoNumber || '',
+        accountNumber: p.accountNumber || '',
+        bankBranch: p.bankBranch || '',
+        bankName: p.bankName || '',
+        nextOfKin: p.nextOfKin || '',
+        nextOfKinRelation: p.nextOfKinRelation || '',
+        nextOfKinPhone: p.nextOfKinPhone || '',
+        classesTaught: Array.isArray(p.classesTaught) ? p.classesTaught : [],
+        subjectsTaught: Array.isArray(p.subjectsTaught) ? p.subjectsTaught : [],
+        formMaster: p.formMaster || '',
+      })
+    }
+  } catch (e) {
+    console.error('Teacher profile error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.put('/api/teachers/:id/profile', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    const {
+      gender, phone, staffId, dateEmployed, ssn, nationalId, dob,
+      momoNumber, accountNumber, bankBranch, bankName,
+      nextOfKin, nextOfKinRelation, nextOfKinPhone,
+      classesTaught, subjectsTaught, formMaster
+    } = req.body || {}
+    const toDate = (v) => v ? new Date(v) : null
+    try {
+      const data = {
+        gender: gender ?? undefined,
+        phone: phone ?? undefined,
+        staffId: staffId ?? undefined,
+        dateEmployed: dateEmployed !== undefined ? toDate(dateEmployed) : undefined,
+        ssn: ssn ?? undefined,
+        nationalId: nationalId ?? undefined,
+        dob: dob !== undefined ? toDate(dob) : undefined,
+        momoNumber: momoNumber ?? undefined,
+        accountNumber: accountNumber ?? undefined,
+        bankBranch: bankBranch ?? undefined,
+        bankName: bankName ?? undefined,
+        nextOfKin: nextOfKin ?? undefined,
+        nextOfKinRelation: nextOfKinRelation ?? undefined,
+        nextOfKinPhone: nextOfKinPhone ?? undefined,
+        classesTaught: Array.isArray(classesTaught) ? classesTaught : classesTaught === undefined ? undefined : [],
+        subjectsTaught: Array.isArray(subjectsTaught) ? subjectsTaught : subjectsTaught === undefined ? undefined : [],
+        formMaster: formMaster ?? undefined,
+      }
+      const updated = await prisma.teacherProfile.upsert({
+        where: { teacherId: id },
+        update: data,
+        create: { teacherId: id, ...data, classesTaught: Array.isArray(classesTaught) ? classesTaught : [], subjectsTaught: Array.isArray(subjectsTaught) ? subjectsTaught : [] },
+      })
+      return res.json(updated)
+    } catch (_) {
+      const patch = {}
+      if (gender !== undefined) patch.gender = gender
+      if (phone !== undefined) patch.phone = phone
+      if (staffId !== undefined) patch.staffId = staffId
+      if (dateEmployed !== undefined) patch.dateEmployed = dateEmployed
+      if (ssn !== undefined) patch.ssn = ssn
+      if (nationalId !== undefined) patch.nationalId = nationalId
+      if (dob !== undefined) patch.dob = dob
+      if (momoNumber !== undefined) patch.momoNumber = momoNumber
+      if (accountNumber !== undefined) patch.accountNumber = accountNumber
+      if (bankBranch !== undefined) patch.bankBranch = bankBranch
+      if (bankName !== undefined) patch.bankName = bankName
+      if (nextOfKin !== undefined) patch.nextOfKin = nextOfKin
+      if (nextOfKinRelation !== undefined) patch.nextOfKinRelation = nextOfKinRelation
+      if (nextOfKinPhone !== undefined) patch.nextOfKinPhone = nextOfKinPhone
+      if (classesTaught !== undefined) patch.classesTaught = Array.isArray(classesTaught) ? classesTaught : []
+      if (subjectsTaught !== undefined) patch.subjectsTaught = Array.isArray(subjectsTaught) ? subjectsTaught : []
+      if (formMaster !== undefined) patch.formMaster = formMaster
+      const updatedFallback = staffStore.upsert(id, patch)
+      return res.json(updatedFallback)
+    }
+  } catch (e) {
+    console.error('Update teacher profile error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.post('/api/admin/migrate-staff-profiles', auth, async (req, res) => {
+  try {
+    const profiles = staffStore.list()
+    const ids = Object.keys(profiles || {})
+    if (!ids.length) return res.json({ migrated: 0, skipped: 0, errors: 0 })
+    let migrated = 0
+    let skipped = 0
+    let errors = 0
+    for (const teacherId of ids) {
+      try {
+        const t = await prisma.teacher.findUnique({ where: { id: teacherId } })
+        if (!t) { skipped += 1; continue }
+        const p = profiles[teacherId] || {}
+        const toDate = (v) => v ? new Date(v) : null
+        await prisma.teacherProfile.upsert({
+          where: { teacherId },
+          update: {
+            gender: p.gender || null,
+            phone: p.phone || null,
+            staffId: p.staffId || null,
+            dateEmployed: toDate(p.dateEmployed),
+            ssn: p.ssn || null,
+            nationalId: p.nationalId || null,
+            dob: toDate(p.dob),
+            momoNumber: p.momoNumber || null,
+            accountNumber: p.accountNumber || null,
+            bankBranch: p.bankBranch || null,
+            bankName: p.bankName || null,
+            nextOfKin: p.nextOfKin || null,
+            nextOfKinRelation: p.nextOfKinRelation || null,
+            nextOfKinPhone: p.nextOfKinPhone || null,
+            classesTaught: Array.isArray(p.classesTaught) ? p.classesTaught : [],
+            subjectsTaught: Array.isArray(p.subjectsTaught) ? p.subjectsTaught : [],
+            formMaster: p.formMaster || null,
+          },
+          create: {
+            teacherId,
+            gender: p.gender || null,
+            phone: p.phone || null,
+            staffId: p.staffId || null,
+            dateEmployed: toDate(p.dateEmployed),
+            ssn: p.ssn || null,
+            nationalId: p.nationalId || null,
+            dob: toDate(p.dob),
+            momoNumber: p.momoNumber || null,
+            accountNumber: p.accountNumber || null,
+            bankBranch: p.bankBranch || null,
+            bankName: p.bankName || null,
+            nextOfKin: p.nextOfKin || null,
+            nextOfKinRelation: p.nextOfKinRelation || null,
+            nextOfKinPhone: p.nextOfKinPhone || null,
+            classesTaught: Array.isArray(p.classesTaught) ? p.classesTaught : [],
+            subjectsTaught: Array.isArray(p.subjectsTaught) ? p.subjectsTaught : [],
+            formMaster: p.formMaster || null,
+          }
+        })
+        migrated += 1
+      } catch (e) {
+        errors += 1
+      }
+    }
+    res.json({ migrated, skipped, errors })
+  } catch (e) {
+    if (e.message && /relation .* teacherprofile/i.test(e.message)) {
+      return res.status(503).json({ error: 'TeacherProfile table not available' })
+    }
+    console.error('Migrate staff profiles error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
 
 app.post('/api/students', auth, async (req, res) => {
   try {

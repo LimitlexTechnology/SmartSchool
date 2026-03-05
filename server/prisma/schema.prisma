@@ -47,6 +47,7 @@ model Teacher {
   email     String   @unique
   subject   String
   lessons   Lesson[]
+  profile   TeacherProfile?
 }
 
 model Class {
@@ -112,4 +113,29 @@ model StudentGroup {
   groupId    String
   createdAt  DateTime @default(now())
   @@unique([studentId, groupId])
+}
+
+model TeacherProfile {
+  id                String   @id @default(uuid())
+  teacher           Teacher  @relation(fields: [teacherId], references: [id])
+  teacherId         String   @unique
+  gender            String?
+  phone             String?
+  staffId           String?
+  dateEmployed      DateTime?
+  ssn               String?
+  nationalId        String?
+  dob               DateTime?
+  momoNumber        String?
+  accountNumber     String?
+  bankBranch        String?
+  bankName          String?
+  nextOfKin         String?
+  nextOfKinRelation String?
+  nextOfKinPhone    String?
+  classesTaught     String[]
+  subjectsTaught    String[]
+  formMaster        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
