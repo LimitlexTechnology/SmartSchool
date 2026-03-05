@@ -366,6 +366,106 @@ app.get('/api/groups', auth, async (req, res) => {
   }
 })
 
+// ============== Admissions APIs ==============
+function admissionsWhere(type, q) {
+  const search = (q || '').toString().trim()
+  const nameFilter = search ? {
+    OR: [
+      { firstName: { contains: search, mode: 'insensitive' } },
+      { lastName: { contains: search, mode: 'insensitive' } },
+      { email: { contains: search, mode: 'insensitive' } },
+    ],
+  } : {}
+  if (type === 'left') {
+    return {
+      AND: [
+        { status: 'archived' },
+        { OR: [{ archiveReason: { not: 'Completed school' } }, { archiveReason: null }] },
+        nameFilter,
+      ],
+    }
+  }
+  if (type === 'completed') {
+    return { AND: [{ status: 'archived' }, { archiveReason: 'Completed school' }, nameFilter] }
+  }
+  // admitted (active)
+  return { AND: [{ status: { not: 'archived' } }, nameFilter] }
+}
+
+app.get('/api/admissions/list', auth, async (req, res) => {
+  try {
+    const type = (req.query.type || 'admitted').toString()
+    const page = Math.max(parseInt(req.query.page || '1', 10), 1)
+    const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '20', 10), 1), 100)
+    const q = (req.query.q || '').toString()
+    const where = admissionsWhere(type, q)
+    const [total, items] = await Promise.all([
+      prisma.student.count({ where }),
+      prisma.student.findMany({
+        where,
+        include: { class: true },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        orderBy: { createdAt: 'desc' },
+      }),
+    ])
+    const data = items.map((s, i) => ({
+      id: s.id,
+      firstName: s.firstName,
+      lastName: s.lastName,
+      email: s.email,
+      className: s.class?.name || '',
+      grade: s.class?.grade || s.grade || '',
+      studentId: s.wristbandId || s.id.slice(0, 8).toUpperCase(),
+      gender: null,
+      index: (page - 1) * pageSize + i + 1,
+    }))
+    res.json({ total, page, pageSize, data })
+  } catch (e) {
+    console.error('Admissions list error:', e)
+    res.status(200).json({ total: 0, page: 1, pageSize: 20, data: [], error: e?.message || 'unknown' })
+  }
+})
+
+app.get('/api/admissions/stats', auth, async (_req, res) => {
+  try {
+    const [activeCount, leftCount, completedCount] = await Promise.all([
+      prisma.student.count({ where: { status: { not: 'archived' } } }),
+      prisma.student.count({ where: { status: 'archived', OR: [{ archiveReason: { not: 'Completed school' } }, { archiveReason: null }] } }),
+      prisma.student.count({ where: { status: 'archived', archiveReason: 'Completed school' } }),
+    ])
+    res.json({ activeCount, leftCount, completedCount })
+  } catch (e) {
+    console.error('Admissions stats error:', e)
+    res.status(200).json({ activeCount: 0, leftCount: 0, completedCount: 0 })
+  }
+})
+
+app.get('/api/admissions/export.csv', auth, async (req, res) => {
+  try {
+    const type = (req.query.type || 'admitted').toString()
+    const q = (req.query.q || '').toString()
+    const where = admissionsWhere(type, q)
+    const items = await prisma.student.findMany({ where, include: { class: true }, orderBy: { createdAt: 'desc' } })
+    const rows = [
+      ['First Name','Last Name','Email','Class','Grade','Student ID'].join(','),
+      ...items.map(s => [
+        `"${(s.firstName||'').replace(/"/g,'""')}"`,
+        `"${(s.lastName||'').replace(/"/g,'""')}"`,
+        `"${(s.email||'').replace(/"/g,'""')}"`,
+        `"${(s.class?.name||'').replace(/"/g,'""')}"`,
+        `"${(s.class?.grade||s.grade||'').replace(/"/g,'""')}"`,
+        `"${(s.wristbandId||s.id.slice(0,8).toUpperCase()).replace(/"/g,'""')}"`,
+      ].join(','))
+    ].join('\n')
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+    res.setHeader('Content-Disposition', `attachment; filename="${type}-admissions.csv"`)
+    res.send(rows)
+  } catch (e) {
+    console.error('Admissions export error:', e)
+    res.status(500).send('error')
+  }
+})
 // Create a group
 app.post('/api/groups', auth, async (req, res) => {
   try {
