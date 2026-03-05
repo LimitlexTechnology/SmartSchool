@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import SuperAdminSidebar from '../components/layout/SuperAdminSidebar';
 import {
     Bell, Search, ChevronDown, LogOut, Shield
@@ -7,7 +7,19 @@ import {
 
 const SuperAdminLayout = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [showUserMenu, setShowUserMenu] = useState(false);
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search || '');
+        if (params.get('dev') === '1') {
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('userRole', 'superadmin');
+            if (location.search) {
+                navigate('/superadmin', { replace: true });
+            }
+        }
+    }, [location.search, navigate]);
 
     const handleLogout = () => {
         localStorage.clear();

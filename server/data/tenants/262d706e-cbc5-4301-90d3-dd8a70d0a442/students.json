@@ -1,0 +1,26 @@
+{
+  "students": [
+    {
+      "id": "ed489528-227e-46d1-b03a-86564f2f5165",
+      "firstName": "Blankson",
+      "lastName": "Kwarteng",
+      "email": "fobiblankson95@gmail.com",
+      "grade": "5",
+      "classId": null,
+      "wristbandId": "001",
+      "gender": "Male",
+      "birthday": "2001-12-22T00:00:00.000Z",
+      "admittedAt": "2026-03-05T00:00:00.000Z",
+      "religion": "Christian",
+      "nationality": "Ghanaian",
+      "hometown": "Kumasi",
+      "address": "Afrancho-Bronkong",
+      "guardianName": "FOBI KWARTENG BLANKSON",
+      "guardianRelationship": "Father",
+      "guardianContact": "0245793912",
+      "status": "active",
+      "createdAt": "2026-03-05T18:30:02.954Z",
+      "updatedAt": "2026-03-05T18:30:02.954Z"
+    }
+  ]
+}

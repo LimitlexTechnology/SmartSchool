@@ -1,0 +1,32 @@
+{
+  "schools": [
+    {
+      "id": "22f75a87-4aff-44e5-8023-3824445f5951",
+      "status": "active",
+      "plan": "Premium",
+      "students": 0,
+      "expiry": "N/A",
+      "name": "Bella school",
+      "address": "Opah",
+      "admin": "Akua",
+      "phone": "0245793912",
+      "adminPassSalt": "f3a683e31699d2ceb66d4d4620aebcc5",
+      "adminPassHash": "765651907785b135d492d17ae2c0936dabe390de69df4df260840306a580335bec31660ee2679b0ac9ecf3c4d3f6795c74f8dc2b94eb99ca2a26dad3744e45b7",
+      "createdAt": "2026-03-05T20:59:33.414Z"
+    },
+    {
+      "id": "651b7a8f-cfd4-4be4-8995-fb94a44b4d01",
+      "status": "active",
+      "plan": "Premium",
+      "students": 0,
+      "expiry": "N/A",
+      "name": "Mirekua International community  School",
+      "address": "Opah-sarpeiman",
+      "admin": "Laurietta",
+      "phone": "0245123456",
+      "adminPassSalt": "fc9bac97c4f85dd41dde54068d2170f8",
+      "adminPassHash": "bde8ecc287838da13f0540892ed4c367d5091ea17487dad75a353978023f6b773c46552ba2820d95de93150c0792deb2e10d0189233e8b84ea0a7ad6d0de1ce0",
+      "createdAt": "2026-03-05T21:08:25.918Z"
+    }
+  ]
+}

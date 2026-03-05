@@ -139,3 +139,14 @@ model TeacherProfile {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
+
+model TeachingAssignment {
+  id        String  @id @default(uuid())
+  teacher   Teacher @relation(fields: [teacherId], references: [id])
+  teacherId String
+  class     Class   @relation(fields: [classId], references: [id])
+  classId   String
+  subject   String
+  createdAt DateTime @default(now())
+  @@unique([teacherId, classId, subject])
+}

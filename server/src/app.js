@@ -5,8 +5,13 @@ const { Pool } = require('pg');
 dotenv.config();
 const prisma = require('./db');
 const { randomUUID } = require('crypto');
+const fs = require('fs')
+const path = require('path')
 const fileGroups = require('./groupsStore')
 const staffStore = require('./staffStore')
+const allocationsStore = require('./allocationsStore')
+const timetableStore = require('./timetableStore')
+const schoolsStore = require('./schoolsStore')
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -39,11 +44,39 @@ app.get('/api/health/db', async (req, res) => {
     }
 });
 
-// Mock Auth Middleware
 const auth = (req, res, next) => {
-    // Simple auth for demo
+    const raw = req.headers.cookie || ''
+    const parts = raw.split(';').map(s => s.trim()).filter(Boolean)
+    let sid = ''
+    for (const p of parts) {
+      const eq = p.indexOf('=')
+      if (eq > 0) {
+        const k = p.slice(0, eq)
+        const v = p.slice(eq + 1)
+        if (k === 'schoolId') sid = decodeURIComponent(v || '')
+      }
+    }
+    req.schoolId = sid || 'local'
     next();
 };
+
+const TENANT_DIR = path.join(__dirname, '..', 'data', 'tenants')
+function ensureTenantStudentsFile(schoolId) {
+  if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
+  const dir = path.join(TENANT_DIR, schoolId)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'students.json')
+  if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify({ students: [] }, null, 2))
+  return file
+}
+function readTenantStudents(schoolId) {
+  const file = ensureTenantStudentsFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { students: [] } }
+}
+function writeTenantStudents(schoolId, data) {
+  const file = ensureTenantStudentsFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
 
 // Ensure Group tables exist when migrations are unavailable
 let groupsSchemaReady = false
@@ -86,6 +119,9 @@ async function ensureGroupsSchema() {
 // Routes placeholder
 app.get('/api/dashboard/stats', auth, async (req, res) => {
   try {
+    if (req.schoolId && req.schoolId !== 'local') {
+      return res.json({ totalStudents: 0, totalClasses: 0, totalStaff: 0, totalGuardians: 0, revenue: 0, status: 'ok' })
+    }
     const students = await prisma.student.count()
     const classes = await prisma.class.count()
     const staff = await prisma.teacher.count()
@@ -164,6 +200,33 @@ app.put('/api/students/:id', auth, async (req, res) => {
 });
 app.get('/api/students', auth, async (req, res) => {
   try {
+    if (req.schoolId && req.schoolId !== 'local') {
+      const page = Math.max(parseInt(req.query.page || '1', 10), 1)
+      const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '20', 10), 1), 100)
+      const q = (req.query.q || '').toString().trim().toLowerCase()
+      const store = readTenantStudents(req.schoolId)
+      const all = Array.isArray(store.students) ? store.students : []
+      const filtered = q
+        ? all.filter(s =>
+            (s.firstName || '').toLowerCase().includes(q) ||
+            (s.lastName || '').toLowerCase().includes(q) ||
+            (s.email || '').toLowerCase().includes(q))
+        : all
+      const total = filtered.length
+      const items = filtered.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize)
+      const data = items.map((s, i) => ({
+        id: s.id,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        email: s.email,
+        className: '',
+        grade: s.grade || '',
+        studentId: s.wristbandId || (s.id || '').slice(0, 8).toUpperCase(),
+        gender: s.gender || null,
+        index: (page - 1) * pageSize + i + 1,
+      }))
+      return res.json({ total, page, pageSize, data })
+    }
     const page = Math.max(parseInt(req.query.page || '1', 10), 1)
     const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '20', 10), 1), 100)
     const q = (req.query.q || '').toString().trim()
@@ -212,6 +275,9 @@ app.get('/api/students', auth, async (req, res) => {
 });
 app.get('/api/classes', auth, async (req, res) => {
   try {
+    if (req.schoolId && req.schoolId !== 'local') {
+      return res.json([])
+    }
     const items = await prisma.class.findMany({ orderBy: [{ grade: 'asc' }, { name: 'asc' }] })
     res.json(items.map(c => ({ id: c.id, name: c.name, grade: c.grade })))
   } catch (e) {
@@ -223,6 +289,11 @@ app.get('/api/classes', auth, async (req, res) => {
 // Teachers (Staff)
 app.get('/api/teachers', auth, async (req, res) => {
   try {
+    if (req.schoolId && req.schoolId !== 'local') {
+      const page = Math.max(parseInt(req.query.page || '1', 10), 1)
+      const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '20', 10), 1), 100)
+      return res.json({ total: 0, page, pageSize, data: [] })
+    }
     const page = Math.max(parseInt(req.query.page || '1', 10), 1)
     const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '20', 10), 1), 100)
     const q = (req.query.q || '').toString().trim()
@@ -255,6 +326,585 @@ app.get('/api/teachers', auth, async (req, res) => {
   } catch (e) {
     console.error('Teachers error:', e)
     res.status(200).json({ total: 0, page: 1, pageSize: 20, data: [], error: e?.message || 'unknown' })
+  }
+})
+
+app.get('/api/allocations', auth, async (req, res) => {
+  try {
+    if (req.schoolId && req.schoolId !== 'local') {
+      return res.json({ classes: [], teachers: [], assignments: [] })
+    }
+    const [classes, teachers] = await Promise.all([
+      prisma.class.findMany({ orderBy: [{ grade: 'asc' }, { name: 'asc' }] }),
+      prisma.teacher.findMany({ orderBy: { name: 'asc' } })
+    ])
+    try {
+      const assigns = await prisma.teachingAssignment.findMany()
+      return res.json({
+        classes: classes.map(c => ({ id: c.id, name: c.name, grade: c.grade })),
+        teachers: teachers.map(t => ({ id: t.id, name: t.name, email: t.email, subject: t.subject })),
+        assignments: assigns.map(a => ({ id: a.id, classId: a.classId, teacherId: a.teacherId, subject: a.subject }))
+      })
+    } catch (_) {
+      const assigns = allocationsStore.list()
+      return res.json({
+        classes: classes.map(c => ({ id: c.id, name: c.name, grade: c.grade })),
+        teachers: teachers.map(t => ({ id: t.id, name: t.name, email: t.email, subject: t.subject })),
+        assignments: assigns
+      })
+    }
+  } catch (e) {
+    console.error('Allocations fetch error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.post('/api/allocations', auth, async (req, res) => {
+  try {
+    const { classId, teacherId, subject } = req.body || {}
+    if (!classId || !teacherId || !subject) return res.status(400).json({ error: 'classId, teacherId and subject are required' })
+    try {
+      const created = await prisma.teachingAssignment.create({ data: { classId, teacherId, subject: String(subject) } })
+      return res.status(201).json({ id: created.id })
+    } catch (e) {
+      try {
+        const existing = await prisma.teachingAssignment.findFirst({ where: { classId, teacherId, subject: String(subject) } })
+        if (existing) return res.status(200).json({ id: existing.id })
+      } catch (_) {}
+      const c = allocationsStore.add({ classId, teacherId, subject })
+      return res.status(201).json({ id: c.id })
+    }
+  } catch (e) {
+    console.error('Allocation create error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.delete('/api/allocations/:id', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    try {
+      await prisma.teachingAssignment.delete({ where: { id } })
+      return res.json({ status: 'removed' })
+    } catch (_) {
+      const removed = allocationsStore.remove(id)
+      return res.json({ status: removed > 0 ? 'removed' : 'not_found' })
+    }
+  } catch (e) {
+    console.error('Allocation delete error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.post('/api/allocations/bulk', auth, async (req, res) => {
+  try {
+    const { classIds = [], subject, teacherIds = [] } = req.body || {}
+    if (!Array.isArray(classIds) || !Array.isArray(teacherIds) || !subject) {
+      return res.status(400).json({ error: 'classIds, teacherIds and subject are required' })
+    }
+    let created = 0
+    let skipped = 0
+    try {
+      for (const classId of classIds) {
+        for (const teacherId of teacherIds) {
+          try {
+            await prisma.teachingAssignment.create({ data: { classId, teacherId, subject: String(subject) } })
+            created += 1
+          } catch (_) {
+            try {
+              const ex = await prisma.teachingAssignment.findFirst({ where: { classId, teacherId, subject: String(subject) } })
+              if (ex) skipped += 1
+              else throw new Error()
+            } catch {
+              allocationsStore.add({ classId, teacherId, subject })
+              created += 1
+            }
+          }
+        }
+      }
+      return res.json({ created, skipped })
+    } catch (_) {
+      for (const classId of classIds) {
+        for (const teacherId of teacherIds) {
+          const a = allocationsStore.add({ classId, teacherId, subject })
+          if (a) created += 1
+        }
+      }
+      return res.json({ created, skipped })
+    }
+  } catch (e) {
+    console.error('Allocation bulk error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.get('/api/subjects', auth, async (req, res) => {
+  try {
+    const grade = (req.query.grade || '').toString().toLowerCase()
+    const common = ['Mathematics','English','Science','Social Studies','Religious Moral Education','Computing','Creative Arts']
+    const early = ['Computing','Numeracy','Language and Literacy','Phonics','Pre-writing','Geography','Creative Arts']
+    const upper = ['Mathematics','English','Science','Computing','History','Geography','Religious Moral Education','Social Studies','Creative Arts']
+    let list = common
+    if (grade.includes('nursery') || grade.includes('kg') || grade.includes('creche')) list = early
+    else if (grade.includes('grade') || grade.includes('primary')) list = upper
+    res.json({ subjects: list })
+  } catch (e) {
+    res.status(200).json({ subjects: [] })
+  }
+})
+
+// ============== Lesson Plans (Planner) ==============
+app.get('/api/lessons', auth, async (req, res) => {
+  try {
+    const page = Math.max(parseInt(req.query.page || '1', 10), 1)
+    const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '20', 10), 1), 100)
+    const q = (req.query.q || '').toString().trim()
+    const statusFilter = (req.query.status || '').toString().trim().toLowerCase()
+    const assignedReviewer = (req.query.reviewer || '').toString().trim().toLowerCase()
+    const where = q
+      ? { OR: [{ topic: { contains: q, mode: 'insensitive' } }, { content: { contains: q, mode: 'insensitive' } }] }
+      : {}
+    const [total, items] = await Promise.all([
+      prisma.lesson.count({ where }),
+      prisma.lesson.findMany({
+        where,
+        include: { teacher: true },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        orderBy: { createdAt: 'desc' },
+      })
+    ])
+    const mapped = items.map((l, i) => {
+      let meta = {}
+      try { meta = JSON.parse(l.content || '{}') } catch {}
+      const status = (meta.status || 'draft').toString()
+      return ({
+        id: l.id,
+        topic: l.topic,
+        content: l.content,
+        teacherName: l.teacher?.name || '',
+        className: meta.className || '',
+        subject: meta.subject || '',
+        term: meta.term || '',
+        week: meta.week || '',
+        assignedReviewer: meta.assignedReviewer || '',
+        status,
+        createdAt: l.createdAt,
+        index: (page - 1) * pageSize + i + 1,
+      })
+    })
+    let filtered = statusFilter ? mapped.filter(m => m.status.toLowerCase() === statusFilter) : mapped
+    if (assignedReviewer) filtered = filtered.filter(m => (m.assignedReviewer || '').toLowerCase() === assignedReviewer)
+    res.json({
+      total, page, pageSize,
+      data: filtered
+    })
+  } catch (e) {
+    console.error('Lessons list error:', e)
+    res.status(200).json({ total: 0, page: 1, pageSize: 20, data: [], error: e?.message || 'unknown' })
+  }
+})
+
+// ============== Timetables ==============
+function timeToMinutes(str) {
+  const [h, m] = str.split(':').map(n => parseInt(n, 10))
+  return h * 60 + m
+}
+function minutesToTime(min) {
+  const h = Math.floor(min / 60).toString().padStart(2, '0')
+  const m = (min % 60).toString().padStart(2, '0')
+  return `${h}:${m}`
+}
+function overlaps(aStart, aEnd, bStart, bEnd) {
+  return Math.max(aStart, bStart) < Math.min(aEnd, bEnd)
+}
+function generatePeriods(startTime, endTime, periodMinutes, breaks = []) {
+  const start = timeToMinutes(startTime)
+  const end = timeToMinutes(endTime)
+  const br = breaks.map(b => ({ s: timeToMinutes(b.start), e: timeToMinutes(b.end), name: b.name || 'Break' })).filter(b => b.e > b.s)
+  const out = []
+  let cursor = start
+  let index = 1
+  while (cursor + periodMinutes <= end) {
+    const slotStart = cursor
+    const slotEnd = cursor + periodMinutes
+    const blocked = br.some(b => overlaps(slotStart, slotEnd, b.s, b.e))
+    if (!blocked) {
+      out.push({ index, start: minutesToTime(slotStart), end: minutesToTime(slotEnd) })
+      index += 1
+    }
+    cursor += periodMinutes
+  }
+  return out
+}
+
+app.get('/api/timetables', auth, async (_req, res) => {
+  try {
+    const items = timetableStore.list()
+    res.json(items.map(t => ({ id: t.id, name: t.name, periodMinutes: t.periodMinutes, startTime: t.startTime, endTime: t.endTime, includeSaturday: !!t.includeSaturday, createdAt: t.createdAt })))
+  } catch (e) {
+    console.error('Timetables error:', e)
+    res.status(200).json([])
+  }
+})
+
+app.post('/api/timetables', auth, async (req, res) => {
+  try {
+    const { name, startTime, endTime, periodMinutes, includeSaturday = false, breaks = [], classes = [] } = req.body || {}
+    if (!name || !startTime || !endTime || !periodMinutes) return res.status(400).json({ error: 'name, startTime, endTime, periodMinutes are required' })
+    const periods = generatePeriods(startTime, endTime, parseInt(periodMinutes, 10), breaks)
+    const created = timetableStore.create({ name, startTime, endTime, periodMinutes: parseInt(periodMinutes, 10), includeSaturday: !!includeSaturday, breaks, periods, classes })
+    res.status(201).json({ id: created.id })
+  } catch (e) {
+    console.error('Create timetable error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.get('/api/timetables/:id', auth, async (req, res) => {
+  try {
+    const t = timetableStore.get(req.params.id)
+    if (!t) return res.status(404).json({ error: 'not found' })
+    res.json(t)
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.put('/api/timetables/:id', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    const { name, startTime, endTime, periodMinutes, includeSaturday, breaks, classes } = req.body || {}
+    const patch = {}
+    if (name !== undefined) patch.name = name
+    if (startTime !== undefined) patch.startTime = startTime
+    if (endTime !== undefined) patch.endTime = endTime
+    if (periodMinutes !== undefined) patch.periodMinutes = parseInt(periodMinutes, 10)
+    if (includeSaturday !== undefined) patch.includeSaturday = !!includeSaturday
+    if (breaks !== undefined) patch.breaks = breaks
+    if (classes !== undefined) patch.classes = classes
+    const needsRecompute = (startTime !== undefined) || (endTime !== undefined) || (periodMinutes !== undefined) || (breaks !== undefined)
+    const updated = timetableStore.update(id, patch)
+    if (!updated) return res.status(404).json({ error: 'not found' })
+    if (needsRecompute) {
+      const base = timetableStore.get(id)
+      const periods = generatePeriods(base.startTime, base.endTime, base.periodMinutes, base.breaks || [])
+      timetableStore.update(id, { periods })
+    }
+    res.json({ id })
+  } catch (e) {
+    console.error('Update timetable error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.delete('/api/timetables/:id', auth, async (req, res) => {
+  try {
+    const removed = timetableStore.remove(req.params.id)
+    res.json({ status: removed > 0 ? 'deleted' : 'not_found' })
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+// ============== Super Admin: Schools ==============
+app.get('/api/admin/schools', auth, async (_req, res) => {
+  try {
+    const name = process.env.SCHOOL_NAME || 'SmartSchool Local'
+    const admin = process.env.SCHOOL_ADMIN || 'Admin'
+    const phone = process.env.SCHOOL_PHONE || ''
+    const [studentsCount] = await Promise.all([
+      prisma.student.count({ where: { status: { not: 'archived' } } })
+    ])
+    const local = {
+      id: 'local',
+      name,
+      address: process.env.SCHOOL_ADDRESS || '',
+      admin,
+      phone,
+      plan: process.env.SUBSCRIPTION_PLAN || 'Free',
+      status: 'active',
+      expiry: 'N/A',
+      students: studentsCount
+    }
+    const others = schoolsStore.list()
+    res.json([local, ...others])
+  } catch (e) {
+    console.error('Admin schools error:', e)
+    res.status(200).json([])
+  }
+})
+
+app.post('/api/admin/schools', auth, async (req, res) => {
+  try {
+    const { name, address, adminName, adminPhone, adminTempPassword, plan = 'Basic' } = req.body || {}
+    if (!name) return res.status(400).json({ error: 'name is required' })
+    const created = (() => {
+      const payload = { name, address: address || '', admin: adminName || '', phone: adminPhone || '', plan }
+      if (adminTempPassword && adminTempPassword.trim()) {
+        const crypto = require('crypto')
+        const salt = crypto.randomBytes(16).toString('hex')
+        const hash = crypto.scryptSync(adminTempPassword.trim(), salt, 64).toString('hex')
+        payload.adminPassSalt = salt
+        payload.adminPassHash = hash
+      }
+      return schoolsStore.create(payload)
+    })()
+    res.status(201).json({ id: created.id })
+  } catch (e) {
+    console.error('Create school error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.get('/api/admin/schools/:id', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    if (id === 'local') {
+      const name = process.env.SCHOOL_NAME || 'SmartSchool Local'
+      const admin = process.env.SCHOOL_ADMIN || 'Admin'
+      const phone = process.env.SCHOOL_PHONE || ''
+      const studentsCount = await prisma.student.count({ where: { status: { not: 'archived' } } })
+      return res.json({
+        id: 'local',
+        name,
+        address: process.env.SCHOOL_ADDRESS || '',
+        admin,
+        phone,
+        plan: process.env.SUBSCRIPTION_PLAN || 'Free',
+        status: 'active',
+        expiry: 'N/A',
+        students: studentsCount
+      })
+    }
+    const s = schoolsStore.list().find(x => x.id === id)
+    if (!s) return res.status(404).json({ error: 'not found' })
+    res.json(s)
+  } catch (e) {
+    console.error('Get school error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.put('/api/admin/schools/:id', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    if (id === 'local') return res.status(400).json({ error: 'cannot edit local school' })
+    const { name, address, adminName, adminPhone, plan, adminTempPassword } = req.body || {}
+    const patch = {}
+    if (name !== undefined) patch.name = name
+    if (address !== undefined) patch.address = address
+    if (adminName !== undefined) patch.admin = adminName
+    if (adminPhone !== undefined) patch.phone = adminPhone
+    if (plan !== undefined) patch.plan = plan
+    if (adminTempPassword && adminTempPassword.trim()) {
+      const crypto = require('crypto')
+      const salt = crypto.randomBytes(16).toString('hex')
+      const hash = crypto.scryptSync(adminTempPassword.trim(), salt, 64).toString('hex')
+      patch.adminPassSalt = salt
+      patch.adminPassHash = hash
+    }
+    const updated = schoolsStore.update(id, patch)
+    if (!updated) return res.status(404).json({ error: 'not found' })
+    res.json({ id: updated.id })
+  } catch (e) {
+    console.error('Update school error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.put('/api/admin/schools/:id/suspend', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    if (id === 'local') return res.status(400).json({ error: 'cannot suspend local school' })
+    const s = schoolsStore.list().find(x => x.id === id)
+    if (!s) return res.status(404).json({ error: 'not found' })
+    const next = s.status === 'suspended' ? 'active' : (s.status === 'pending' ? 'active' : 'suspended')
+    const updated = schoolsStore.update(id, { status: next })
+    res.json({ status: updated.status })
+  } catch (e) {
+    console.error('Suspend school error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.delete('/api/admin/schools/:id', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    if (id === 'local') return res.status(400).json({ error: 'cannot delete local school' })
+    const removed = schoolsStore.remove(id)
+    res.json({ status: removed > 0 ? 'deleted' : 'not_found' })
+  } catch (e) {
+    console.error('Delete school error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+// School admin credential verification (phone + temporary password)
+app.post('/api/school-auth/login', async (req, res) => {
+  try {
+    const { phone, password } = req.body || {}
+    if (!phone || !password) return res.status(400).json({ error: 'phone and password are required' })
+    const items = schoolsStore.list()
+    const school = items.find(s => (s.phone || '').trim() === phone.trim())
+    if (!school || !school.adminPassSalt || !school.adminPassHash) return res.status(401).json({ error: 'invalid credentials' })
+    const crypto = require('crypto')
+    const hash = crypto.scryptSync(password.trim(), school.adminPassSalt, 64).toString('hex')
+    if (hash !== school.adminPassHash) return res.status(401).json({ error: 'invalid credentials' })
+    res.json({ schoolId: school.id, name: school.name, plan: school.plan, status: school.status })
+  } catch (e) {
+    console.error('School auth error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+// Super admin credential verification
+app.post('/api/superadmin/login', async (req, res) => {
+  try {
+    const { phone, password } = req.body || {}
+    if (!phone || !password) return res.status(400).json({ error: 'phone and password are required' })
+    const superPhone = (process.env.SUPERADMIN_PHONE || '0000000000').trim()
+    const superPass = (process.env.SUPERADMIN_PASSWORD || 'super123')
+    if (phone.trim() !== superPhone || password !== superPass) {
+      return res.status(401).json({ error: 'invalid credentials' })
+    }
+    res.json({ role: 'superadmin', name: 'Super Admin' })
+  } catch (e) {
+    console.error('Super admin auth error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+// School admin change password
+app.put('/api/school-auth/password', auth, async (req, res) => {
+  try {
+    const schoolId = req.schoolId
+    if (!schoolId || schoolId === 'local') return res.status(400).json({ error: 'not allowed' })
+    const { currentPassword, newPassword } = req.body || {}
+    if (!newPassword || newPassword.trim().length < 6) {
+      return res.status(400).json({ error: 'newPassword must be at least 6 characters' })
+    }
+    const s = schoolsStore.list().find(x => x.id === schoolId)
+    if (!s) return res.status(404).json({ error: 'school not found' })
+    const crypto = require('crypto')
+    if (s.adminPassSalt && s.adminPassHash) {
+      if (!currentPassword) return res.status(401).json({ error: 'currentPassword required' })
+      const cur = crypto.scryptSync(currentPassword.trim(), s.adminPassSalt, 64).toString('hex')
+      if (cur !== s.adminPassHash) return res.status(401).json({ error: 'invalid current password' })
+    }
+    const salt = crypto.randomBytes(16).toString('hex')
+    const hash = crypto.scryptSync(newPassword.trim(), salt, 64).toString('hex')
+    schoolsStore.update(schoolId, { adminPassSalt: salt, adminPassHash: hash })
+    res.json({ status: 'ok' })
+  } catch (e) {
+    console.error('Change school password error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.post('/api/lessons', auth, async (req, res) => {
+  try {
+    const { topic, content, teacherId } = req.body || {}
+    if (!topic || !content) return res.status(400).json({ error: 'topic and content are required' })
+    const created = await prisma.lesson.create({ data: { topic: topic.trim(), content: String(content), teacherId: teacherId || undefined } })
+    res.status(201).json({ id: created.id })
+  } catch (e) {
+    console.error('Create lesson error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.get('/api/lessons/:id', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    const l = await prisma.lesson.findUnique({ where: { id }, include: { teacher: true } })
+    if (!l) return res.status(404).json({ error: 'not found' })
+    res.json({ id: l.id, topic: l.topic, content: l.content, teacherName: l.teacher?.name || '', createdAt: l.createdAt })
+  } catch (e) {
+    console.error('Lesson detail error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.put('/api/lessons/:id', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    const { topic, content, teacherId } = req.body || {}
+    const updated = await prisma.lesson.update({ where: { id }, data: {
+      topic: topic !== undefined ? topic : undefined,
+      content: content !== undefined ? String(content) : undefined,
+      teacherId: teacherId !== undefined ? teacherId : undefined,
+    }})
+    res.json({ id: updated.id })
+  } catch (e) {
+    console.error('Update lesson error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.delete('/api/lessons/:id', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    await prisma.lesson.delete({ where: { id } })
+    res.json({ status: 'deleted' })
+  } catch (e) {
+    console.error('Delete lesson error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.post('/api/lessons/:id/submit', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    const l = await prisma.lesson.findUnique({ where: { id } })
+    if (!l) return res.status(404).json({ error: 'not found' })
+    let meta = {}
+    try { meta = JSON.parse(l.content || '{}') } catch {}
+    meta.status = 'pending'
+    await prisma.lesson.update({ where: { id }, data: { content: JSON.stringify(meta) } })
+    res.json({ status: 'pending' })
+  } catch (e) {
+    console.error('Submit lesson error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.post('/api/lessons/:id/decision', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    const { action, reviewer = 'Reviewer', comment = '' } = req.body || {}
+    if (!['approve','reject'].includes(action)) return res.status(400).json({ error: 'action must be approve or reject' })
+    const l = await prisma.lesson.findUnique({ where: { id } })
+    if (!l) return res.status(404).json({ error: 'not found' })
+    let meta = {}
+    try { meta = JSON.parse(l.content || '{}') } catch {}
+    meta.status = action === 'approve' ? 'approved' : 'rejected'
+    const entry = { reviewer, action, comment, decidedAt: new Date().toISOString() }
+    meta.reviews = Array.isArray(meta.reviews) ? meta.reviews : []
+    meta.reviews.push(entry)
+    await prisma.lesson.update({ where: { id }, data: { content: JSON.stringify(meta) } })
+    res.json({ status: meta.status })
+  } catch (e) {
+    console.error('Decision lesson error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.post('/api/lessons/:id/assign-reviewer', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    const { reviewer } = req.body || {}
+    if (!reviewer || !reviewer.trim()) return res.status(400).json({ error: 'reviewer is required' })
+    const l = await prisma.lesson.findUnique({ where: { id } })
+    if (!l) return res.status(404).json({ error: 'not found' })
+    let meta = {}
+    try { meta = JSON.parse(l.content || '{}') } catch {}
+    meta.assignedReviewer = reviewer.trim()
+    await prisma.lesson.update({ where: { id }, data: { content: JSON.stringify(meta) } })
+    res.json({ assignedReviewer: meta.assignedReviewer })
+  } catch (e) {
+    console.error('Assign reviewer error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
   }
 })
 
@@ -504,6 +1154,45 @@ app.post('/api/students', auth, async (req, res) => {
     } = req.body || {}
     if (!firstName || !lastName || !email) {
       return res.status(400).json({ error: 'firstName, lastName and email are required' })
+    }
+    if (req.schoolId && req.schoolId !== 'local') {
+      const store = readTenantStudents(req.schoolId)
+      const exists = (store.students || []).some(s => (s.email || '').toLowerCase() === email.toLowerCase())
+      if (exists) return res.status(409).json({ error: 'Unique constraint failed' })
+      const now = new Date().toISOString()
+      const obj = {
+        id: randomUUID(),
+        firstName, lastName, email,
+        grade: grade || '',
+        classId: classId || null,
+        wristbandId: wristbandId || null,
+        gender: gender || null,
+        birthday: birthday ? new Date(birthday).toISOString() : null,
+        admittedAt: admittedAt ? new Date(admittedAt).toISOString() : now,
+        religion: religion || null,
+        nationality: nationality || null,
+        hometown: hometown || null,
+        address: address || null,
+        guardianName: guardianName || null,
+        guardianRelationship: guardianRelationship || null,
+        guardianContact: guardianContact || null,
+        status: 'active',
+        createdAt: now,
+        updatedAt: now
+      }
+      store.students = Array.isArray(store.students) ? store.students : []
+      store.students.unshift(obj)
+      writeTenantStudents(req.schoolId, store)
+      return res.status(201).json({
+        id: obj.id,
+        firstName: obj.firstName,
+        lastName: obj.lastName,
+        email: obj.email,
+        className: '',
+        grade: obj.grade || '',
+        studentId: obj.wristbandId || obj.id.slice(0, 8).toUpperCase(),
+        createdAt: obj.createdAt
+      })
     }
     const created = await prisma.student.create({
       data: {
@@ -1027,6 +1716,12 @@ app.get('/api/guardians/export.csv', auth, async (req, res) => {
 
 app.get('/api/attendance/summary', auth, async (req, res) => {
   try {
+    if (req.schoolId && req.schoolId !== 'local') {
+      const date = (req.query.date || '').toString()
+      const page = Math.max(parseInt(req.query.page || '1', 10), 1)
+      const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '15', 10), 1), 100)
+      return res.json({ date, totals: { totalStudents: 0, present: 0, absent: 0, notMarked: 0 }, page, pageSize, totalClasses: 0, data: [] })
+    }
     const date = (req.query.date || '').toString()
     const page = Math.max(parseInt(req.query.page || '1', 10), 1)
     const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '15', 10), 1), 100)

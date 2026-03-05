@@ -24,6 +24,9 @@ import Guardians from './pages/Guardians'
 import AdminSettings from './pages/AdminSettings'
 import UserSettings from './pages/UserSettings'
 import StaffList from './pages/StaffList'
+import CourseAllocation from './pages/CourseAllocation'
+import LessonPlanner from './pages/LessonPlanner'
+import Timetables from './pages/Timetables'
 
 // SuperAdmin Pages
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard'
@@ -76,6 +79,9 @@ const App = () => {
           <Route path="attendance" element={<Attendance />} />
           <Route path="students" element={<StudentsList />} />
           <Route path="staff" element={<StaffList />} />
+          <Route path="staff/course-allocation" element={<CourseAllocation />} />
+          <Route path="staff/lesson-planner" element={<LessonPlanner />} />
+          <Route path="staff/timetables" element={<Timetables />} />
           <Route path="student-groups" element={<StudentGroups />} />
           <Route path="admissions" element={<Admissions />} />
           <Route path="guardians" element={<Guardians />} />

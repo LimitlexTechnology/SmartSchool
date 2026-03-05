@@ -14,7 +14,6 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    // Basic validation
     if (!phoneNumber || phoneNumber.length < 10) {
       alert('Please enter a valid phone number');
       return;
@@ -28,39 +27,41 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // Simulate API call for phone number and password authentication
-      // In a real app, this would call your backend API
-
-      // Test credentials for demo purposes
-      const testCredentials = [
-        { phone: '0000000000', password: 'super123', role: 'superadmin' },
-        { phone: '1234567890', password: 'admin123', role: 'admin' },
-        { phone: '5551234567', password: 'teacher123', role: 'teacher' },
-        { phone: '9876543210', password: 'student123', role: 'student' }
-      ];
-
-      // Validate against test credentials
-      const matchedUser = testCredentials.find(
-        cred => cred.phone === phoneNumber && cred.password === password
-      );
-
-      if (!matchedUser) {
-        throw new Error('Invalid credentials');
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Store login state in localStorage
-      localStorage.setItem('userPhone', phoneNumber);
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('userRole', matchedUser.role);
-
-      // Redirect based on role
-      if (matchedUser.role === 'superadmin') {
+      // Try super admin login first
+      const rs = await fetch('/api/superadmin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phoneNumber, password })
+      })
+      if (rs.ok) {
+        const j = await rs.json()
+        localStorage.setItem('userPhone', phoneNumber);
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('userRole', 'superadmin');
+        document.cookie = `schoolId=local; Path=/; Max-Age=${60*60*24*7}`
         navigate('/superadmin');
-      } else {
-        navigate('/dashboard');
+        return
       }
+
+      // Otherwise attempt school admin login
+      const r = await fetch('/api/school-auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phoneNumber, password })
+      })
+      if (r.ok) {
+        const j = await r.json()
+        localStorage.setItem('userPhone', phoneNumber);
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('userRole', 'admin');
+        if (j.schoolId) localStorage.setItem('schoolId', j.schoolId)
+        if (j.name) localStorage.setItem('schoolName', j.name)
+        if (j.schoolId) document.cookie = `schoolId=${encodeURIComponent(j.schoolId)}; Path=/; Max-Age=${60*60*24*7}`
+        navigate('/dashboard');
+        return
+      }
+      const t = await r.json().catch(()=>({}))
+      throw new Error(t.error || 'Login failed')
     } catch (error) {
       alert('Login failed. Please check your phone number and password.');
     } finally {

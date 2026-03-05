@@ -140,6 +140,8 @@ const Dashboard = () => {
     const dateStr = today.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
     const timeStr = today.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
+    const schoolName = (typeof window !== 'undefined' && window.localStorage.getItem('schoolName')) || 'Your School';
+
     const admittedData = [20, 60, 280, 140, 20];
     const leftData = [5, 8, 3, 6, 2];
     const [stats, setStats] = useState({
@@ -153,7 +155,7 @@ const Dashboard = () => {
     useEffect(() => {
         const load = async () => {
             try {
-                const res = await fetch('http://localhost:5000/api/dashboard/stats');
+                const res = await fetch('/api/dashboard/stats');
                 const data = await res.json();
                 setStats(data);
             } catch {
@@ -204,7 +206,7 @@ const Dashboard = () => {
                 </div>
 
                 <div className="flex-1">
-                    <h2 className="text-xl font-extrabold text-dark-text">SmartSchool International</h2>
+                    <h2 className="text-xl font-extrabold text-dark-text">{schoolName}</h2>
                     <p className="text-sm text-muted-text font-medium">3rd Term, 2025/2026</p>
                     <div className="flex flex-wrap gap-3 mt-3">
                         <span className="text-[11px] font-bold bg-primary-teal/10 text-primary-teal px-3 py-1 rounded-full">Active Academic Year</span>

@@ -37,6 +37,90 @@ const Toggle = ({ checked, onChange }) => (
   </label>
 )
 
+const ChangePasswordForm = () => {
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showCurrent, setShowCurrent] = useState(false)
+  const [showNew, setShowNew] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const role = (typeof window !== 'undefined' && window.localStorage.getItem('userRole')) || 'admin'
+
+  const submit = async () => {
+    if (role === 'superadmin') { alert('Super admin password is managed by environment settings.'); return }
+    if (!newPassword || newPassword.length < 6) { alert('New password must be at least 6 characters'); return }
+    if (newPassword !== confirmPassword) { alert('New passwords do not match'); return }
+    setSaving(true)
+    try {
+      const r = await fetch('/api/school-auth/password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword })
+      })
+      if (!r.ok) {
+        const t = await r.json().catch(()=>({}))
+        alert(t.error || 'Failed to change password')
+        return
+      }
+      alert('Password changed successfully. Please log in again.')
+      localStorage.clear()
+      document.cookie = 'schoolId=; Path=/; Max-Age=0'
+      window.location.href = '/login'
+    } finally { setSaving(false) }
+  }
+
+  if (role === 'superadmin') {
+    return <p className="text-xs text-muted-text font-bold">Super admin credentials are configured by the platform operator.</p>
+  }
+
+  return (
+    <div className="grid gap-3 max-w-md">
+      <div className="relative">
+        <input
+          type={showCurrent ? 'text' : 'password'}
+          value={currentPassword}
+          onChange={(e) => setCurrentPassword(e.target.value)}
+          placeholder="Current password"
+          className="w-full pr-12 px-3 py-2 text-sm border border-gray-200 rounded-lg"
+        />
+        <button type="button" onClick={() => setShowCurrent(v => !v)} className="absolute inset-y-0 right-0 px-3 text-gray-500">
+          {showCurrent ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      </div>
+      <div className="relative">
+        <input
+          type={showNew ? 'text' : 'password'}
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          placeholder="New password"
+          className="w-full pr-12 px-3 py-2 text-sm border border-gray-200 rounded-lg"
+          minLength={6}
+        />
+        <button type="button" onClick={() => setShowNew(v => !v)} className="absolute inset-y-0 right-0 px-3 text-gray-500">
+          {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      </div>
+      <input
+        type="password"
+        value={confirmPassword}
+        onChange={(e) => setConfirmPassword(e.target.value)}
+        placeholder="Confirm new password"
+        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg"
+        minLength={6}
+      />
+      <div>
+        <button
+          onClick={submit}
+          disabled={saving}
+          className="px-4 py-2 bg-primary-teal text-white text-sm font-bold rounded-lg hover:bg-teal-600 disabled:opacity-50"
+        >
+          {saving ? 'Updating…' : 'Update Password'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 const UserSettings = () => {
   const [settings, setSettings] = useState({
     notifications: {
@@ -241,6 +325,10 @@ const UserSettings = () => {
             onChange={(e) => updateSetting('security', 'loginAlerts', e.target.checked)}
           />
         </SettingRow>
+    <div className="pt-2">
+      <div className="text-sm font-extrabold text-dark-text mb-2">Change Password</div>
+      <ChangePasswordForm />
+    </div>
       </Section>
 
       <Section title="Appearance">

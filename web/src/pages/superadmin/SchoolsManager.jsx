@@ -1,15 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, Search, Building2, Eye, Ban, Trash2, X, ChevronDown } from 'lucide-react';
-
-const mockSchools = [
-    { id: 1, name: 'Greenfield Academy', address: 'Accra, Ghana', admin: 'Mr. Kwarteng', phone: '0201234567', plan: 'Premium', status: 'active', expiry: '20 May 2026', students: 1248 },
-    { id: 2, name: 'Mirekua International', address: 'Kumasi, Ghana', admin: 'Mrs. Asante', phone: '0551234567', plan: 'Premium', status: 'active', expiry: '20 May 2026', students: 820 },
-    { id: 3, name: 'Bright Stars School', address: 'Takoradi, Ghana', admin: 'Mr. Mensah', phone: '0241234567', plan: 'Basic', status: 'pending', expiry: '10 Mar 2026', students: 310 },
-    { id: 4, name: 'Faith Academy', address: 'Tamale, Ghana', admin: 'Sister Grace', phone: '0261234567', plan: 'Free', status: 'active', expiry: 'N/A', students: 195 },
-    { id: 5, name: 'Heritage International', address: 'Cape Coast, Ghana', admin: 'Mr. Osei', phone: '0271234567', plan: 'Basic', status: 'suspended', expiry: '01 Jan 2026', students: 460 },
-    { id: 6, name: 'Sunrise Prep School', address: 'Tema, Ghana', admin: 'Mrs. Offei', phone: '0231234567', plan: 'Premium', status: 'active', expiry: '15 Jun 2026', students: 570 },
-    { id: 7, name: 'Unity High School', address: 'Sunyani, Ghana', admin: 'Mr. Boateng', phone: '0291234567', plan: 'Free', status: 'active', expiry: 'N/A', students: 228 },
-];
+import React, { useEffect, useState } from 'react';
+import { Plus, Search, Building2, Eye, EyeOff, Ban, Trash2, X, ChevronDown, Pencil } from 'lucide-react';
 
 const planBadge = { Premium: 'bg-amber-100 text-amber-700', Basic: 'bg-blue-100 text-blue-700', Free: 'bg-gray-100 text-gray-500' };
 const statusBadge = { active: 'bg-emerald-100 text-emerald-700', pending: 'bg-yellow-100 text-yellow-700', suspended: 'bg-rose-100 text-rose-700' };
@@ -20,27 +10,87 @@ const SchoolsManager = () => {
     const [search, setSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [showModal, setShowModal] = useState(false);
-    const [schools, setSchools] = useState(mockSchools);
-    const [form, setForm] = useState({ name: '', address: '', adminName: '', adminPhone: '', plan: 'Basic' });
+    const [schools, setSchools] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [form, setForm] = useState({ name: '', address: '', adminName: '', adminPhone: '', adminTempPassword: '', plan: 'Basic' });
+    const [showEdit, setShowEdit] = useState(false);
+    const [editForm, setEditForm] = useState({ name: '', address: '', adminName: '', adminPhone: '', adminTempPassword: '', plan: 'Basic' });
+    const [editingId, setEditingId] = useState('');
+    const [showCreds, setShowCreds] = useState(false);
+    const [createdCreds, setCreatedCreds] = useState({ name: '', phone: '', temp: '' });
+    const [showEditPass, setShowEditPass] = useState(false);
+
+    const load = async () => {
+        setLoading(true)
+        try {
+            const r = await fetch('/api/admin/schools')
+            const j = await r.json()
+            setSchools(j || [])
+        } finally { setLoading(false) }
+    }
+    useEffect(() => { load() }, [])
 
     const filtered = schools.filter(s =>
         s.name.toLowerCase().includes(search.toLowerCase()) &&
         (filterStatus === 'all' || s.status === filterStatus)
     );
 
-    const handleCreate = () => {
-        if (!form.name || !form.adminPhone) return;
-        setSchools(prev => [...prev, {
-            id: prev.length + 1, name: form.name, address: form.address,
-            admin: form.adminName, phone: form.adminPhone,
-            plan: form.plan, status: 'pending', expiry: 'N/A', students: 0
-        }]);
+    const handleCreate = async () => {
+        if (!form.name) return;
+        const temp = form.adminTempPassword
+        const phone = form.adminPhone
+        const name = form.name
+        const r = await fetch('/api/admin/schools', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(form) })
+        if (!r.ok) { const t = await r.json().catch(()=>({})); alert(t.error || 'Failed'); return }
         setShowModal(false);
-        setForm({ name: '', address: '', adminName: '', adminPhone: '', plan: 'Basic' });
+        setCreatedCreds({ name, phone, temp });
+        setShowCreds(true);
+        setForm({ name: '', address: '', adminName: '', adminPhone: '', adminTempPassword: '', plan: 'Basic' });
+        await load()
     };
 
-    const handleSuspend = (id) => setSchools(prev => prev.map(s => s.id === id ? { ...s, status: s.status === 'suspended' ? 'active' : 'suspended' } : s));
-    const handleDelete = (id) => setSchools(prev => prev.filter(s => s.id !== id));
+    const handleSuspend = async (id) => {
+        const r = await fetch(`/api/admin/schools/${id}/suspend`, { method:'PUT' })
+        if (!r.ok) { const t=await r.json().catch(()=>({})); alert(t.error||'Failed'); return }
+        await load()
+    }
+    const handleDelete = async (id) => {
+        const r = await fetch(`/api/admin/schools/${id}`, { method:'DELETE' })
+        if (!r.ok) { const t=await r.json().catch(()=>({})); alert(t.error||'Failed'); return }
+        await load()
+    }
+
+    const openEdit = (s) => {
+        setEditingId(s.id)
+        setEditForm({
+            name: s.name || '',
+            address: s.address || '',
+            adminName: s.admin || '',
+            adminPhone: s.phone || '',
+            adminTempPassword: '',
+            plan: s.plan || 'Basic'
+        })
+        setShowEdit(true)
+    }
+
+    const handleUpdate = async () => {
+        if (!editingId) return
+        const payload = {
+            name: editForm.name,
+            address: editForm.address,
+            adminName: editForm.adminName,
+            adminPhone: editForm.adminPhone,
+            plan: editForm.plan
+        }
+        if (editForm.adminTempPassword && editForm.adminTempPassword.trim()) {
+            payload.adminTempPassword = editForm.adminTempPassword.trim()
+        }
+        const r = await fetch(`/api/admin/schools/${editingId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
+        if (!r.ok) { const t=await r.json().catch(()=>({})); alert(t.error||'Failed'); return }
+        setShowEdit(false)
+        setEditingId('')
+        await load()
+    }
 
     return (
         <div className="flex flex-col gap-6">
@@ -93,13 +143,13 @@ const SchoolsManager = () => {
                                             </div>
                                             <div>
                                                 <p className="text-sm font-bold text-white">{s.name}</p>
-                                                <p className="text-[11px] text-gray-500">{s.address}</p>
+                                                <p className="text-[11px] text-gray-500">{s.address || '—'}</p>
                                             </div>
                                         </div>
                                     </td>
                                     <td className="px-5 py-4">
-                                        <p className="text-sm text-gray-300">{s.admin}</p>
-                                        <p className="text-[11px] text-gray-500">{s.phone}</p>
+                                        <p className="text-sm text-gray-300">{s.admin || '—'}</p>
+                                        <p className="text-[11px] text-gray-500">{s.phone || '—'}</p>
                                     </td>
                                     <td className="px-5 py-4">
                                         <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${planBadge[s.plan]}`}>{s.plan}</span>
@@ -112,8 +162,13 @@ const SchoolsManager = () => {
                                     <td className="px-5 py-4">
                                         <div className="flex items-center gap-2">
                                             <button title="View" className="p-1.5 text-gray-400 hover:text-primary-teal transition"><Eye size={16} /></button>
-                                            <button title={s.status === 'suspended' ? 'Reactivate' : 'Suspend'} onClick={() => handleSuspend(s.id)} className="p-1.5 text-gray-400 hover:text-amber-400 transition"><Ban size={16} /></button>
-                                            <button title="Delete" onClick={() => handleDelete(s.id)} className="p-1.5 text-gray-400 hover:text-rose-400 transition"><Trash2 size={16} /></button>
+                                            {s.id !== 'local' && (
+                                              <>
+                                                <button title="Edit" onClick={() => openEdit(s)} className="p-1.5 text-gray-400 hover:text-blue-400 transition"><Pencil size={16} /></button>
+                                                <button title={s.status === 'suspended' ? 'Reactivate' : 'Suspend'} onClick={() => handleSuspend(s.id)} className="p-1.5 text-gray-400 hover:text-amber-400 transition"><Ban size={16} /></button>
+                                                <button title="Delete" onClick={() => handleDelete(s.id)} className="p-1.5 text-gray-400 hover:text-rose-400 transition"><Trash2 size={16} /></button>
+                                              </>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -140,12 +195,16 @@ const SchoolsManager = () => {
                                 { label: 'Address', key: 'address', placeholder: 'City, Country' },
                                 { label: 'Admin Full Name', key: 'adminName', placeholder: 'e.g. Mr. John Doe' },
                                 { label: 'Admin Phone', key: 'adminPhone', placeholder: 'e.g. 0201234567' },
+                                { label: 'Admin Temporary Password', key: 'adminTempPassword', placeholder: 'e.g. Temp@1234' },
                             ].map(({ label, key, placeholder }) => (
                                 <div key={key}>
                                     <label className="block text-xs font-bold text-gray-400 mb-1.5">{label}</label>
-                                    <input value={form[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
+                                    <input type={key === 'adminTempPassword' ? 'password' : 'text'} value={form[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
                                         placeholder={placeholder}
                                         className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-gray-600 outline-none focus:border-primary-teal/50 transition" />
+                                    {key === 'adminTempPassword' && (
+                                      <p className="text-[10px] text-gray-500 mt-1 font-bold">Keep this safe. It will be shown once after creation.</p>
+                                    )}
                                 </div>
                             ))}
                             <div>
@@ -159,6 +218,98 @@ const SchoolsManager = () => {
                         <div className="flex gap-3 p-6 border-t border-white/5">
                             <button onClick={() => setShowModal(false)} className="flex-1 py-3 rounded-xl border border-white/10 text-sm font-bold text-gray-400 hover:bg-white/5 transition">Cancel</button>
                             <button onClick={handleCreate} className="flex-1 py-3 rounded-xl bg-primary-teal text-white text-sm font-bold hover:bg-secondary-teal transition">Create School</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {showCreds && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[350] flex items-center justify-center p-4">
+                    <div className="bg-[#0F1A2E] border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl">
+                        <div className="flex items-center justify-between p-6 border-b border-white/5">
+                            <h3 className="text-lg font-extrabold text-white">Admin Credentials (One-time)</h3>
+                            <button onClick={() => setShowCreds(false)} className="text-gray-400 hover:text-white transition"><X size={20} /></button>
+                        </div>
+                        <div className="p-6 flex flex-col gap-3">
+                            <div>
+                                <div className="text-xs font-bold text-gray-400">School</div>
+                                <div className="text-sm font-bold text-white">{createdCreds.name || '—'}</div>
+                            </div>
+                            <div>
+                                <div className="text-xs font-bold text-gray-400">Admin Phone</div>
+                                <div className="text-sm font-bold text-white">{createdCreds.phone || '—'}</div>
+                            </div>
+                            <div>
+                                <div className="text-xs font-bold text-gray-400">Temporary Password</div>
+                                <div className="text-sm font-bold text-white">{createdCreds.temp ? '•'.repeat(Math.max(createdCreds.temp.length, 8)) : '—'}</div>
+                                <div className="text-[10px] text-amber-400 mt-1 font-bold">Copy the temp password you entered. It isn’t stored in plain text and cannot be viewed later.</div>
+                            </div>
+                        </div>
+                        <div className="flex gap-3 p-6 border-t border-white/5">
+                            <button onClick={() => setShowCreds(false)} className="flex-1 py-3 rounded-xl bg-primary-teal text-white text-sm font-bold hover:bg-secondary-teal transition">I Understand</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {showEdit && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[300] flex items-center justify-center p-4">
+                    <div className="bg-[#0F1A2E] border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl">
+                        <div className="flex items-center justify-between p-6 border-b border-white/5">
+                            <h3 className="text-lg font-extrabold text-white">Edit School</h3>
+                            <button onClick={() => setShowEdit(false)} className="text-gray-400 hover:text-white transition"><X size={20} /></button>
+                        </div>
+                        <div className="p-6 flex flex-col gap-4">
+                            {[
+                                { label: 'School Name', key: 'name', placeholder: 'e.g. Greenfield Academy' },
+                                { label: 'Address', key: 'address', placeholder: 'City, Country' },
+                                { label: 'Admin Full Name', key: 'adminName', placeholder: 'e.g. Mr. John Doe' },
+                                { label: 'Admin Phone', key: 'adminPhone', placeholder: 'e.g. 0201234567' },
+                                { label: 'Reset Temporary Password', key: 'adminTempPassword', placeholder: 'Leave blank to keep' },
+                            ].map(({ label, key, placeholder }) => (
+                                <div key={key}>
+                                    <label className="block text-xs font-bold text-gray-400 mb-1.5">{label}</label>
+                                    {key === 'adminTempPassword' ? (
+                                      <div className="relative">
+                                        <input
+                                          type={showEditPass ? 'text' : 'password'}
+                                          value={editForm[key]}
+                                          onChange={e => setEditForm(p => ({ ...p, [key]: e.target.value }))}
+                                          placeholder={placeholder}
+                                          className="w-full pr-11 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-gray-600 outline-none focus:border-primary-teal/50 transition"
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={() => setShowEditPass(v => !v)}
+                                          title={showEditPass ? 'Hide password' : 'Show password'}
+                                          className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-white transition"
+                                        >
+                                          {showEditPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <input
+                                        type="text"
+                                        value={editForm[key]}
+                                        onChange={e => setEditForm(p => ({ ...p, [key]: e.target.value }))}
+                                        placeholder={placeholder}
+                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-gray-600 outline-none focus:border-primary-teal/50 transition"
+                                      />
+                                    )}
+                                    {key === 'adminTempPassword' && (
+                                      <p className="text-[10px] text-gray-500 mt-1 font-bold">For security, we cannot show previous passwords. Enter a new temp password to reset.</p>
+                                    )}
+                                </div>
+                            ))}
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 mb-1.5">Subscription Plan</label>
+                                <select value={editForm.plan} onChange={e => setEditForm(p => ({ ...p, plan: e.target.value }))}
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none focus:border-primary-teal/50 transition cursor-pointer">
+                                    {PLANS.map(p => <option key={p} value={p} className="bg-[#0F1A2E]">{p}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                        <div className="flex gap-3 p-6 border-t border-white/5">
+                            <button onClick={() => setShowEdit(false)} className="flex-1 py-3 rounded-xl border border-white/10 text-sm font-bold text-gray-400 hover:bg-white/5 transition">Cancel</button>
+                            <button onClick={handleUpdate} className="flex-1 py-3 rounded-xl bg-primary-teal text-white text-sm font-bold hover:bg-secondary-teal transition">Save Changes</button>
                         </div>
                     </div>
                 </div>
