@@ -750,6 +750,44 @@ app.get('/api/guardians/export.csv', auth, async (req, res) => {
   }
 })
 
+app.get('/api/attendance/summary', auth, async (req, res) => {
+  try {
+    const date = (req.query.date || '').toString()
+    const page = Math.max(parseInt(req.query.page || '1', 10), 1)
+    const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '15', 10), 1), 100)
+    const classes = await prisma.class.findMany({ orderBy: [{ grade: 'asc' }, { name: 'asc' }] })
+    const classIds = classes.map(c => c.id)
+    const students = await prisma.student.findMany({ where: { status: { not: 'archived' }, classId: { in: classIds } } })
+    const counts = {}
+    for (const c of classes) counts[c.id] = 0
+    for (const s of students) { if (s.classId && counts[s.classId] !== undefined) counts[s.classId] += 1 }
+    const rowsAll = classes.map((c, i) => ({
+      id: c.id,
+      name: c.name,
+      grade: c.grade,
+      total: counts[c.id] || 0,
+      present: 0,
+      absent: 0,
+      notMarked: counts[c.id] || 0,
+      index: i + 1,
+    }))
+    const totalClasses = rowsAll.length
+    const totals = rowsAll.reduce((acc, r) => {
+      acc.totalStudents += r.total
+      acc.present += r.present
+      acc.absent += r.absent
+      acc.notMarked += r.notMarked
+      return acc
+    }, { totalStudents: 0, present: 0, absent: 0, notMarked: 0 })
+    const start = (page - 1) * pageSize
+    const rows = rowsAll.slice(start, start + pageSize)
+    res.json({ date, totals, page, pageSize, totalClasses, data: rows })
+  } catch (e) {
+    console.error('Attendance summary error:', e)
+    res.status(200).json({ date: '', totals: { totalStudents: 0, present: 0, absent: 0, notMarked: 0 }, page: 1, pageSize: 15, totalClasses: 0, data: [] })
+  }
+})
+
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });

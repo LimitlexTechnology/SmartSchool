@@ -70,9 +70,13 @@ const SidebarItem = ({ icon: Icon, label, to, active = false, collapsed = false,
 const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
     const [collapsed, setCollapsed] = useState(false);
     const [showStudents, setShowStudents] = useState(false);
+    const [showStaff, setShowStaff] = useState(false);
     const studentsRef = useRef(null);
+    const staffRef = useRef(null);
     const submenuRef = useRef(null);
+    const staffMenuRef = useRef(null);
     const [submenuPos, setSubmenuPos] = useState({ top: 0, left: 0 });
+    const [staffMenuPos, setStaffMenuPos] = useState({ top: 0, left: 0 });
     const location = useLocation();
 
     const navItems = [
@@ -101,15 +105,26 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
         { label: 'Attendance', to: '/dashboard/attendance' },
         { label: 'Guardians', to: '/dashboard/guardians' },
     ];
+    const staffLinks = [
+        { label: 'Staff List', to: '/dashboard/staff' },
+        { label: 'Attendance', to: '/dashboard/staff/attendance' },
+        { label: 'Course Allocation', to: '/dashboard/staff/course-allocation' },
+        { label: 'Lesson Planner', to: '/dashboard/staff/lesson-planner' },
+        { label: 'Timetables', to: '/dashboard/staff/timetables' },
+        { label: 'Classroom', to: '/dashboard/staff/classroom' },
+    ];
 
     useEffect(() => {
         const onDocClick = (e) => {
             const el = studentsRef.current;
+            const st = staffRef.current;
             const menu = submenuRef.current;
+            const smenu = staffMenuRef.current;
             if (!el) return;
-            if (el.contains(e.target)) return;
-            if (menu && menu.contains(e.target)) return;
+            if (el.contains(e.target) || (st && st.contains(e.target))) return;
+            if ((menu && menu.contains(e.target)) || (smenu && smenu.contains(e.target))) return;
             setShowStudents(false);
+            setShowStaff(false);
         };
         document.addEventListener('mousedown', onDocClick);
         return () => document.removeEventListener('mousedown', onDocClick);
@@ -121,6 +136,15 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
         const rect = el.getBoundingClientRect();
         setSubmenuPos({ top: rect.top, left: rect.right + 8 });
         setShowStudents((v) => !v);
+        setShowStaff(false);
+    };
+    const toggleStaff = () => {
+        const el = staffRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        setStaffMenuPos({ top: rect.top, left: rect.right + 8 });
+        setShowStaff((v) => !v);
+        setShowStudents(false);
     };
 
     return (
@@ -188,6 +212,48 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
                                                         onClick={() => {
                                                             setIsMobileMenuOpen(false);
                                                             setShowStudents(false);
+                                                        }}
+                                                    >
+                                                        {l.label}
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        </div>,
+                                        document.body
+                                    )}
+                                </div>
+                            );
+                        }
+                        if (item.label === 'Staff') {
+                            const isActive = location.pathname.startsWith('/dashboard/staff');
+                            return (
+                                <div key={index} className="relative w-full" ref={staffRef}>
+                                    <SidebarItem
+                                        icon={item.icon}
+                                        to="#"
+                                        label={item.label}
+                                        active={isActive}
+                                        collapsed={collapsed}
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            toggleStaff();
+                                        }}
+                                    />
+                                    {showStaff && createPortal(
+                                        <div
+                                            ref={staffMenuRef}
+                                            style={{ position: 'fixed', top: staffMenuPos.top, left: staffMenuPos.left }}
+                                            className="bg-white border border-gray-100 rounded-xl shadow-soft-sm p-2 z-[9999]"
+                                        >
+                                            <div className="min-w-[200px] flex flex-col">
+                                                {staffLinks.map((l, i) => (
+                                                    <Link
+                                                        key={i}
+                                                        to={l.to}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-bold no-underline ${location.pathname === l.to ? 'bg-primary-teal text-white' : 'text-dark-text hover:bg-light-bg'}`}
+                                                        onClick={() => {
+                                                            setIsMobileMenuOpen(false);
+                                                            setShowStaff(false);
                                                         }}
                                                     >
                                                         {l.label}
