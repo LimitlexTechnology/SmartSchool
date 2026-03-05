@@ -678,6 +678,78 @@ app.delete('/api/groups/:groupId/members/:memberId', auth, async (req, res) => {
   }
 })
 
+// ============== Guardians APIs ==============
+function aggregateGuardians(students, q) {
+  const map = new Map()
+  for (const s of students) {
+    const name = (s.guardianName || '').trim()
+    const contact = (s.guardianContact || '').trim()
+    const email = '' // email not available in schema
+    if (!name && !contact) continue
+    const key = `${name}::${contact}::${email}`
+    if (!map.has(key)) {
+      map.set(key, { name: name || '—', contact, email, wards: 0 })
+    }
+    map.get(key).wards += 1
+  }
+  let arr = Array.from(map.values())
+  const search = (q || '').trim().toLowerCase()
+  if (search) {
+    arr = arr.filter(g =>
+      g.name.toLowerCase().includes(search) ||
+      g.contact.toLowerCase().includes(search) ||
+      g.email.toLowerCase().includes(search)
+    )
+  }
+  arr.sort((a, b) => a.name.localeCompare(b.name))
+  return arr
+}
+
+app.get('/api/guardians', auth, async (req, res) => {
+  try {
+    const page = Math.max(parseInt(req.query.page || '1', 10), 1)
+    const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '20', 10), 1), 100)
+    const q = (req.query.q || '').toString()
+    const students = await prisma.student.findMany({
+      where: { status: { not: 'archived' } },
+      select: { guardianName: true, guardianContact: true }
+    })
+    const all = aggregateGuardians(students, q)
+    const total = all.length
+    const items = all.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize)
+    res.json({ total, page, pageSize, data: items })
+  } catch (e) {
+    console.error('Guardians error:', e)
+    res.status(200).json({ total: 0, page: 1, pageSize: 20, data: [], error: e?.message || 'unknown' })
+  }
+})
+
+app.get('/api/guardians/export.csv', auth, async (req, res) => {
+  try {
+    const q = (req.query.q || '').toString()
+    const students = await prisma.student.findMany({
+      where: { status: { not: 'archived' } },
+      select: { guardianName: true, guardianContact: true }
+    })
+    const all = aggregateGuardians(students, q)
+    const rows = [
+      ['Name','Contact Number','Email','Wards'].join(','),
+      ...all.map(g => [
+        `"${(g.name||'').replace(/"/g,'""')}"`,
+        `"${(g.contact||'').replace(/"/g,'""')}"`,
+        `"${(g.email||'').replace(/"/g,'""')}"`,
+        String(g.wards),
+      ].join(','))
+    ].join('\n')
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+    res.setHeader('Content-Disposition', 'attachment; filename="guardians.csv"')
+    res.send(rows)
+  } catch (e) {
+    console.error('Guardians export error:', e)
+    res.status(500).send('error')
+  }
+})
+
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
