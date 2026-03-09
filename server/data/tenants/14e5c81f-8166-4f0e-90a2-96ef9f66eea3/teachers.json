@@ -1,0 +1,28 @@
+{
+  "teachers": [
+    {
+      "id": "00150064-2286-413d-b2f5-2d2dc8ec91dc",
+      "name": "Evander Kwarteng",
+      "email": "ekk@gmail.com",
+      "subject": "CArts",
+      "createdAt": "2026-03-09T09:13:56.578Z",
+      "updatedAt": "2026-03-09T09:14:41.030Z"
+    },
+    {
+      "id": "6e636239-2e97-488a-a3ac-6e3a397975d2",
+      "name": "Fobi Blankson Kwarteng",
+      "email": "fobiblankson95@gmail.com",
+      "subject": "ICT",
+      "createdAt": "2026-03-09T09:04:09.661Z",
+      "updatedAt": "2026-03-09T09:04:57.599Z"
+    },
+    {
+      "id": "9ccc30cc-5993-4d81-94a7-a117cd655d6a",
+      "name": "anastasia mawuena",
+      "email": "anastasiamawuena5@gmail.com",
+      "subject": "Twi",
+      "createdAt": "2026-03-09T08:49:00.322Z",
+      "updatedAt": "2026-03-09T09:02:58.209Z"
+    }
+  ]
+}

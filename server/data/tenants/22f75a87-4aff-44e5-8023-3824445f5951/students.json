@@ -1,0 +1,26 @@
+{
+  "students": [
+    {
+      "id": "b3285c0c-3015-4839-91c8-99de663a45d0",
+      "firstName": "Blankson",
+      "lastName": "Kwarteng",
+      "email": "fobiblankson95@gmail.com",
+      "grade": "8",
+      "classId": null,
+      "wristbandId": null,
+      "gender": "Male",
+      "birthday": "2026-03-05T00:00:00.000Z",
+      "admittedAt": "2026-03-01T00:00:00.000Z",
+      "religion": null,
+      "nationality": null,
+      "hometown": "Kumasi",
+      "address": "Afrancho-Bronkong",
+      "guardianName": null,
+      "guardianRelationship": null,
+      "guardianContact": null,
+      "status": "active",
+      "createdAt": "2026-03-05T21:34:36.027Z",
+      "updatedAt": "2026-03-05T21:34:36.027Z"
+    }
+  ]
+}

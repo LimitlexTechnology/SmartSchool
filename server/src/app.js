@@ -48,15 +48,18 @@ const auth = (req, res, next) => {
     const raw = req.headers.cookie || ''
     const parts = raw.split(';').map(s => s.trim()).filter(Boolean)
     let sid = ''
+    let tid = ''
     for (const p of parts) {
       const eq = p.indexOf('=')
       if (eq > 0) {
         const k = p.slice(0, eq)
         const v = p.slice(eq + 1)
         if (k === 'schoolId') sid = decodeURIComponent(v || '')
+        if (k === 'teacherId') tid = decodeURIComponent(v || '')
       }
     }
     req.schoolId = sid || 'local'
+    req.teacherId = tid || ''
     next();
 };
 
@@ -76,6 +79,49 @@ function readTenantStudents(schoolId) {
 function writeTenantStudents(schoolId, data) {
   const file = ensureTenantStudentsFile(schoolId)
   fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
+function ensureTenantTeachersFile(schoolId) {
+  if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
+  const dir = path.join(TENANT_DIR, schoolId)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'teachers.json')
+  if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify({ teachers: [] }, null, 2))
+  return file
+}
+function readTenantTeachers(schoolId) {
+  const file = ensureTenantTeachersFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { teachers: [] } }
+}
+function writeTenantTeachers(schoolId, data) {
+  const file = ensureTenantTeachersFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
+// Super Admin profile store (file-based)
+const SUPERADMIN_FILE = path.join(__dirname, '..', 'data', 'superadmin-profile.json')
+function ensureSuperAdminFile() {
+  const dir = path.dirname(SUPERADMIN_FILE)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  if (!fs.existsSync(SUPERADMIN_FILE)) {
+    const def = {
+      name: process.env.SUPERADMIN_NAME || 'Super Admin',
+      phone: (process.env.SUPERADMIN_PHONE || '0000000000'),
+      email: process.env.SUPERADMIN_EMAIL || 'superadmin@smartschool'
+    }
+    fs.writeFileSync(SUPERADMIN_FILE, JSON.stringify(def, null, 2))
+  }
+}
+function readSuperAdminProfile() {
+  ensureSuperAdminFile()
+  try { return JSON.parse(fs.readFileSync(SUPERADMIN_FILE, 'utf8')) } catch { return { name:'Super Admin', phone:'', email:'' } }
+}
+function writeSuperAdminProfile(p) {
+  ensureSuperAdminFile()
+  const cur = readSuperAdminProfile()
+  const next = { ...cur, ...p }
+  fs.writeFileSync(SUPERADMIN_FILE, JSON.stringify(next, null, 2))
+  return next
 }
 
 // Ensure Group tables exist when migrations are unavailable
@@ -292,7 +338,25 @@ app.get('/api/teachers', auth, async (req, res) => {
     if (req.schoolId && req.schoolId !== 'local') {
       const page = Math.max(parseInt(req.query.page || '1', 10), 1)
       const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '20', 10), 1), 100)
-      return res.json({ total: 0, page, pageSize, data: [] })
+      const q = (req.query.q || '').toString().trim().toLowerCase()
+      const store = readTenantTeachers(req.schoolId)
+      const all = Array.isArray(store.teachers) ? store.teachers : []
+      const filtered = q
+        ? all.filter(t =>
+            (t.name || '').toLowerCase().includes(q) ||
+            (t.email || '').toLowerCase().includes(q) ||
+            (t.subject || '').toLowerCase().includes(q))
+        : all
+      const total = filtered.length
+      const items = filtered.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize)
+      const data = items.map((t, i) => ({
+        id: t.id,
+        name: t.name,
+        email: t.email,
+        subject: t.subject || '',
+        index: (page - 1) * pageSize + i + 1,
+      }))
+      return res.json({ total, page, pageSize, data })
     }
     const page = Math.max(parseInt(req.query.page || '1', 10), 1)
     const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '20', 10), 1), 100)
@@ -775,6 +839,29 @@ app.post('/api/superadmin/login', async (req, res) => {
   }
 })
 
+app.get('/api/superadmin/profile', async (_req, res) => {
+  try {
+    const p = readSuperAdminProfile()
+    res.json({ name: p.name || 'Super Admin', phone: p.phone || '', email: p.email || '' })
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.put('/api/superadmin/profile', async (req, res) => {
+  try {
+    const { name, phone, email } = req.body || {}
+    const updated = writeSuperAdminProfile({
+      name: name !== undefined ? String(name).trim() : undefined,
+      phone: phone !== undefined ? String(phone).trim() : undefined,
+      email: email !== undefined ? String(email).trim() : undefined,
+    })
+    res.json({ status: 'ok', profile: updated })
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
 // School admin change password
 app.put('/api/school-auth/password', auth, async (req, res) => {
   try {
@@ -798,6 +885,42 @@ app.put('/api/school-auth/password', auth, async (req, res) => {
     res.json({ status: 'ok' })
   } catch (e) {
     console.error('Change school password error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.get('/api/school-auth/profile', auth, async (req, res) => {
+  try {
+    const schoolId = req.schoolId
+    if (!schoolId || schoolId === 'local') return res.status(400).json({ error: 'not allowed' })
+    const s = schoolsStore.list().find(x => x.id === schoolId)
+    if (!s) return res.status(404).json({ error: 'school not found' })
+    res.json({
+      schoolId: s.id,
+      schoolName: s.name || '',
+      adminName: s.admin || '',
+      adminPhone: s.phone || '',
+      adminEmail: s.adminEmail || ''
+    })
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.put('/api/school-auth/profile', auth, async (req, res) => {
+  try {
+    const schoolId = req.schoolId
+    if (!schoolId || schoolId === 'local') return res.status(400).json({ error: 'not allowed' })
+    const { schoolName, adminName, adminPhone, adminEmail } = req.body || {}
+    const patch = {}
+    if (schoolName !== undefined) patch.name = String(schoolName).trim()
+    if (adminName !== undefined) patch.admin = String(adminName).trim()
+    if (adminPhone !== undefined) patch.phone = String(adminPhone).trim()
+    if (adminEmail !== undefined) patch.adminEmail = String(adminEmail).trim()
+    const updated = schoolsStore.update(schoolId, patch)
+    if (!updated) return res.status(404).json({ error: 'school not found' })
+    res.json({ status: 'ok' })
+  } catch (e) {
     res.status(500).json({ error: e?.message || 'unknown' })
   }
 })
@@ -910,9 +1033,44 @@ app.post('/api/lessons/:id/assign-reviewer', auth, async (req, res) => {
 
 app.post('/api/teachers', auth, async (req, res) => {
   try {
-    const { name, email, subject } = req.body || {}
+    const { name, email, subject, phone, tempPassword } = req.body || {}
     if (!name || !email) return res.status(400).json({ error: 'name and email are required' })
+    if (req.schoolId && req.schoolId !== 'local') {
+      const store = readTenantTeachers(req.schoolId)
+      const id = randomUUID()
+      const obj = { id, name: name.trim(), email: String(email).trim(), subject: subject || '', createdAt: new Date().toISOString() }
+      store.teachers = Array.isArray(store.teachers) ? store.teachers : []
+      store.teachers.unshift(obj)
+      writeTenantTeachers(req.schoolId, store)
+      if (phone || tempPassword) {
+        const patch = {}
+        if (phone) patch.phone = String(phone).trim()
+        if (tempPassword && tempPassword.trim()) {
+          const crypto = require('crypto')
+          const salt = crypto.randomBytes(16).toString('hex')
+          const hash = crypto.scryptSync(tempPassword.trim(), salt, 64).toString('hex')
+          patch.passSalt = salt
+          patch.passHash = hash
+        }
+        patch.schoolId = req.schoolId
+        staffStore.upsert(id, patch)
+      }
+      return res.status(201).json({ id, name: obj.name, email: obj.email, subject: obj.subject })
+    }
     const created = await prisma.teacher.create({ data: { name: name.trim(), email: email.trim(), subject: subject || '' } })
+    if (phone || tempPassword) {
+      const patch = {}
+      if (phone) patch.phone = String(phone).trim()
+      if (tempPassword && tempPassword.trim()) {
+        const crypto = require('crypto')
+        const salt = crypto.randomBytes(16).toString('hex')
+        const hash = crypto.scryptSync(tempPassword.trim(), salt, 64).toString('hex')
+        patch.passSalt = salt
+        patch.passHash = hash
+      }
+      patch.schoolId = 'local'
+      staffStore.upsert(created.id, patch)
+    }
     res.status(201).json({ id: created.id, name: created.name, email: created.email, subject: created.subject })
   } catch (e) {
     if (e.code === 'P2002') return res.status(409).json({ error: 'Unique constraint failed' })
@@ -924,9 +1082,18 @@ app.post('/api/teachers', auth, async (req, res) => {
 app.get('/api/teachers/:id', auth, async (req, res) => {
   try {
     const id = req.params.id
-    const t = await prisma.teacher.findUnique({ where: { id } })
-    if (!t) return res.status(404).json({ error: 'not found' })
-    res.json({ id: t.id, name: t.name, email: t.email, subject: t.subject })
+    if (req.schoolId && req.schoolId !== 'local') {
+      const store = readTenantTeachers(req.schoolId)
+      const t = (store.teachers || []).find(x => x.id === id)
+      if (!t) return res.status(404).json({ error: 'not found' })
+      const prof = staffStore.get(id) || {}
+      return res.json({ id: t.id, name: t.name, email: t.email, subject: t.subject, phone: prof.phone || '' })
+    } else {
+      const t = await prisma.teacher.findUnique({ where: { id } })
+      if (!t) return res.status(404).json({ error: 'not found' })
+      const prof = staffStore.get(id) || {}
+      return res.json({ id: t.id, name: t.name, email: t.email, subject: t.subject, phone: prof.phone || '' })
+    }
   } catch (e) {
     console.error('Teacher detail error:', e)
     res.status(500).json({ error: e?.message || 'unknown' })
@@ -937,6 +1104,22 @@ app.put('/api/teachers/:id', auth, async (req, res) => {
   try {
     const id = req.params.id
     const { name, email, subject } = req.body || {}
+    if (req.schoolId && req.schoolId !== 'local') {
+      const store = readTenantTeachers(req.schoolId)
+      const idx = (store.teachers || []).findIndex(t => t.id === id)
+      if (idx === -1) return res.status(404).json({ error: 'not found' })
+      const prev = store.teachers[idx]
+      const next = {
+        ...prev,
+        name: name !== undefined ? String(name) : prev.name,
+        email: email !== undefined ? String(email) : prev.email,
+        subject: subject !== undefined ? String(subject) : prev.subject,
+        updatedAt: new Date().toISOString()
+      }
+      store.teachers[idx] = next
+      writeTenantTeachers(req.schoolId, store)
+      return res.json({ id: next.id, name: next.name, email: next.email, subject: next.subject })
+    }
     const data = {}
     if (name !== undefined) data.name = name
     if (email !== undefined) data.email = email
@@ -1264,6 +1447,79 @@ app.get('/api/students/:id', auth, async (req, res) => {
   }
 });
 
+// ============== Teacher Permissions ==============
+app.get('/api/teachers/:id/permissions', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    const p = staffStore.get(id) || {}
+    res.json({
+      allowedFeatures: Array.isArray(p.allowedFeatures) ? p.allowedFeatures : [],
+      allowedActions: Array.isArray(p.allowedActions) ? p.allowedActions : []
+    })
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.put('/api/teachers/:id/permissions', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    const { allowedFeatures, allowedActions } = req.body || {}
+    const patch = {}
+    if (allowedFeatures !== undefined) patch.allowedFeatures = Array.isArray(allowedFeatures) ? allowedFeatures : []
+    if (allowedActions !== undefined) patch.allowedActions = Array.isArray(allowedActions) ? allowedActions : []
+    const updated = staffStore.upsert(id, patch)
+    res.json({
+      allowedFeatures: Array.isArray(updated.allowedFeatures) ? updated.allowedFeatures : [],
+      allowedActions: Array.isArray(updated.allowedActions) ? updated.allowedActions : []
+    })
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+// ============== Teacher Authentication ==============
+app.post('/api/teacher-auth/login', async (req, res) => {
+  try {
+    const { phone, password } = req.body || {}
+    if (!phone || !password) return res.status(400).json({ error: 'phone and password are required' })
+    const profiles = staffStore.list()
+    const entries = Object.entries(profiles || {})
+    const match = entries.find(([_, p]) => (p.phone || '').trim() === phone.trim())
+    if (!match) return res.status(401).json({ error: 'invalid credentials' })
+    const [teacherId, p] = match
+    if (!p.passSalt || !p.passHash) return res.status(401).json({ error: 'invalid credentials' })
+    const crypto = require('crypto')
+    const hash = crypto.scryptSync(password.trim(), p.passSalt, 64).toString('hex')
+    if (hash !== p.passHash) return res.status(401).json({ error: 'invalid credentials' })
+    const t = await prisma.teacher.findUnique({ where: { id: teacherId } })
+    res.json({ teacherId, name: t?.name || 'Teacher', schoolId: p.schoolId || 'local' })
+  } catch (e) {
+    console.error('Teacher auth error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.put('/api/teacher-auth/password', auth, async (req, res) => {
+  try {
+    const teacherId = req.teacherId
+    const { currentPassword, newPassword } = req.body || {}
+    if (!teacherId) return res.status(400).json({ error: 'not logged in as teacher' })
+    if (!newPassword || newPassword.trim().length < 6) return res.status(400).json({ error: 'newPassword must be at least 6 characters' })
+    const prof = staffStore.get(teacherId)
+    if (!prof || !prof.passSalt || !prof.passHash) return res.status(404).json({ error: 'profile not found' })
+    const crypto = require('crypto')
+    const cur = crypto.scryptSync((currentPassword || '').trim(), prof.passSalt, 64).toString('hex')
+    if (cur !== prof.passHash) return res.status(401).json({ error: 'invalid current password' })
+    const salt = crypto.randomBytes(16).toString('hex')
+    const hash = crypto.scryptSync(newPassword.trim(), salt, 64).toString('hex')
+    staffStore.upsert(teacherId, { passSalt: salt, passHash: hash })
+    res.json({ status: 'ok' })
+  } catch (e) {
+    console.error('Teacher change password error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
 app.post('/api/students/:id/archive', auth, async (req, res) => {
   try {
     const id = req.params.id

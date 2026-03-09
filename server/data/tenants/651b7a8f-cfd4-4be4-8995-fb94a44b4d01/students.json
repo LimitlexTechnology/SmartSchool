@@ -1,0 +1,26 @@
+{
+  "students": [
+    {
+      "id": "41b35bbc-18be-4b36-858d-ab4d010ba7e7",
+      "firstName": "Alpha",
+      "lastName": "Dodou",
+      "email": "alpha@gmail.com",
+      "grade": "5",
+      "classId": null,
+      "wristbandId": null,
+      "gender": "Male",
+      "birthday": "2026-03-05T00:00:00.000Z",
+      "admittedAt": "2026-08-05T00:00:00.000Z",
+      "religion": null,
+      "nationality": null,
+      "hometown": null,
+      "address": null,
+      "guardianName": null,
+      "guardianRelationship": null,
+      "guardianContact": null,
+      "status": "active",
+      "createdAt": "2026-03-05T21:32:08.136Z",
+      "updatedAt": "2026-03-05T21:32:08.136Z"
+    }
+  ]
+}

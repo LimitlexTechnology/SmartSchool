@@ -52,11 +52,20 @@ const ChangePasswordForm = () => {
     if (newPassword !== confirmPassword) { alert('New passwords do not match'); return }
     setSaving(true)
     try {
-      const r = await fetch('/api/school-auth/password', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentPassword, newPassword })
-      })
+      let r
+      if (role === 'teacher') {
+        r = await fetch('/api/teacher-auth/password', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentPassword, newPassword })
+        })
+      } else {
+        r = await fetch('/api/school-auth/password', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentPassword, newPassword })
+        })
+      }
       if (!r.ok) {
         const t = await r.json().catch(()=>({}))
         alert(t.error || 'Failed to change password')
@@ -65,6 +74,7 @@ const ChangePasswordForm = () => {
       alert('Password changed successfully. Please log in again.')
       localStorage.clear()
       document.cookie = 'schoolId=; Path=/; Max-Age=0'
+      document.cookie = 'teacherId=; Path=/; Max-Age=0'
       window.location.href = '/login'
     } finally { setSaving(false) }
   }
@@ -143,6 +153,11 @@ const UserSettings = () => {
     }
   })
 
+  const sid = (typeof window !== 'undefined' && window.localStorage.getItem('schoolId')) || 'local'
+  const keyName = `adminName:${sid}`
+  const keyPhone = `adminPhone:${sid}`
+  const keyEmail = `userEmail:${sid}`
+
   const [profile, setProfile] = useState({
     name: '',
     email: '',
@@ -151,9 +166,13 @@ const UserSettings = () => {
   })
 
   useEffect(() => {
-    const name = localStorage.getItem('adminName') || 'Admin User'
-    const email = localStorage.getItem('userEmail') || 'admin@school.com'
-    const phone = localStorage.getItem('adminPhone') || localStorage.getItem('userPhone') || ''
+    const sidNow = localStorage.getItem('schoolId') || 'local'
+    const nKey = `adminName:${sidNow}`
+    const pKey = `adminPhone:${sidNow}`
+    const eKey = `userEmail:${sidNow}`
+    const name = localStorage.getItem(nKey) || localStorage.getItem('adminName') || 'Admin User'
+    const email = localStorage.getItem(eKey) || localStorage.getItem('userEmail') || 'admin@school.com'
+    const phone = localStorage.getItem(pKey) || localStorage.getItem('adminPhone') || localStorage.getItem('userPhone') || ''
     const role = localStorage.getItem('userRole') || 'System Admin'
     
     setProfile({ name, email, phone, role })
@@ -161,6 +180,19 @@ const UserSettings = () => {
     const savedSettings = localStorage.getItem('userSettings')
     if (savedSettings) {
       setSettings(JSON.parse(savedSettings))
+    }
+    if (sidNow !== 'local') {
+      fetch('/api/school-auth/profile').then(r => r.ok ? r.json() : null).then(j => {
+        if (j) {
+          setProfile(p => ({ ...p, name: j.adminName || p.name, phone: j.adminPhone || p.phone, email: j.adminEmail || p.email }))
+        }
+      }).catch(()=>{})
+    } else {
+      fetch('/api/superadmin/profile').then(r => r.ok ? r.json() : null).then(j => {
+        if (j) {
+          setProfile(p => ({ ...p, name: j.name || p.name, phone: j.phone || p.phone, email: j.email || p.email }))
+        }
+      }).catch(()=>{})
     }
   }, [])
 
@@ -177,9 +209,23 @@ const UserSettings = () => {
   }
 
   const saveProfile = () => {
-    localStorage.setItem('adminName', profile.name)
-    localStorage.setItem('adminPhone', profile.phone)
-    localStorage.setItem('userEmail', profile.email)
+    const sidNow = localStorage.getItem('schoolId') || 'local'
+    if (sidNow !== 'local') {
+      fetch('/api/school-auth/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminName: profile.name, adminPhone: profile.phone, adminEmail: profile.email })
+      }).catch(()=>{})
+    } else {
+      fetch('/api/superadmin/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: profile.name, phone: profile.phone, email: profile.email })
+      }).catch(()=>{})
+    }
+    localStorage.setItem(`adminName:${sidNow}`, profile.name)
+    localStorage.setItem(`adminPhone:${sidNow}`, profile.phone)
+    localStorage.setItem(`userEmail:${sidNow}`, profile.email)
     window.dispatchEvent(new CustomEvent('adminProfile:change'))
     alert('Profile updated successfully!')
   }

@@ -60,6 +60,25 @@ const Login = () => {
         navigate('/dashboard');
         return
       }
+      // Try teacher login
+      const rt = await fetch('/api/teacher-auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phoneNumber, password })
+      })
+      if (rt.ok) {
+        const j = await rt.json()
+        localStorage.setItem('userPhone', phoneNumber);
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('userRole', 'teacher');
+        if (j.name) localStorage.setItem('teacherName', j.name)
+        if (j.teacherId) localStorage.setItem('teacherId', j.teacherId)
+        if (j.schoolId) localStorage.setItem('schoolId', j.schoolId)
+        if (j.schoolId) document.cookie = `schoolId=${encodeURIComponent(j.schoolId)}; Path=/; Max-Age=${60*60*24*7}`
+        if (j.teacherId) document.cookie = `teacherId=${encodeURIComponent(j.teacherId)}; Path=/; Max-Age=${60*60*24*7}`
+        navigate('/teacher');
+        return
+      }
       const t = await r.json().catch(()=>({}))
       throw new Error(t.error || 'Login failed')
     } catch (error) {

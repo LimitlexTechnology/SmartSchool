@@ -96,6 +96,16 @@ const StaffList = () => {
                 <label className="text-xs font-bold text-muted-text">Email</label>
                 <input value={form.email} onChange={e=>setForm({...form, email: e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
               </div>
+              <div className="col-span-2 grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-muted-text">Phone</label>
+                  <input value={form.phone || ''} onChange={e=>setForm({...form, phone: e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-muted-text">Temporary Password</label>
+                  <input type="password" value={form.tempPassword || ''} onChange={e=>setForm({...form, tempPassword: e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
+                </div>
+              </div>
               <div className="col-span-2">
                 <label className="text-xs font-bold text-muted-text">Subject</label>
                 <input value={form.subject} onChange={e=>setForm({...form, subject: e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
@@ -111,10 +121,10 @@ const StaffList = () => {
                     await fetch('/api/teachers',{
                       method:'POST',
                       headers:{'Content-Type':'application/json'},
-                      body: JSON.stringify({ name: form.name.trim(), email: form.email.trim(), subject: form.subject.trim() })
+                      body: JSON.stringify({ name: form.name.trim(), email: form.email.trim(), subject: form.subject.trim(), phone: (form.phone||'').trim(), tempPassword: (form.tempPassword||'').trim() })
                     }).then(async r=>{ if(!r.ok){ const t=await r.json().catch(()=>({})); throw new Error(t.error || 'Failed') } return r.json() })
                     setShowAdd(false)
-                    setForm({ name:'', email:'', subject:'' })
+                    setForm({ name:'', email:'', subject:'', phone:'', tempPassword:'' })
                     await load({ page: 1 })
                   }catch(e){ alert(e.message) }finally{ setSaving(false) }
                 }}
@@ -231,6 +241,25 @@ const TeacherDrawer = ({ id, onClose, initial }) => {
     classesTaught: [], subjectsTaught: [], formMaster: ''
   })
   const [profileForm, setProfileForm] = useState(null)
+  const featureOptions = [
+    { key: 'students', label: 'Students Module' },
+    { key: 'student_groups', label: 'Student Groups' },
+    { key: 'admissions', label: 'Admissions' },
+    { key: 'attendance', label: 'Student Attendance' },
+    { key: 'guardians', label: 'Guardians' },
+    { key: 'staff', label: 'Staff Module' },
+    { key: 'staff_attendance', label: 'Staff Attendance' },
+    { key: 'course_allocation', label: 'Course Allocation' },
+    { key: 'lesson_planner', label: 'Lesson Planner' },
+    { key: 'timetables', label: 'Timetables' },
+    { key: 'classroom', label: 'Classroom' },
+    { key: 'assessments', label: 'Exams/Assessments' },
+    { key: 'finance', label: 'Accounts' },
+    { key: 'inventory', label: 'Inventory' },
+    { key: 'services', label: 'Services' },
+    { key: 'canteen_transport', label: 'Canteen & Transport' },
+  ]
+  const [permissionsForm, setPermissionsForm] = useState({ allowedFeatures: [], allowedActions: [] })
   useEffect(() => {
     let mounted = true
     ;(async () => {
@@ -256,6 +285,8 @@ const TeacherDrawer = ({ id, onClose, initial }) => {
           bankBranch: p.bankBranch || '', bankName: p.bankName || '', nextOfKin: p.nextOfKin || '', nextOfKinRelation: p.nextOfKinRelation || '',
           nextOfKinPhone: p.nextOfKinPhone || '', classesTaught: Array.isArray(p.classesTaught)?p.classesTaught:[], subjectsTaught: Array.isArray(p.subjectsTaught)?p.subjectsTaught:[], formMaster: p.formMaster || ''
         })
+        const perms = await fetch(`/api/teachers/${id}/permissions`).then(r=>r.json()).catch(()=>({ allowedFeatures:[], allowedActions:[] }))
+        setPermissionsForm({ allowedFeatures: Array.isArray(perms.allowedFeatures)?perms.allowedFeatures:[], allowedActions: Array.isArray(perms.allowedActions)?perms.allowedActions:[] })
       } catch {
         if (mounted && !detail) {
           setDetail({})
@@ -297,8 +328,10 @@ const TeacherDrawer = ({ id, onClose, initial }) => {
                       await fetch(`/api/teachers/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(form) }).then(async r=>{ if(!r.ok){ const t=await r.json().catch(()=>({})); throw new Error(t.error || 'Failed')} return r.json() })
                       const payloadProfile = { ...profileForm, classesTaught: profileForm.classesTaught, subjectsTaught: profileForm.subjectsTaught }
                       await fetch(`/api/teachers/${id}/profile`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payloadProfile) }).then(async r=>{ if(!r.ok){ const t=await r.json().catch(()=>({})); throw new Error(t.error || 'Failed')} return r.json() })
+                      await fetch(`/api/teachers/${id}/permissions`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(permissionsForm) }).then(async r=>{ if(!r.ok){ const t=await r.json().catch(()=>({})); throw new Error(t.error || 'Failed')} return r.json() })
                       const d = await fetch(`/api/teachers/${id}`).then(r=>r.json())
                       const p = await fetch(`/api/teachers/${id}/profile`).then(r=>r.json())
+                      const pr = await fetch(`/api/teachers/${id}/permissions`).then(r=>r.json())
                       setDetail(d)
                       setProfile({
                         gender: p.gender || '', phone: p.phone || '', staffId: p.staffId || '', dateEmployed: p.dateEmployed || '', ssn: p.ssn || '',
@@ -306,6 +339,7 @@ const TeacherDrawer = ({ id, onClose, initial }) => {
                         bankBranch: p.bankBranch || '', bankName: p.bankName || '', nextOfKin: p.nextOfKin || '', nextOfKinRelation: p.nextOfKinRelation || '',
                         nextOfKinPhone: p.nextOfKinPhone || '', classesTaught: Array.isArray(p.classesTaught)?p.classesTaught:[], subjectsTaught: Array.isArray(p.subjectsTaught)?p.subjectsTaught:[], formMaster: p.formMaster || ''
                       })
+                      setPermissionsForm({ allowedFeatures: Array.isArray(pr.allowedFeatures)?pr.allowedFeatures:[], allowedActions: Array.isArray(pr.allowedActions)?pr.allowedActions:[] })
                       setEdit(false)
                     }catch(e){ alert(e.message) }finally{ setSaving(false) }
                   }}
@@ -388,6 +422,27 @@ const TeacherDrawer = ({ id, onClose, initial }) => {
               <EditField label="Classes Taught (comma-separated)" value={(profileForm.classesTaught||[]).join(', ')} onChange={v=>setProfileForm({...profileForm, classesTaught: v.split(',').map(s=>s.trim()).filter(Boolean)})} />
               <EditField label="Subjects Taught (comma-separated)" value={(profileForm.subjectsTaught||[]).join(', ')} onChange={v=>setProfileForm({...profileForm, subjectsTaught: v.split(',').map(s=>s.trim()).filter(Boolean)})} />
               <EditField label="Form Master" value={profileForm.formMaster} onChange={v=>setProfileForm({...profileForm, formMaster:v})} />
+            </Section>
+            <Section title="Permissions">
+              <div className="space-y-2">
+                <div className="text-xs font-bold text-muted-text">Allowed Features</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {featureOptions.map(opt => (
+                    <label key={opt.key} className="flex items-center gap-2 text-xs font-bold text-dark-text">
+                      <input
+                        type="checkbox"
+                        checked={(permissionsForm.allowedFeatures || []).includes(opt.key)}
+                        onChange={(e) => {
+                          const cur = new Set(permissionsForm.allowedFeatures || [])
+                          if (e.target.checked) cur.add(opt.key); else cur.delete(opt.key)
+                          setPermissionsForm(p => ({ ...p, allowedFeatures: Array.from(cur) }))
+                        }}
+                      />
+                      {opt.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
             </Section>
           </div>
         )}

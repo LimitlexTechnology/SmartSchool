@@ -19,24 +19,68 @@ function useOutside(ref, onOutside) {
 const ProfileMenu = ({ onLogout }) => {
   const [open, setOpen] = useState(false)
   const [edit, setEdit] = useState(false)
-  const [name, setName] = useState(() => localStorage.getItem('adminName') || 'Admin User')
-  const [phone, setPhone] = useState(() => localStorage.getItem('adminPhone') || localStorage.getItem('userPhone') || '')
-  const [role] = useState('System Admin')
+  const schoolId = (typeof window !== 'undefined' && window.localStorage.getItem('schoolId')) || 'local'
+  const userRole = (typeof window !== 'undefined' && window.localStorage.getItem('userRole')) || 'admin'
+  const keyName = `adminName:${schoolId}`
+  const keyPhone = `adminPhone:${schoolId}`
+  const [name, setName] = useState(() => {
+    if (userRole === 'teacher') return localStorage.getItem('teacherName') || 'Teacher'
+    return localStorage.getItem(keyName) || localStorage.getItem('adminName') || 'Admin User'
+  })
+  const [phone, setPhone] = useState(() => {
+    if (userRole === 'teacher') return localStorage.getItem('userPhone') || ''
+    return localStorage.getItem(keyPhone) || localStorage.getItem('adminPhone') || localStorage.getItem('userPhone') || ''
+  })
+  const role = userRole === 'teacher' ? 'Teacher' : userRole === 'superadmin' ? 'Super Admin' : 'System Admin'
   const ref = useRef(null)
   useOutside(ref, () => setOpen(false))
 
   useEffect(() => {
     const handler = () => {
-      setName(localStorage.getItem('adminName') || 'Admin User')
-      setPhone(localStorage.getItem('adminPhone') || localStorage.getItem('userPhone') || '')
+      const sid = localStorage.getItem('schoolId') || 'local'
+      const kn = `adminName:${sid}`
+      const kp = `adminPhone:${sid}`
+      if (userRole === 'teacher') {
+        const tid = localStorage.getItem('teacherId') || ''
+        if (tid) {
+          fetch(`/api/teachers/${tid}`).then(r=>r.ok?r.json():null).then(d=>{
+            if (d && d.name) {
+              setName(d.name)
+              localStorage.setItem('teacherName', d.name)
+            }
+          }).catch(()=>{})
+        }
+        setPhone(localStorage.getItem('userPhone') || '')
+      } else {
+        setName(localStorage.getItem(kn) || localStorage.getItem('adminName') || 'Admin User')
+        setPhone(localStorage.getItem(kp) || localStorage.getItem('adminPhone') || localStorage.getItem('userPhone') || '')
+      }
     }
     window.addEventListener('adminProfile:change', handler)
     return () => window.removeEventListener('adminProfile:change', handler)
   }, [])
 
   const save = () => {
-    localStorage.setItem('adminName', name.trim() || 'Admin User')
-    localStorage.setItem('adminPhone', phone.trim())
+    const sid = localStorage.getItem('schoolId') || 'local'
+    if (sid !== 'local') {
+      try {
+        fetch('/api/school-auth/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ adminName: name.trim() || 'Admin User', adminPhone: phone.trim() })
+        }).catch(()=>{})
+      } catch {}
+    } else {
+      try {
+        fetch('/api/superadmin/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name.trim() || 'Super Admin', phone: phone.trim() })
+        }).catch(()=>{})
+      } catch {}
+    }
+    localStorage.setItem(`adminName:${sid}`, name.trim() || 'Admin User')
+    localStorage.setItem(`adminPhone:${sid}`, phone.trim())
     window.dispatchEvent(new CustomEvent('adminProfile:change'))
     setEdit(false)
   }

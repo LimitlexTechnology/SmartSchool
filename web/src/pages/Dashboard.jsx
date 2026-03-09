@@ -141,6 +141,14 @@ const Dashboard = () => {
     const timeStr = today.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
     const schoolName = (typeof window !== 'undefined' && window.localStorage.getItem('schoolName')) || 'Your School';
+    const role = (typeof window !== 'undefined' && window.localStorage.getItem('userRole')) || 'admin';
+    const sid = (typeof window !== 'undefined' && window.localStorage.getItem('schoolId')) || 'local';
+    const displayName = (() => {
+        if (role === 'teacher') return (typeof window !== 'undefined' && window.localStorage.getItem('teacherName')) || 'Teacher';
+        if (role === 'superadmin') return 'Super Admin';
+        const kn = `adminName:${sid}`;
+        return (typeof window !== 'undefined' && (window.localStorage.getItem(kn) || window.localStorage.getItem('adminName'))) || 'Admin';
+    })();
 
     const admittedData = [20, 60, 280, 140, 20];
     const leftData = [5, 8, 3, 6, 2];
@@ -174,7 +182,7 @@ const Dashboard = () => {
                 <div>
                     <h1 className="text-2xl font-extrabold text-dark-text tracking-tight">
                         Good {today.getHours() < 12 ? 'morning' : today.getHours() < 17 ? 'afternoon' : 'evening'},
-                        <span className="text-primary-teal"> Mr. Admin</span>
+                        <span className="text-primary-teal"> {displayName}</span>
                     </h1>
                     <p className="text-sm text-muted-text mt-0.5">What would you like to do today?</p>
                 </div>

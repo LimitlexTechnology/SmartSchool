@@ -27,6 +27,7 @@ import StaffList from './pages/StaffList'
 import CourseAllocation from './pages/CourseAllocation'
 import LessonPlanner from './pages/LessonPlanner'
 import Timetables from './pages/Timetables'
+import TeacherDashboard from './pages/teacher/TeacherDashboard'
 
 // SuperAdmin Pages
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard'
@@ -56,6 +57,15 @@ const SuperAdminRoute = ({ children }) => {
   const role = localStorage.getItem('userRole')
   if (!isLoggedIn) return <Navigate to="/login" replace />
   if (role !== 'superadmin') return <Navigate to="/dashboard" replace />
+  return children
+}
+
+// Protected teacher route
+const TeacherRoute = ({ children }) => {
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
+  const role = localStorage.getItem('userRole')
+  if (!isLoggedIn) return <Navigate to="/login" replace />
+  if (role !== 'teacher') return <Navigate to="/dashboard" replace />
   return children
 }
 
@@ -104,6 +114,13 @@ const App = () => {
           <Route path="analytics" element={<PlatformAnalytics />} />
           <Route path="audit-logs" element={<AuditLogs />} />
           <Route path="settings" element={<PlatformSettings />} />
+        </Route>
+
+        {/* Teacher Dashboard */}
+        <Route path="/teacher" element={
+          <TeacherRoute><DashboardLayout /></TeacherRoute>
+        }>
+          <Route index element={<TeacherDashboard />} />
         </Route>
       </Routes>
     </Router>

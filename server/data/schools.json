@@ -8,8 +8,8 @@
       "expiry": "N/A",
       "name": "Bella school",
       "address": "Opah",
-      "admin": "Akua",
-      "phone": "0245793912",
+      "admin": "Bella",
+      "phone": "0245123456",
       "adminPassSalt": "f3a683e31699d2ceb66d4d4620aebcc5",
       "adminPassHash": "765651907785b135d492d17ae2c0936dabe390de69df4df260840306a580335bec31660ee2679b0ac9ecf3c4d3f6795c74f8dc2b94eb99ca2a26dad3744e45b7",
       "createdAt": "2026-03-05T20:59:33.414Z"
@@ -27,6 +27,20 @@
       "adminPassSalt": "fc9bac97c4f85dd41dde54068d2170f8",
       "adminPassHash": "bde8ecc287838da13f0540892ed4c367d5091ea17487dad75a353978023f6b773c46552ba2820d95de93150c0792deb2e10d0189233e8b84ea0a7ad6d0de1ce0",
       "createdAt": "2026-03-05T21:08:25.918Z"
+    },
+    {
+      "id": "14e5c81f-8166-4f0e-90a2-96ef9f66eea3",
+      "status": "active",
+      "plan": "Premium",
+      "students": 0,
+      "expiry": "N/A",
+      "name": "Test school",
+      "address": "Afrancho-Bronkong",
+      "admin": "Evander",
+      "phone": "3333333333",
+      "adminPassSalt": "0e286f65cc41d6310414aeaf5f40ea01",
+      "adminPassHash": "ec8e2f02084e8f5573584020edbad949d126f4683385c1d3adca97c6ed36538de5b1f38275d2833d8f9441dff4f575f4e7e81282285c18198eb1c95b4ab91f6d",
+      "createdAt": "2026-03-09T08:31:32.755Z"
     }
   ]
 }

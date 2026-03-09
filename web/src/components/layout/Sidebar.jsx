@@ -78,17 +78,11 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
     const [submenuPos, setSubmenuPos] = useState({ top: 0, left: 0 });
     const [staffMenuPos, setStaffMenuPos] = useState({ top: 0, left: 0 });
     const location = useLocation();
+    const role = (typeof window !== 'undefined' && window.localStorage.getItem('userRole')) || 'admin';
+    const teacherId = (typeof window !== 'undefined' && window.localStorage.getItem('teacherId')) || '';
+    const [allowedFeatures, setAllowedFeatures] = useState(null);
 
-    const navItems = [
-        { icon: Home, label: 'School', to: '/dashboard' },
-        { icon: Users, label: 'Students', to: '#' },
-        { icon: UserSquare2, label: 'Staff', to: '/dashboard/staff' },
-        { icon: ClipboardList, label: 'Exams', to: '/dashboard/assessments' },
-        { icon: Landmark, label: 'Accounts', to: '/dashboard/finance' },
-        { icon: Package, label: 'Inventory', to: '/dashboard/inventory' },
-        { icon: Wrench, label: 'Services', to: '/dashboard/services' },
-        { icon: Bus, label: 'Canteen & Transport', to: '/dashboard/canteen-transport' },
-    ];
+    // navItems defined later with keys and filtered by permissions
 
     const sidebarWidth = collapsed ? 'w-[72px]' : 'w-[90px]';
 
@@ -99,19 +93,19 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
     `;
 
     const studentLinks = [
-        { label: 'Student List', to: '/dashboard/students' },
-        { label: 'Student Groups', to: '/dashboard/student-groups' },
-        { label: 'Admissions', to: '/dashboard/admissions' },
-        { label: 'Attendance', to: '/dashboard/attendance' },
-        { label: 'Guardians', to: '/dashboard/guardians' },
+        { label: 'Student List', to: '/dashboard/students', key: 'students' },
+        { label: 'Student Groups', to: '/dashboard/student-groups', key: 'student_groups' },
+        { label: 'Admissions', to: '/dashboard/admissions', key: 'admissions' },
+        { label: 'Attendance', to: '/dashboard/attendance', key: 'attendance' },
+        { label: 'Guardians', to: '/dashboard/guardians', key: 'guardians' },
     ];
     const staffLinks = [
-        { label: 'Staff List', to: '/dashboard/staff' },
-        { label: 'Attendance', to: '/dashboard/staff/attendance' },
-        { label: 'Course Allocation', to: '/dashboard/staff/course-allocation' },
-        { label: 'Lesson Planner', to: '/dashboard/staff/lesson-planner' },
-        { label: 'Timetables', to: '/dashboard/staff/timetables' },
-        { label: 'Classroom', to: '/dashboard/staff/classroom' },
+        { label: 'Staff List', to: '/dashboard/staff', key: 'staff' },
+        { label: 'Attendance', to: '/dashboard/staff/attendance', key: 'staff_attendance' },
+        { label: 'Course Allocation', to: '/dashboard/staff/course-allocation', key: 'course_allocation' },
+        { label: 'Lesson Planner', to: '/dashboard/staff/lesson-planner', key: 'lesson_planner' },
+        { label: 'Timetables', to: '/dashboard/staff/timetables', key: 'timetables' },
+        { label: 'Classroom', to: '/dashboard/staff/classroom', key: 'classroom' },
     ];
 
     useEffect(() => {
@@ -129,6 +123,30 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
         document.addEventListener('mousedown', onDocClick);
         return () => document.removeEventListener('mousedown', onDocClick);
     }, []);
+    useEffect(() => {
+        if (role === 'teacher' && teacherId) {
+            fetch(`/api/teachers/${teacherId}/permissions`).then(r=>r.ok?r.json():null).then(j=>{
+                if (j && Array.isArray(j.allowedFeatures)) setAllowedFeatures(j.allowedFeatures);
+            }).catch(()=>{});
+        }
+    }, [role, teacherId]);
+
+    const isAllowed = (key) => {
+        if (role !== 'teacher') return true;
+        if (!allowedFeatures) return true;
+        return allowedFeatures.includes(key);
+    };
+
+    const navItems = [
+        { icon: Home, label: 'School', to: '/dashboard', key: 'school' },
+        { icon: Users, label: 'Students', to: '#', key: 'students' },
+        { icon: UserSquare2, label: 'Staff', to: '/dashboard/staff', key: 'staff' },
+        { icon: ClipboardList, label: 'Exams', to: '/dashboard/assessments', key: 'assessments' },
+        { icon: Landmark, label: 'Accounts', to: '/dashboard/finance', key: 'finance' },
+        { icon: Package, label: 'Inventory', to: '/dashboard/inventory', key: 'inventory' },
+        { icon: Wrench, label: 'Services', to: '/dashboard/services', key: 'services' },
+        { icon: Bus, label: 'Canteen & Transport', to: '/dashboard/canteen-transport', key: 'canteen_transport' },
+    ].filter(item => isAllowed(item.key));
 
     const toggleStudents = () => {
         const el = studentsRef.current;
@@ -204,7 +222,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
                                             className="bg-white border border-gray-100 rounded-xl shadow-soft-sm p-2 z-[9999]"
                                         >
                                             <div className="min-w-[180px] flex flex-col">
-                                                {studentLinks.map((l, i) => (
+                                                {studentLinks.filter(l => isAllowed(l.key)).map((l, i) => (
                                                     <Link
                                                         key={i}
                                                         to={l.to}
@@ -246,7 +264,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
                                             className="bg-white border border-gray-100 rounded-xl shadow-soft-sm p-2 z-[9999]"
                                         >
                                             <div className="min-w-[200px] flex flex-col">
-                                                {staffLinks.map((l, i) => (
+                                                {staffLinks.filter(l => isAllowed(l.key)).map((l, i) => (
                                                     <Link
                                                         key={i}
                                                         to={l.to}
