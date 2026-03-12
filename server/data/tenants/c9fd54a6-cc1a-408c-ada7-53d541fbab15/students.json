@@ -1,0 +1,27 @@
+{
+  "students": [
+    {
+      "id": "c6ff728c-ef7f-4b60-8403-0ce8f83d8cb8",
+      "firstName": "Kofi",
+      "lastName": "Kyei",
+      "email": "fobiblankson95@gmail.com",
+      "grade": "2",
+      "classId": "afd06fe8-7ed3-4885-afe7-1cb4a8972e11",
+      "wristbandId": null,
+      "gender": "Male",
+      "birthday": null,
+      "admittedAt": "2026-03-12T00:00:00.000Z",
+      "religion": null,
+      "nationality": null,
+      "hometown": null,
+      "address": null,
+      "guardianName": null,
+      "guardianRelationship": null,
+      "guardianContact": null,
+      "status": "active",
+      "createdAt": "2026-03-12T16:17:39.884Z",
+      "updatedAt": "2026-03-12T16:22:31.782Z",
+      "behaviorPoints": 105
+    }
+  ]
+}

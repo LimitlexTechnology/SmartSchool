@@ -32,6 +32,7 @@ model Student {
   archivedAt    DateTime?
   archiveReason String?
   walletBalance Float        @default(0.0)
+  behaviorPoints Int         @default(100)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   class         Class?       @relation(fields: [classId], references: [id])
@@ -39,6 +40,19 @@ model Student {
   assessments   AssessmentSubmission[]
   transactions  Transaction[]
   groups        StudentGroup[]
+  behaviorLogs  BehaviorLog[]
+}
+
+model BehaviorLog {
+  id          String   @id @default(uuid())
+  student     Student  @relation(fields: [studentId], references: [id])
+  studentId   String
+  type        String   // addition, deduction
+  category    String
+  score       Int
+  reason      String?
+  authorName  String?
+  createdAt   DateTime @default(now())
 }
 
 model Teacher {

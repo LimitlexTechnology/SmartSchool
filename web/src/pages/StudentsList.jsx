@@ -122,10 +122,18 @@ const StudentsList = () => {
               </div>
               <div>
                 <label className="text-xs font-bold text-muted-text">Class</label>
-                <select value={form.classId} onChange={e=>setForm({...form, classId:e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm">
+                <select 
+                  value={form.classId} 
+                  onChange={e=>{
+                    const cid = e.target.value
+                    const c = classes.find(cx => cx.id === cid)
+                    setForm({...form, classId:cid, grade: c ? c.grade : form.grade})
+                  }} 
+                  className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm"
+                >
                   <option value="">Select class</option>
                   {classes.map(c=>(
-                    <option key={c.id} value={c.id}>{c.grade} • {c.name}</option>
+                    <option key={c.id} value={c.id}>{c.grade} • {c.name || 'No Section'}</option>
                   ))}
                 </select>
               </div>
@@ -270,7 +278,7 @@ const StudentsList = () => {
                     <tr key={s.id} className="border-t border-gray-50">
                       <td className="px-4 py-3 text-muted-text">{s.index}</td>
                       <td className="px-4 py-3">
-                        <StudentName name={name} id={s.id} initial={s} />
+                        <StudentName name={name} id={s.id} initial={s} classes={classes} />
                       </td>
                       <td className="px-4 py-3">{s.gender || '—'}</td>
                       <td className="px-4 py-3">{s.studentId}</td>
@@ -292,7 +300,7 @@ const StudentsList = () => {
                 {data.data.map((s) => {
                   const name = `${s.firstName} ${s.lastName}`
                   return (
-                    <StudentTile key={s.id} name={name} id={s.id} subtitle={s.className || s.grade || '—'} initial={s} />
+                    <StudentTile key={s.id} name={name} id={s.id} subtitle={s.className || s.grade || '—'} initial={s} classes={classes} />
                   )
                 })}
               </div>
@@ -326,14 +334,14 @@ const StudentsList = () => {
   )
 }
 
-const StudentsDrawer = ({ id, onClose, initial }) => {
+const StudentsDrawer = ({ id, onClose, initial, classes=[] }) => {
   const [detail, setDetail] = useState(initial || null)
   const [loading, setLoading] = useState(false)
   const [edit, setEdit] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState(initial ? {
     firstName: initial.firstName || '', lastName: initial.lastName || '', email: initial.email || '',
-    className: initial.className || '', grade: initial.grade || '',
+    classId: initial.classId || '', className: initial.className || '', grade: initial.grade || '',
     gender: initial.gender || '', birthday: initial.birthday ? String(initial.birthday).split('T')[0] : '',
     admittedAt: initial.admittedAt ? String(initial.admittedAt).split('T')[0] : '',
     religion: initial.religion || '', nationality: initial.nationality || '', hometown: initial.hometown || '', address: initial.address || '',
@@ -400,6 +408,7 @@ const StudentsDrawer = ({ id, onClose, initial }) => {
                     try{
                       const payload = {
                         firstName: form.firstName, lastName: form.lastName, email: form.email,
+                        grade: form.grade, classId: form.classId || null,
                         gender: form.gender || null,
                         birthday: form.birthday || null,
                         admittedAt: form.admittedAt || null,
@@ -486,6 +495,25 @@ const StudentsDrawer = ({ id, onClose, initial }) => {
               <EditField type="date" label="Date Admitted" value={form.admittedAt} onChange={v=>setForm({...form, admittedAt:v})} />
             </Section>
             <Section title="Academics">
+              <div className="grid grid-cols-3 items-center">
+                <div className="text-xs font-bold text-muted-text">Class</div>
+                <div className="col-span-2">
+                  <select 
+                    value={form.classId} 
+                    onChange={e=>{
+                      const cid = e.target.value
+                      const c = classes.find(cx => cx.id === cid)
+                      setForm({...form, classId:cid, grade: c ? c.grade : form.grade})
+                    }} 
+                    className="px-3 py-2 rounded-xl border border-gray-200 text-sm w-full"
+                  >
+                    <option value="">Select class</option>
+                    {classes.map(c=>(
+                      <option key={c.id} value={c.id}>{c.grade} • {c.name || 'No Section'}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
               <EditField label="Grade" value={form.grade} onChange={v=>setForm({...form, grade:v})} />
             </Section>
             <Section title="Personal Info">
@@ -529,20 +557,20 @@ const EditField = ({ label, value, onChange, type='text' }) => (
   </div>
 )
 
-const StudentName = ({ name, id, initial }) => {
+const StudentName = ({ name, id, initial, classes=[] }) => {
   const [open, setOpen] = useState(false)
   return (
     <>
-      <button onClick={() => setOpen(true)} className="flex items-center gap-3">
+      <button onClick={() => setOpen(true)} className="flex items-center gap-3 text-left">
         <Avatar name={name} />
         <span className="font-bold text-dark-text hover:underline">{name}</span>
       </button>
-      {open && <StudentsDrawer id={id} initial={initial} onClose={() => setOpen(false)} />}
+      {open && <StudentsDrawer id={id} initial={initial} onClose={() => setOpen(false)} classes={classes} />}
     </>
   )
 }
 
-const StudentTile = ({ name, subtitle, id, initial }) => {
+const StudentTile = ({ name, subtitle, id, initial, classes=[] }) => {
   const [open, setOpen] = useState(false)
   return (
     <>
@@ -555,7 +583,7 @@ const StudentTile = ({ name, subtitle, id, initial }) => {
           <div className="text-xs font-bold text-muted-text leading-tight">{subtitle}</div>
         </div>
       </button>
-      {open && <StudentsDrawer id={id} initial={initial} onClose={()=>setOpen(false)} />}
+      {open && <StudentsDrawer id={id} initial={initial} onClose={()=>setOpen(false)} classes={classes} />}
     </>
   )
 }

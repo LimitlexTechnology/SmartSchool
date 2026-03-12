@@ -27,6 +27,8 @@ import StaffList from './pages/StaffList'
 import CourseAllocation from './pages/CourseAllocation'
 import LessonPlanner from './pages/LessonPlanner'
 import Timetables from './pages/Timetables'
+import Classroom from './pages/Classroom'
+import ClassDetails from './pages/ClassDetails'
 import TeacherDashboard from './pages/teacher/TeacherDashboard'
 
 // SuperAdmin Pages
@@ -71,7 +73,7 @@ const TeacherRoute = ({ children }) => {
 
 const App = () => {
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         {/* Public */}
         <Route path="/" element={<LandingPage />} />
@@ -87,6 +89,8 @@ const App = () => {
           <Route path="smart-id" element={<SmartID />} />
           <Route path="diary" element={<Diary />} />
           <Route path="attendance" element={<Attendance />} />
+          <Route path="classroom" element={<Classroom />} />
+          <Route path="classroom/:id" element={<ClassDetails />} />
           <Route path="students" element={<StudentsList />} />
           <Route path="staff" element={<StaffList />} />
           <Route path="staff/course-allocation" element={<CourseAllocation />} />
