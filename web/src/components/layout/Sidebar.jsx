@@ -15,6 +15,7 @@ import {
     X,
     GraduationCap
 } from 'lucide-react';
+import SkullarLogo from '../../assets/Skullar Logo.png';
 
 /* ── Single Nav Item ── */
 const SidebarItem = ({ icon: Icon, label, to, active = false, collapsed = false, onClick }) => {
@@ -84,7 +85,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
 
     // navItems defined later with keys and filtered by permissions
 
-    const sidebarWidth = collapsed ? 'w-[72px]' : 'w-[90px]';
+    const sidebarWidth = collapsed ? 'w-[72px]' : 'w-[180px]';
 
     const sidebarClasses = `
         h-screen bg-white border-r border-gray-100 flex flex-col transition-all duration-300 z-[100] shadow-soft-sm
@@ -126,9 +127,9 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
     }, []);
     useEffect(() => {
         if (role === 'teacher' && teacherId) {
-            fetch(`/api/teachers/${teacherId}/permissions`).then(r=>r.ok?r.json():null).then(j=>{
+            fetch(`/api/teachers/${teacherId}/permissions`).then(r => r.ok ? r.json() : null).then(j => {
                 if (j && Array.isArray(j.allowedFeatures)) setAllowedFeatures(j.allowedFeatures);
-            }).catch(()=>{});
+            }).catch(() => { });
         }
     }, [role, teacherId]);
 
@@ -180,15 +181,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
 
                 {/* ── School Logo / Crest ── */}
                 <div className="flex flex-col items-center pt-5 pb-3 px-2 border-b border-gray-50">
-                    {/* Logo area – shows the school's crest / logo */}
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-teal to-secondary-teal flex items-center justify-center shadow-lg shadow-primary-teal/20 flex-shrink-0">
-                        <GraduationCap size={24} className="text-white" />
-                    </div>
-                    {!collapsed && (
-                        <p className="text-[9px] font-black text-muted-text uppercase tracking-widest mt-2 text-center leading-tight px-1">
-                            School
-                        </p>
-                    )}
+                    <img src={SkullarLogo} alt="Skullar" className="w-[150px] h-auto flex-shrink-0 object-contain" />
                     {/* Mobile close btn */}
                     <button
                         onClick={() => setIsMobileMenuOpen(false)}

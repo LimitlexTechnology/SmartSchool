@@ -41,7 +41,7 @@ const PlatformSettings = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-extrabold text-white">Platform Settings</h1>
-                    <p className="text-sm text-gray-400 mt-0.5">Global configuration for SmartSchool</p>
+                    <p className="text-sm text-gray-400 mt-0.5">Global configuration for Skullar</p>
                 </div>
                 <button onClick={handleSave}
                     className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${saved ? 'bg-emerald-500 text-white' : 'bg-primary-teal text-white hover:bg-secondary-teal'}`}>
@@ -60,7 +60,7 @@ const PlatformSettings = () => {
                     <Toggle value={settings.aiFeatures} onChange={() => toggle('aiFeatures')} label="AI Features" description="Enable AI Lesson Notes and smart suggestions" />
                     <Toggle value={settings.virtualClass} onChange={() => toggle('virtualClass')} label="Virtual Classroom" description="Enable live video class sessions" />
                     <Toggle value={settings.smartIdScanning} onChange={() => toggle('smartIdScanning')} label="Smart ID Scanning" description="Enable student/staff ID card scanning" />
-                    <Toggle value={settings.parentPortal} onChange={() => toggle('parentPortal')} label="Parent Portal" description="Allow parents to access the SmartSchool parent app" />
+                    <Toggle value={settings.parentPortal} onChange={() => toggle('parentPortal')} label="Parent Portal" description="Allow parents to access the Skullar parent app" />
                 </div>
 
                 <div className="flex flex-col gap-6">

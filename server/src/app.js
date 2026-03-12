@@ -24,7 +24,8 @@ app.get('/', (req, res) => {
   res.send(`
     <html>
       <head>
-        <title>Smart School API</title>
+        <title>Skullar API</title>
+        <link rel="icon" type="image/svg+xml" href="http://localhost:5173/src/assets/Skullar%20Favicon.svg" />
         <style>
           body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f8fafc; }
           .card { background: white; padding: 2rem; border-radius: 1rem; shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); border: 1px solid #e2e8f0; max-width: 400px; text-align: center; }
@@ -37,7 +38,7 @@ app.get('/', (req, res) => {
       </head>
       <body>
         <div class="card">
-          <h1>Smart School API</h1>
+          <h1>Skullar API</h1>
           <p>The backend server is running successfully. This is an API-only server.</p>
           <div class="links">
             <a href="http://localhost:5173">Go to Web App (Frontend)</a>
@@ -50,7 +51,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Smart School API is running' });
+  res.json({ status: 'OK', message: 'Skullar API is running' });
 });
 
 app.get('/api/health/db', async (req, res) => {
@@ -170,7 +171,7 @@ function ensureSuperAdminFile() {
     const def = {
       name: process.env.SUPERADMIN_NAME || 'Super Admin',
       phone: (process.env.SUPERADMIN_PHONE || '0000000000'),
-      email: process.env.SUPERADMIN_EMAIL || 'superadmin@smartschool'
+      email: process.env.SUPERADMIN_EMAIL || 'superadmin@skullar'
     }
     fs.writeFileSync(SUPERADMIN_FILE, JSON.stringify(def, null, 2))
   }
@@ -956,7 +957,7 @@ app.delete('/api/timetables/:id', auth, async (req, res) => {
 // ============== Super Admin: Schools ==============
 app.get('/api/admin/schools', auth, async (_req, res) => {
   try {
-    const name = process.env.SCHOOL_NAME || 'SmartSchool Local'
+    const name = process.env.SCHOOL_NAME || 'Skullar Local'
     const admin = process.env.SCHOOL_ADMIN || 'Admin'
     const phone = process.env.SCHOOL_PHONE || ''
     const [studentsCount] = await Promise.all([
@@ -1037,7 +1038,7 @@ app.get('/api/admin/schools/:id', auth, async (req, res) => {
   try {
     const id = req.params.id
     if (id === 'local') {
-      const name = process.env.SCHOOL_NAME || 'SmartSchool Local'
+      const name = process.env.SCHOOL_NAME || 'Skullar Local'
       const admin = process.env.SCHOOL_ADMIN || 'Admin'
       const phone = process.env.SCHOOL_PHONE || ''
       const studentsCount = await prisma.student.count({ where: { status: { not: 'archived' } } })

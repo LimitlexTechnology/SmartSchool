@@ -121,7 +121,7 @@ const Login = () => {
               Empowering the Next Generation of Leaders
             </h1>
             <p className="text-lg text-white/90 max-w-lg">
-              Streamline school management, enhance learning experiences, and foster a connected educational community with SmartSchool.
+              Streamline school management, enhance learning experiences, and foster a connected educational community with Skullar.
             </p>
           </div>
           <div className="flex items-center gap-2 text-sm text-white/80">

@@ -22,6 +22,7 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import parentHero from '../assets/parent-hero.png';
 import studentHero from '../assets/student-hero.png';
+import SkullarLogo from '../assets/Skullar Logo.png';
 
 const LandingPage = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -132,10 +133,7 @@ const LandingPage = () => {
             <nav className={`fixed w-full z-50 transition-all duration-300 ${scrolled ? 'bg-white shadow-md py-4' : 'bg-transparent py-6'}`}>
                 <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 bg-primary-teal rounded-xl flex items-center justify-center text-white font-bold text-xl">
-                            S
-                        </div>
-                        <span className="text-xl font-bold text-dark-text tracking-tight">Smart School</span>
+                        <img src={SkullarLogo} alt="Skullar" className="w-[150px] h-auto object-contain" />
                     </div>
 
                     <div className="hidden md:flex items-center gap-8">
@@ -413,7 +411,7 @@ const LandingPage = () => {
                             <span className="text-soft-teal">Reduced Workload.</span>
                         </h2>
                         <p className="text-xl text-white/60 leading-relaxed font-medium">
-                            Empower your educators with cutting-edge AI. From drafting lesson notes to personalizing student assessments, Smart School automates the routine so teachers can focus on <span className="text-white underline decoration-soft-teal underline-offset-4">mentoring</span>.
+                            Empower your educators with cutting-edge AI. From drafting lesson notes to personalizing student assessments, Skullar automates the routine so teachers can focus on <span className="text-white underline decoration-soft-teal underline-offset-4">mentoring</span>.
                         </p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
                             {[
@@ -461,8 +459,7 @@ const LandingPage = () => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-12 mt-24 mb-12">
                         <div className="col-span-2 md:col-span-1 flex flex-col gap-6">
                             <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 bg-primary-teal rounded-lg flex items-center justify-center text-white font-bold">S</div>
-                                <span className="font-bold text-dark-text text-lg">Smart School</span>
+                                <img src={SkullarLogo} alt="Skullar" className="w-[150px] h-auto object-contain" />
                             </div>
                             <p className="text-muted-text text-sm">
                                 Revolutionizing education through technology and connectivity.
@@ -495,7 +492,7 @@ const LandingPage = () => {
                     </div>
 
                     <div className="pt-12 border-t border-gray-200 text-center text-sm text-muted-text">
-                        © 2026 Smart School SaaS. All rights reserved.
+                        © 2026 Skullar SaaS. All rights reserved.
                     </div>
                 </div>
             </footer>
