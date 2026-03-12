@@ -15,32 +15,18 @@
       "createdAt": "2026-03-05T20:59:33.414Z"
     },
     {
-      "id": "651b7a8f-cfd4-4be4-8995-fb94a44b4d01",
+      "id": "c9fd54a6-cc1a-408c-ada7-53d541fbab15",
       "status": "active",
-      "plan": "Premium",
+      "plan": "Basic",
       "students": 0,
       "expiry": "N/A",
-      "name": "Mirekua International community  School",
-      "address": "Opah-sarpeiman",
-      "admin": "Laurietta",
-      "phone": "0245123456",
-      "adminPassSalt": "fc9bac97c4f85dd41dde54068d2170f8",
-      "adminPassHash": "bde8ecc287838da13f0540892ed4c367d5091ea17487dad75a353978023f6b773c46552ba2820d95de93150c0792deb2e10d0189233e8b84ea0a7ad6d0de1ce0",
-      "createdAt": "2026-03-05T21:08:25.918Z"
-    },
-    {
-      "id": "14e5c81f-8166-4f0e-90a2-96ef9f66eea3",
-      "status": "active",
-      "plan": "Premium",
-      "students": 0,
-      "expiry": "N/A",
-      "name": "Test school",
-      "address": "Afrancho-Bronkong",
-      "admin": "Evander",
+      "name": "Testing",
+      "address": "Kumasi",
+      "admin": "Blankson Binos",
       "phone": "3333333333",
-      "adminPassSalt": "0e286f65cc41d6310414aeaf5f40ea01",
-      "adminPassHash": "ec8e2f02084e8f5573584020edbad949d126f4683385c1d3adca97c6ed36538de5b1f38275d2833d8f9441dff4f575f4e7e81282285c18198eb1c95b4ab91f6d",
-      "createdAt": "2026-03-09T08:31:32.755Z"
+      "adminPassSalt": "59b6b0e064eabd9c203fee1440a60aba",
+      "adminPassHash": "6bf92f1a1dc5e02352a9ed0cff8f5a8f1b1bd23bbf2194f953c2b10846387ff2d10c1c17815ee4bfaa5e070afefb3e502c31ead6b7ed22d3c2be0e0a508e6a85",
+      "createdAt": "2026-03-12T15:32:50.019Z"
     }
   ]
 }

@@ -94,6 +94,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
 
     const studentLinks = [
         { label: 'Student List', to: '/dashboard/students', key: 'students' },
+        { label: 'Classroom', to: '/dashboard/classroom', key: 'classroom' },
         { label: 'Student Groups', to: '/dashboard/student-groups', key: 'student_groups' },
         { label: 'Admissions', to: '/dashboard/admissions', key: 'admissions' },
         { label: 'Attendance', to: '/dashboard/attendance', key: 'attendance' },

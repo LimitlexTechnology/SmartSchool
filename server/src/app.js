@@ -98,6 +98,23 @@ function writeTenantTeachers(schoolId, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2))
 }
 
+function ensureTenantClassesFile(schoolId) {
+  if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
+  const dir = path.join(TENANT_DIR, schoolId)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'classes.json')
+  if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify({ classes: [] }, null, 2))
+  return file
+}
+function readTenantClasses(schoolId) {
+  const file = ensureTenantClassesFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { classes: [] } }
+}
+function writeTenantClasses(schoolId, data) {
+  const file = ensureTenantClassesFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
 // Super Admin profile store (file-based)
 const SUPERADMIN_FILE = path.join(__dirname, '..', 'data', 'superadmin-profile.json')
 function ensureSuperAdminFile() {
@@ -204,6 +221,53 @@ app.put('/api/students/:id', auth, async (req, res) => {
       religion, nationality, hometown, address,
       guardianName, guardianRelationship, guardianContact,
     } = req.body || {}
+
+    if (req.schoolId && req.schoolId !== 'local') {
+      const store = readTenantStudents(req.schoolId)
+      const classesStore = readTenantClasses(req.schoolId)
+      const idx = store.students.findIndex(s => s.id === id)
+      if (idx < 0) return res.status(404).json({ error: 'not found' })
+      const s = store.students[idx]
+      
+      if (email !== undefined && email.toLowerCase() !== (s.email || '').toLowerCase()) {
+        const exists = store.students.some(st => (st.email || '').toLowerCase() === email.toLowerCase())
+        if (exists) return res.status(409).json({ error: `A student with email ${email} already exists.` })
+      }
+      
+      if (wristbandId !== undefined && wristbandId !== s.wristbandId) {
+        const idExists = store.students.some(st => st.wristbandId === wristbandId)
+        if (idExists) return res.status(409).json({ error: `A student with ID ${wristbandId} already exists.` })
+      }
+      if (firstName !== undefined) s.firstName = firstName
+      if (lastName !== undefined) s.lastName = lastName
+      if (email !== undefined) s.email = email
+      if (grade !== undefined) s.grade = grade
+      if (classId !== undefined) s.classId = classId
+      if (wristbandId !== undefined) s.wristbandId = wristbandId
+      if (gender !== undefined) s.gender = gender
+      if (birthday !== undefined) s.birthday = birthday ? new Date(birthday).toISOString() : s.birthday
+      if (admittedAt !== undefined) s.admittedAt = admittedAt ? new Date(admittedAt).toISOString() : s.admittedAt
+      if (religion !== undefined) s.religion = religion
+      if (nationality !== undefined) s.nationality = nationality
+      if (hometown !== undefined) s.hometown = hometown
+      if (address !== undefined) s.address = address
+      if (guardianName !== undefined) s.guardianName = guardianName
+      if (guardianRelationship !== undefined) s.guardianRelationship = guardianRelationship
+      if (guardianContact !== undefined) s.guardianContact = guardianContact
+      s.updatedAt = new Date().toISOString()
+      writeTenantStudents(req.schoolId, store)
+      const c = classesStore.classes.find(cx => cx.id === s.classId)
+      return res.json({
+        id: s.id,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        email: s.email,
+        className: c?.name || '',
+        grade: c?.grade || s.grade || '',
+        studentId: s.wristbandId || s.id.slice(0, 8).toUpperCase(),
+        createdAt: s.createdAt
+      })
+    }
     const data = {}
     if (firstName !== undefined) data.firstName = firstName
     if (lastName !== undefined) data.lastName = lastName
@@ -238,7 +302,8 @@ app.put('/api/students/:id', auth, async (req, res) => {
     })
   } catch (e) {
     if (e.code === 'P2002') {
-      return res.status(409).json({ error: 'Unique constraint failed' })
+      const field = (e.meta?.target || []).join(', ')
+      return res.status(409).json({ error: `Update failed: A student with this ${field || 'email or student ID'} already exists.` })
     }
     console.error('Update student error:', e)
     res.status(500).json({ error: e?.message || 'unknown' })
@@ -250,48 +315,60 @@ app.get('/api/students', auth, async (req, res) => {
       const page = Math.max(parseInt(req.query.page || '1', 10), 1)
       const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '20', 10), 1), 100)
       const q = (req.query.q || '').toString().trim().toLowerCase()
+      const classIdFilter = (req.query.classId || '').toString().trim()
       const store = readTenantStudents(req.schoolId)
+      const classesStore = readTenantClasses(req.schoolId)
       const all = Array.isArray(store.students) ? store.students : []
-      const filtered = q
-        ? all.filter(s =>
-            (s.firstName || '').toLowerCase().includes(q) ||
-            (s.lastName || '').toLowerCase().includes(q) ||
-            (s.email || '').toLowerCase().includes(q))
-        : all
+      let filtered = all
+      if (q) {
+        filtered = filtered.filter(s =>
+          (s.firstName || '').toLowerCase().includes(q) ||
+          (s.lastName || '').toLowerCase().includes(q) ||
+          (s.email || '').toLowerCase().includes(q))
+      }
+      if (classIdFilter) {
+        filtered = filtered.filter(s => s.classId === classIdFilter)
+      }
       const total = filtered.length
       const items = filtered.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize)
-      const data = items.map((s, i) => ({
-        id: s.id,
-        firstName: s.firstName,
-        lastName: s.lastName,
-        email: s.email,
-        className: '',
-        grade: s.grade || '',
-        studentId: s.wristbandId || (s.id || '').slice(0, 8).toUpperCase(),
-        gender: s.gender || null,
-        index: (page - 1) * pageSize + i + 1,
-      }))
+      const data = items.map((s, i) => {
+        const c = classesStore.classes.find(cx => cx.id === s.classId)
+        return {
+          id: s.id,
+          firstName: s.firstName,
+          lastName: s.lastName,
+          email: s.email,
+          className: c?.name || '',
+          grade: c?.grade || s.grade || '',
+          studentId: s.wristbandId || (s.id || '').slice(0, 8).toUpperCase(),
+          gender: s.gender || null,
+          index: (page - 1) * pageSize + i + 1,
+        }
+      })
       return res.json({ total, page, pageSize, data })
     }
     const page = Math.max(parseInt(req.query.page || '1', 10), 1)
     const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '20', 10), 1), 100)
     const q = (req.query.q || '').toString().trim()
+    const classIdFilter = (req.query.classId || '').toString().trim()
     const includeArchived = (req.query.includeArchived || 'false') === 'true'
     const baseFilter = includeArchived ? {} : { status: { not: 'archived' } }
-    const where = q
-      ? {
-          AND: [
-            baseFilter,
-            {
-              OR: [
-                { firstName: { contains: q, mode: 'insensitive' } },
-                { lastName: { contains: q, mode: 'insensitive' } },
-                { email: { contains: q, mode: 'insensitive' } },
-              ],
-            },
-          ],
-        }
-      : baseFilter
+    
+    const andConditions = [baseFilter]
+    if (q) {
+      andConditions.push({
+        OR: [
+          { firstName: { contains: q, mode: 'insensitive' } },
+          { lastName: { contains: q, mode: 'insensitive' } },
+          { email: { contains: q, mode: 'insensitive' } },
+        ]
+      })
+    }
+    if (classIdFilter) {
+      andConditions.push({ classId: classIdFilter })
+    }
+
+    const where = { AND: andConditions }
     const [total, items] = await Promise.all([
       prisma.student.count({ where }),
       prisma.student.findMany({
@@ -322,13 +399,64 @@ app.get('/api/students', auth, async (req, res) => {
 app.get('/api/classes', auth, async (req, res) => {
   try {
     if (req.schoolId && req.schoolId !== 'local') {
-      return res.json([])
+      const { classes } = readTenantClasses(req.schoolId)
+      const { students } = readTenantStudents(req.schoolId)
+      const data = classes.map(c => ({
+        ...c,
+        studentCount: students.filter(s => s.classId === c.id).length
+      }))
+      return res.json(data)
     }
-    const items = await prisma.class.findMany({ orderBy: [{ grade: 'asc' }, { name: 'asc' }] })
-    res.json(items.map(c => ({ id: c.id, name: c.name, grade: c.grade })))
+    const items = await prisma.class.findMany({ 
+      include: { _count: { select: { students: true } } },
+      orderBy: [{ grade: 'asc' }, { name: 'asc' }] 
+    })
+    res.json(items.map(c => ({ id: c.id, name: c.name, grade: c.grade, studentCount: c._count.students })))
   } catch (e) {
     console.error('Classes error:', e)
     res.status(200).json([])
+  }
+});
+
+app.post('/api/classes', auth, async (req, res) => {
+  try {
+    const { name, grade } = req.body
+    if (!grade) return res.status(400).json({ error: 'Grade is required' })
+
+    if (req.schoolId && req.schoolId !== 'local') {
+      const store = readTenantClasses(req.schoolId)
+      const newClass = {
+        id: randomUUID(),
+        name: name || '',
+        grade,
+        createdAt: new Date().toISOString()
+      }
+      store.classes.push(newClass)
+      writeTenantClasses(req.schoolId, store)
+      return res.json(newClass)
+    }
+    const created = await prisma.class.create({ data: { name: name || '', grade } })
+    res.json(created)
+  } catch (e) {
+    console.error('Create class error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+});
+
+app.delete('/api/classes/:id', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    if (req.schoolId && req.schoolId !== 'local') {
+      const store = readTenantClasses(req.schoolId)
+      store.classes = store.classes.filter(c => c.id !== id)
+      writeTenantClasses(req.schoolId, store)
+      return res.json({ success: true })
+    }
+    await prisma.class.delete({ where: { id } })
+    res.json({ success: true })
+  } catch (e) {
+    console.error('Delete class error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
   }
 });
 
@@ -1340,8 +1468,14 @@ app.post('/api/students', auth, async (req, res) => {
     }
     if (req.schoolId && req.schoolId !== 'local') {
       const store = readTenantStudents(req.schoolId)
+      const classesStore = readTenantClasses(req.schoolId)
       const exists = (store.students || []).some(s => (s.email || '').toLowerCase() === email.toLowerCase())
-      if (exists) return res.status(409).json({ error: 'Unique constraint failed' })
+      if (exists) return res.status(409).json({ error: `A student with email ${email} already exists.` })
+      
+      if (wristbandId) {
+        const idExists = (store.students || []).some(s => s.wristbandId === wristbandId)
+        if (idExists) return res.status(409).json({ error: `A student with ID ${wristbandId} already exists.` })
+      }
       const now = new Date().toISOString()
       const obj = {
         id: randomUUID(),
@@ -1366,13 +1500,14 @@ app.post('/api/students', auth, async (req, res) => {
       store.students = Array.isArray(store.students) ? store.students : []
       store.students.unshift(obj)
       writeTenantStudents(req.schoolId, store)
+      const c = classesStore.classes.find(cx => cx.id === obj.classId)
       return res.status(201).json({
         id: obj.id,
         firstName: obj.firstName,
         lastName: obj.lastName,
         email: obj.email,
-        className: '',
-        grade: obj.grade || '',
+        className: c?.name || '',
+        grade: c?.grade || obj.grade || '',
         studentId: obj.wristbandId || obj.id.slice(0, 8).toUpperCase(),
         createdAt: obj.createdAt
       })
@@ -1410,7 +1545,8 @@ app.post('/api/students', auth, async (req, res) => {
     })
   } catch (e) {
     if (e.code === 'P2002') {
-      return res.status(409).json({ error: 'Unique constraint failed' })
+      const field = (e.meta?.target || []).join(', ')
+      return res.status(409).json({ error: `A student with this ${field || 'email or student ID'} already exists.` })
     }
     console.error('Create student error:', e)
     res.status(500).json({ error: e?.message || 'unknown' })
@@ -1419,6 +1555,19 @@ app.post('/api/students', auth, async (req, res) => {
 app.get('/api/students/:id', auth, async (req, res) => {
   try {
     const id = req.params.id
+    if (req.schoolId && req.schoolId !== 'local') {
+      const store = readTenantStudents(req.schoolId)
+      const classesStore = readTenantClasses(req.schoolId)
+      const s = store.students.find(x => x.id === id)
+      if (!s) return res.status(404).json({ error: 'not found' })
+      const c = classesStore.classes.find(cx => cx.id === s.classId)
+      return res.json({
+        ...s,
+        className: c?.name || '',
+        grade: c?.grade || s.grade || '',
+        studentId: s.wristbandId || s.id.slice(0, 8).toUpperCase(),
+      })
+    }
     const s = await prisma.student.findUnique({ where: { id }, include: { class: true } })
     if (!s) return res.status(404).json({ error: 'not found' })
     res.json({
