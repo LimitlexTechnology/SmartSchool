@@ -20,29 +20,8 @@
       "guardianContact": null,
       "status": "active",
       "createdAt": "2026-03-12T16:17:39.884Z",
-      "updatedAt": "2026-03-12T16:22:31.782Z"
-    },
-    {
-      "id": "d4adc553-8312-46a4-849c-e93d0a4f3808",
-      "firstName": "David",
-      "lastName": "Asamoah",
-      "email": "examtracker81@gmail.com",
-      "grade": "2",
-      "classId": null,
-      "wristbandId": "001",
-      "gender": "Male",
-      "birthday": "2006-06-12T00:00:00.000Z",
-      "admittedAt": "2026-03-12T16:02:43.914Z",
-      "religion": "Christian",
-      "nationality": "Ghana",
-      "hometown": "Kumasi",
-      "address": "Acrra",
-      "guardianName": "Evander",
-      "guardianRelationship": "Father",
-      "guardianContact": "0245793912",
-      "status": "active",
-      "createdAt": "2026-03-12T16:02:43.914Z",
-      "updatedAt": "2026-03-12T16:02:43.914Z"
+      "updatedAt": "2026-03-12T16:22:31.782Z",
+      "behaviorPoints": 105
     }
   ]
 }

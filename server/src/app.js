@@ -115,6 +115,23 @@ function writeTenantClasses(schoolId, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2))
 }
 
+function ensureTenantBehaviorLogsFile(schoolId) {
+  if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
+  const dir = path.join(TENANT_DIR, schoolId)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'behavior_logs.json')
+  if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify({ logs: [] }, null, 2))
+  return file
+}
+function readTenantBehaviorLogs(schoolId) {
+  const file = ensureTenantBehaviorLogsFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { logs: [] } }
+}
+function writeTenantBehaviorLogs(schoolId, data) {
+  const file = ensureTenantBehaviorLogsFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
 // Super Admin profile store (file-based)
 const SUPERADMIN_FILE = path.join(__dirname, '..', 'data', 'superadmin-profile.json')
 function ensureSuperAdminFile() {
@@ -341,6 +358,7 @@ app.get('/api/students', auth, async (req, res) => {
           className: c?.name || '',
           grade: c?.grade || s.grade || '',
           studentId: s.wristbandId || (s.id || '').slice(0, 8).toUpperCase(),
+          behaviorPoints: s.behaviorPoints !== undefined ? s.behaviorPoints : 100,
           gender: s.gender || null,
           index: (page - 1) * pageSize + i + 1,
         }
@@ -387,6 +405,7 @@ app.get('/api/students', auth, async (req, res) => {
       className: s.class?.name || '',
       grade: s.class?.grade || s.grade || '',
       studentId: s.wristbandId || s.id.slice(0, 8).toUpperCase(),
+      behaviorPoints: s.behaviorPoints,
       gender: null,
       index: (page - 1) * pageSize + i + 1,
     }))
@@ -459,6 +478,91 @@ app.delete('/api/classes/:id', auth, async (req, res) => {
     res.status(500).json({ error: e?.message || 'unknown' })
   }
 });
+
+// ============== Behavior Tracker ==============
+app.get('/api/students/:id/behavior/history', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    if (req.schoolId && req.schoolId !== 'local') {
+      const { logs } = readTenantBehaviorLogs(req.schoolId)
+      const studentLogs = logs.filter(l => l.studentId === id).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))
+      return res.json(studentLogs)
+    }
+    const logs = await prisma.behaviorLog.findMany({
+      where: { studentId: id },
+      orderBy: { createdAt: 'desc' }
+    })
+    res.json(logs)
+  } catch (e) {
+    console.error('Behavior history error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.post('/api/students/:id/behavior', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    const { type, category, score, reason, authorName } = req.body
+    if (!type || !category || score === undefined) {
+      return res.status(400).json({ error: 'type, category and score are required' })
+    }
+
+    if (req.schoolId && req.schoolId !== 'local') {
+      const studentStore = readTenantStudents(req.schoolId)
+      const sIdx = studentStore.students.findIndex(s => s.id === id)
+      if (sIdx < 0) return res.status(404).json({ error: 'student not found' })
+      
+      const student = studentStore.students[sIdx]
+      if (student.behaviorPoints === undefined) student.behaviorPoints = 100
+      
+      if (type === 'addition') student.behaviorPoints += score
+      else if (type === 'deduction') student.behaviorPoints -= score
+      
+      writeTenantStudents(req.schoolId, studentStore)
+      
+      const logStore = readTenantBehaviorLogs(req.schoolId)
+      const newLog = {
+        id: randomUUID(),
+        studentId: id,
+        type,
+        category,
+        score,
+        reason: reason || '',
+        authorName: authorName || 'Teacher',
+        createdAt: new Date().toISOString()
+      }
+      logStore.logs.push(newLog)
+      writeTenantBehaviorLogs(req.schoolId, logStore)
+      
+      return res.json({ behaviorPoints: student.behaviorPoints, log: newLog })
+    }
+
+    const student = await prisma.student.findUnique({ where: { id } })
+    if (!student) return res.status(404).json({ error: 'student not found' })
+
+    let newPoints = student.behaviorPoints
+    if (type === 'addition') newPoints += score
+    else if (type === 'deduction') newPoints -= score
+
+    const [updated, log] = await prisma.$transaction([
+      prisma.student.update({ where: { id }, data: { behaviorPoints: newPoints } }),
+      prisma.behaviorLog.create({
+        data: {
+          studentId: id,
+          type,
+          category,
+          score,
+          reason: reason || '',
+          authorName: authorName || 'Teacher'
+        }
+      })
+    ])
+    res.json({ behaviorPoints: updated.behaviorPoints, log })
+  } catch (e) {
+    console.error('Update behavior error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
 
 // Teachers (Staff)
 app.get('/api/teachers', auth, async (req, res) => {
@@ -1674,6 +1778,25 @@ app.post('/api/students/:id/archive', auth, async (req, res) => {
     const id = req.params.id
     const { reason } = req.body || {}
     if (!reason) return res.status(400).json({ error: 'reason is required' })
+
+    if (req.schoolId && req.schoolId !== 'local') {
+      const store = readTenantStudents(req.schoolId)
+      const idx = store.students.findIndex(s => s.id === id)
+      if (idx < 0) return res.status(404).json({ error: 'student not found' })
+
+      if (reason === 'Incorrect entry') {
+        store.students.splice(idx, 1)
+        writeTenantStudents(req.schoolId, store)
+        return res.json({ status: 'deleted' })
+      } else {
+        store.students[idx].status = 'archived'
+        store.students[idx].archivedAt = new Date().toISOString()
+        store.students[idx].archiveReason = reason
+        writeTenantStudents(req.schoolId, store)
+        return res.json({ status: 'archived', id, reason })
+      }
+    }
+
     if (reason === 'Incorrect entry') {
       await prisma.student.delete({ where: { id } })
       return res.json({ status: 'deleted' })
