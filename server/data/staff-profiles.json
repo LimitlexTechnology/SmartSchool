@@ -105,6 +105,12 @@
         "attendance"
       ],
       "allowedActions": []
+    },
+    "34b7b1be-3bde-4c9e-aa98-c072a5594991": {
+      "phone": "2222222222",
+      "passSalt": "35d55b88e055d0c17daf8604e7339e2f",
+      "passHash": "4c44a68ed3774f83c9de2aa6165733bf2488a9c0aa879fce3ea1cf434026808468106be1eb863973f3d295c7ee4c8796b3b1b4de2b91d1595e33af927cac63ec",
+      "schoolId": "c9fd54a6-cc1a-408c-ada7-53d541fbab15"
     }
   }
 }

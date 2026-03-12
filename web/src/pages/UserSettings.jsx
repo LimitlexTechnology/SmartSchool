@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Bell, Lock, User, Globe, Moon, Sun, Eye, EyeOff } from 'lucide-react'
+import { Bell, Lock, User, Globe, Moon, Sun, Eye, EyeOff, Camera } from 'lucide-react'
 
 const Section = ({ title, children }) => (
   <div className="mb-6">
@@ -9,6 +9,36 @@ const Section = ({ title, children }) => (
     </div>
   </div>
 )
+
+const compressImage = (base64Str, maxWidth = 400, maxHeight = 400) => {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.src = base64Str
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      let width = img.width
+      let height = img.height
+
+      if (width > height) {
+        if (width > maxWidth) {
+          height *= maxWidth / width
+          width = maxWidth
+        }
+      } else {
+        if (height > maxHeight) {
+          width *= maxHeight / height
+          height = maxHeight
+        }
+      }
+
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, width, height)
+      resolve(canvas.toDataURL('image/jpeg', 0.7))
+    }
+  })
+}
 
 const SettingRow = ({ icon: Icon, label, description, children }) => (
   <div className="flex items-center justify-between py-2">
@@ -162,7 +192,8 @@ const UserSettings = () => {
     name: '',
     email: '',
     phone: '',
-    role: ''
+    role: '',
+    logo: ''
   })
 
   useEffect(() => {
@@ -182,9 +213,11 @@ const UserSettings = () => {
       setSettings(JSON.parse(savedSettings))
     }
     if (sidNow !== 'local') {
-      fetch('/api/school-auth/profile').then(r => r.ok ? r.json() : null).then(j => {
+      fetch('/api/school-auth/profile').then(r => r.ok ? r.ok ? r.json() : null : null).then(j => {
         if (j) {
-          setProfile(p => ({ ...p, name: j.adminName || p.name, phone: j.adminPhone || p.phone, email: j.adminEmail || p.email }))
+          setProfile(p => ({ ...p, name: j.adminName || p.name, phone: j.adminPhone || p.phone, email: j.adminEmail || p.email, logo: j.schoolLogo || '' }))
+          if (j.schoolLogo) localStorage.setItem(`schoolLogo:${sidNow}`, j.schoolLogo)
+          if (j.schoolName) localStorage.setItem(`schoolName:${sidNow}`, j.schoolName)
         }
       }).catch(()=>{})
     } else {
@@ -214,8 +247,14 @@ const UserSettings = () => {
       fetch('/api/school-auth/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminName: profile.name, adminPhone: profile.phone, adminEmail: profile.email })
+        body: JSON.stringify({
+          adminName: profile.name,
+          adminPhone: profile.phone,
+          adminEmail: profile.email,
+          schoolLogo: profile.logo
+        })
       }).catch(()=>{})
+      localStorage.setItem(`schoolLogo:${sidNow}`, profile.logo)
     } else {
       fetch('/api/superadmin/profile', {
         method: 'PUT',
@@ -226,6 +265,11 @@ const UserSettings = () => {
     localStorage.setItem(`adminName:${sidNow}`, profile.name)
     localStorage.setItem(`adminPhone:${sidNow}`, profile.phone)
     localStorage.setItem(`userEmail:${sidNow}`, profile.email)
+    try {
+      if (profile.logo) localStorage.setItem(`schoolLogo:${sidNow}`, profile.logo)
+    } catch (e) {
+      console.error('LocalStorage quota exceeded for school logo:', e)
+    }
     window.dispatchEvent(new CustomEvent('adminProfile:change'))
     alert('Profile updated successfully!')
   }
@@ -238,6 +282,33 @@ const UserSettings = () => {
       </div>
 
       <Section title="Profile Information">
+        <div className="mb-6 flex flex-col items-center">
+          <div className="relative group">
+            <div className="w-24 h-24 rounded-2xl bg-light-bg border border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
+              {profile.logo ? (
+                <img src={profile.logo} alt="School Logo" className="w-full h-full object-contain" />
+              ) : (
+                <Globe size={32} className="text-gray-300" />
+              )}
+            </div>
+            <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 transition rounded-2xl cursor-pointer">
+              <Camera size={20} />
+              <input type="file" accept="image/*" className="hidden" onChange={e => {
+                const file = e.target.files[0]
+                if (file) {
+                  const reader = new FileReader()
+                  reader.onloadend = async () => {
+                    const compressed = await compressImage(reader.result, 300, 300)
+                    setProfile({ ...profile, logo: compressed })
+                  }
+                  reader.readAsDataURL(file)
+                }
+              }} />
+            </label>
+          </div>
+          <div className="text-[10px] font-black text-muted-text uppercase tracking-widest mt-2">School Logo</div>
+        </div>
+
         <SettingRow icon={User} label="Full Name" description="Your display name across the platform">
           <input
             type="text"

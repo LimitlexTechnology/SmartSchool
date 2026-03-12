@@ -17,7 +17,8 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Basic Health Check
 app.get('/', (req, res) => {
@@ -266,6 +267,7 @@ app.put('/api/students/:id', auth, async (req, res) => {
       gender, birthday, admittedAt,
       religion, nationality, hometown, address,
       guardianName, guardianRelationship, guardianContact,
+      profilePicture
     } = req.body || {}
 
     if (req.schoolId && req.schoolId !== 'local') {
@@ -300,6 +302,7 @@ app.put('/api/students/:id', auth, async (req, res) => {
       if (guardianName !== undefined) s.guardianName = guardianName
       if (guardianRelationship !== undefined) s.guardianRelationship = guardianRelationship
       if (guardianContact !== undefined) s.guardianContact = guardianContact
+      if (profilePicture !== undefined) s.profilePicture = profilePicture
       s.updatedAt = new Date().toISOString()
       writeTenantStudents(req.schoolId, store)
       const c = classesStore.classes.find(cx => cx.id === s.classId)
@@ -331,6 +334,7 @@ app.put('/api/students/:id', auth, async (req, res) => {
     if (guardianName !== undefined) data.guardianName = guardianName
     if (guardianRelationship !== undefined) data.guardianRelationship = guardianRelationship
     if (guardianContact !== undefined) data.guardianContact = guardianContact
+    if (profilePicture !== undefined) data.profilePicture = profilePicture
 
     if (req.schoolId && req.schoolId !== 'local') {
       const store = readTenantStudents(req.schoolId)
@@ -408,6 +412,7 @@ app.get('/api/students', auth, async (req, res) => {
           className: c?.name || '',
           grade: c?.grade || s.grade || '',
           studentId: s.wristbandId || (s.id || '').slice(0, 8).toUpperCase(),
+          profilePicture: s.profilePicture || null,
           behaviorPoints: s.behaviorPoints !== undefined ? s.behaviorPoints : 100,
           gender: s.gender || null,
           index: (page - 1) * pageSize + i + 1,
@@ -455,6 +460,7 @@ app.get('/api/students', auth, async (req, res) => {
       className: s.class?.name || '',
       grade: s.class?.grade || s.grade || '',
       studentId: s.wristbandId || s.id.slice(0, 8).toUpperCase(),
+      profilePicture: s.profilePicture || null,
       behaviorPoints: s.behaviorPoints,
       gender: null,
       index: (page - 1) * pageSize + i + 1,
@@ -1210,6 +1216,7 @@ app.get('/api/school-auth/profile', auth, async (req, res) => {
     res.json({
       schoolId: s.id,
       schoolName: s.name || '',
+      schoolLogo: s.logo || '',
       adminName: s.admin || '',
       adminPhone: s.phone || '',
       adminEmail: s.adminEmail || ''
@@ -1223,12 +1230,13 @@ app.put('/api/school-auth/profile', auth, async (req, res) => {
   try {
     const schoolId = req.schoolId
     if (!schoolId || schoolId === 'local') return res.status(400).json({ error: 'not allowed' })
-    const { schoolName, adminName, adminPhone, adminEmail } = req.body || {}
+    const { schoolName, adminName, adminPhone, adminEmail, schoolLogo } = req.body || {}
     const patch = {}
     if (schoolName !== undefined) patch.name = String(schoolName).trim()
     if (adminName !== undefined) patch.admin = String(adminName).trim()
     if (adminPhone !== undefined) patch.phone = String(adminPhone).trim()
     if (adminEmail !== undefined) patch.adminEmail = String(adminEmail).trim()
+    if (schoolLogo !== undefined) patch.logo = schoolLogo
     const updated = schoolsStore.update(schoolId, patch)
     if (!updated) return res.status(404).json({ error: 'school not found' })
     res.json({ status: 'ok' })
@@ -1648,6 +1656,7 @@ app.post('/api/students', auth, async (req, res) => {
       gender, birthday, admittedAt,
       religion, nationality, hometown, address,
       guardianName, guardianRelationship, guardianContact,
+      profilePicture
     } = req.body || {}
     if (!firstName || !lastName || !email) {
       return res.status(400).json({ error: 'firstName, lastName and email are required' })
@@ -1679,6 +1688,7 @@ app.post('/api/students', auth, async (req, res) => {
         guardianName: guardianName || null,
         guardianRelationship: guardianRelationship || null,
         guardianContact: guardianContact || null,
+        profilePicture: profilePicture || null,
         status: 'active',
         createdAt: now,
         updatedAt: now
@@ -1716,6 +1726,7 @@ app.post('/api/students', auth, async (req, res) => {
         guardianName: guardianName || null,
         guardianRelationship: guardianRelationship || null,
         guardianContact: guardianContact || null,
+        profilePicture: profilePicture || null,
       },
       include: { class: true },
     })
@@ -1752,6 +1763,7 @@ app.get('/api/students/:id', auth, async (req, res) => {
         className: c?.name || '',
         grade: c?.grade || s.grade || '',
         studentId: s.wristbandId || s.id.slice(0, 8).toUpperCase(),
+        profilePicture: s.profilePicture || null,
       })
     }
     const s = await prisma.student.findUnique({ where: { id }, include: { class: true } })
@@ -1764,6 +1776,7 @@ app.get('/api/students/:id', auth, async (req, res) => {
       className: s.class?.name || '',
       grade: s.class?.grade || s.grade || '',
       studentId: s.wristbandId || s.id.slice(0, 8).toUpperCase(),
+      profilePicture: s.profilePicture || null,
       createdAt: s.createdAt,
       gender: s.gender || null,
       birthday: s.birthday || null,

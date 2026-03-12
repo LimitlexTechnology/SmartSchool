@@ -77,7 +77,21 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
     const staffMenuRef = useRef(null);
     const [submenuPos, setSubmenuPos] = useState({ top: 0, left: 0 });
     const [staffMenuPos, setStaffMenuPos] = useState({ top: 0, left: 0 });
+    const [schoolLogo, setSchoolLogo] = useState(null);
     const location = useLocation();
+    
+    useEffect(() => {
+        const sid = localStorage.getItem('schoolId') || 'local';
+        const logo = localStorage.getItem(`schoolLogo:${sid}`);
+        if (logo) setSchoolLogo(logo);
+        
+        const handleProfileChange = () => {
+            const updatedLogo = localStorage.getItem(`schoolLogo:${sid}`);
+            setSchoolLogo(updatedLogo);
+        };
+        window.addEventListener('adminProfile:change', handleProfileChange);
+        return () => window.removeEventListener('adminProfile:change', handleProfileChange);
+    }, []);
     const role = (typeof window !== 'undefined' && window.localStorage.getItem('userRole')) || 'admin';
     const teacherId = (typeof window !== 'undefined' && window.localStorage.getItem('teacherId')) || '';
     const [allowedFeatures, setAllowedFeatures] = useState(null);
@@ -181,9 +195,15 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
                 {/* ── School Logo / Crest ── */}
                 <div className="flex flex-col items-center pt-5 pb-3 px-2 border-b border-gray-50">
                     {/* Logo area – shows the school's crest / logo */}
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-teal to-secondary-teal flex items-center justify-center shadow-lg shadow-primary-teal/20 flex-shrink-0">
-                        <GraduationCap size={24} className="text-white" />
-                    </div>
+                    {schoolLogo ? (
+                        <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-lg shadow-primary-teal/20 bg-white flex items-center justify-center p-1 flex-shrink-0 border border-gray-100">
+                            <img src={schoolLogo} alt="Logo" className="w-full h-full object-contain" />
+                        </div>
+                    ) : (
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-teal to-secondary-teal flex items-center justify-center shadow-lg shadow-primary-teal/20 flex-shrink-0">
+                            <GraduationCap size={24} className="text-white" />
+                        </div>
+                    )}
                     {!collapsed && (
                         <p className="text-[9px] font-black text-muted-text uppercase tracking-widest mt-2 text-center leading-tight px-1">
                             School
