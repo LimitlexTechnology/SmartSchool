@@ -1,3 +1,26 @@
 {
-  "students": []
+  "students": [
+    {
+      "id": "2af0eadc-8123-45e4-8d5b-c653bb170403",
+      "firstName": "Petals",
+      "lastName": "Gakpleazi",
+      "email": "kobbygazi@gmail.com",
+      "grade": "1",
+      "classId": null,
+      "wristbandId": null,
+      "gender": "Female",
+      "birthday": null,
+      "admittedAt": null,
+      "religion": null,
+      "nationality": null,
+      "hometown": null,
+      "address": null,
+      "guardianName": null,
+      "guardianRelationship": null,
+      "guardianContact": null,
+      "status": "active",
+      "createdAt": "2026-03-09T19:02:00.829Z",
+      "updatedAt": "2026-03-09T19:23:32.288Z"
+    }
+  ]
 }

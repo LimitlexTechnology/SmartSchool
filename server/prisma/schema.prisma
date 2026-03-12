@@ -62,6 +62,7 @@ model Teacher {
   subject   String
   lessons   Lesson[]
   profile   TeacherProfile?
+  teachingAssignments TeachingAssignment[]
 }
 
 model Class {
@@ -69,6 +70,7 @@ model Class {
   name      String
   grade     String
   students  Student[]
+  teachingAssignments TeachingAssignment[]
 }
 
 model Assessment {

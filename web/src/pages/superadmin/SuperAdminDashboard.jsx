@@ -23,6 +23,58 @@ const colorMap = { teal: 'from-primary-teal to-secondary-teal', blue: 'from-blue
 
 const SuperAdminDashboard = () => {
     const navigate = useNavigate();
+    const [stats, setStats] = React.useState({
+        totalSchools: '...',
+        activeUsers: '...',
+        monthlyRevenue: '...',
+        suspendedSchools: '...',
+        planDistribution: { Premium: 0, Basic: 0, Free: 0 }
+    });
+    const [recentSchools, setRecentSchools] = React.useState([]);
+    const [loading, setLoading] = React.useState(true);
+
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            const [statsRes, schoolsRes] = await Promise.all([
+                fetch('/api/admin/dashboard/stats'),
+                fetch('/api/admin/schools')
+            ]);
+
+            if (statsRes.ok) {
+                const s = await statsRes.json();
+                setStats(s);
+            }
+
+            if (schoolsRes.ok) {
+                const schools = await schoolsRes.json();
+                // Take 5 most recent
+                setRecentSchools(schools.slice(0, 5));
+            }
+        } catch (error) {
+            console.error('Failed to fetch dashboard data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    React.useEffect(() => {
+        loadData();
+    }, []);
+
+    const dynamicKpis = [
+        { label: 'Total Schools', value: stats.totalSchools, sub: 'Registered on platform', icon: Building2, color: 'teal', up: true },
+        { label: 'Platform Users', value: stats.activeUsers.toLocaleString(), sub: 'Across all schools', icon: Users, color: 'blue', up: true },
+        { label: 'Total Revenue', value: `GHS ${stats.monthlyRevenue.toLocaleString()}`, sub: 'All time collection', icon: CreditCard, color: 'emerald', up: true },
+        { label: 'Suspended Schools', value: stats.suspendedSchools, sub: 'Needs attention', icon: ShieldAlert, color: 'rose', up: false },
+    ];
+
+    const totalSchoolsCount = Number(stats.totalSchools) || 1;
+    const distribution = [
+        { plan: 'Premium', count: stats.planDistribution.Premium, color: 'from-amber-400 to-orange-500', pct: Math.round((stats.planDistribution.Premium / totalSchoolsCount) * 100) },
+        { plan: 'Basic', count: stats.planDistribution.Basic, color: 'from-blue-400 to-blue-600', pct: Math.round((stats.planDistribution.Basic / totalSchoolsCount) * 100) },
+        { plan: 'Free', count: stats.planDistribution.Free, color: 'from-gray-500 to-gray-600', pct: Math.round((stats.planDistribution.Free / totalSchoolsCount) * 100) },
+    ];
 
     return (
         <div className="flex flex-col gap-7">
@@ -30,21 +82,21 @@ const SuperAdminDashboard = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-extrabold text-white tracking-tight">Platform Overview</h1>
-                    <p className="text-sm text-gray-400 mt-0.5">Monday, 23 Feb 2026 — All systems operational</p>
+                    <p className="text-sm text-gray-400 mt-0.5">{new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })} — All systems operational</p>
                 </div>
                 <div className="flex gap-3">
                     <button onClick={() => navigate('/superadmin/schools')} className="flex items-center gap-2 px-4 py-2.5 bg-primary-teal text-white text-sm font-bold rounded-xl hover:bg-secondary-teal transition shadow-lg shadow-primary-teal/20">
                         <Plus size={16} /> Add School
                     </button>
-                    <button className="p-2.5 bg-white/5 rounded-xl border border-white/10 text-gray-400 hover:text-white transition">
-                        <RefreshCw size={18} />
+                    <button onClick={loadData} disabled={loading} className="p-2.5 bg-white/5 rounded-xl border border-white/10 text-gray-400 hover:text-white transition disabled:opacity-50">
+                        <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
                     </button>
                 </div>
             </div>
 
             {/* KPIs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                {kpis.map(({ label, value, sub, icon: Icon, color, up }) => (
+                {dynamicKpis.map(({ label, value, sub, icon: Icon, color, up }) => (
                     <div key={label} className="bg-[#0F1A2E] border border-white/5 rounded-2xl p-5 hover:border-primary-teal/30 transition group">
                         <div className="flex items-start justify-between mb-4">
                             <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${colorMap[color]} flex items-center justify-center shadow-lg`}>
@@ -63,11 +115,7 @@ const SuperAdminDashboard = () => {
 
             {/* Plan Distribution */}
             <div className="grid grid-cols-3 gap-4">
-                {[
-                    { plan: 'Premium', count: 62, color: 'from-amber-400 to-orange-500', pct: 42 },
-                    { plan: 'Basic', count: 54, color: 'from-blue-400 to-blue-600', pct: 36 },
-                    { plan: 'Free', count: 32, color: 'from-gray-500 to-gray-600', pct: 22 },
-                ].map(({ plan, count, color, pct }) => (
+                {distribution.map(({ plan, count, color, pct }) => (
                     <div key={plan} className="bg-[#0F1A2E] border border-white/5 rounded-2xl p-5">
                         <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-br ${color} mb-3`}>
                             <span className="text-xs font-black text-white">{plan}</span>
@@ -96,28 +144,33 @@ const SuperAdminDashboard = () => {
                                 <th className="px-6 py-3 text-left">School</th>
                                 <th className="px-6 py-3 text-left">Admin</th>
                                 <th className="px-6 py-3 text-left">Plan</th>
-                                <th className="px-6 py-3 text-left">Joined</th>
                                 <th className="px-6 py-3 text-left">Status</th>
                                 <th className="px-6 py-3 text-left">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             {recentSchools.map((s) => (
-                                <tr key={s.name} className="border-t border-white/5 hover:bg-white/[0.02] transition">
+                                <tr key={s.id} className="border-t border-white/5 hover:bg-white/[0.02] transition">
                                     <td className="px-6 py-4 text-sm font-bold text-white">{s.name}</td>
                                     <td className="px-6 py-4 text-sm text-gray-400">{s.admin}</td>
                                     <td className="px-6 py-4">
                                         <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${planBadge[s.plan]}`}>{s.plan}</span>
                                     </td>
-                                    <td className="px-6 py-4 text-xs text-gray-500">{s.joined}</td>
                                     <td className="px-6 py-4">
                                         <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full capitalize ${statusBadge[s.status]}`}>{s.status}</span>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <button className="text-xs font-bold text-primary-teal hover:underline">View</button>
+                                        <button onClick={() => navigate('/superadmin/schools')} className="text-xs font-bold text-primary-teal hover:underline">Manage</button>
                                     </td>
                                 </tr>
                             ))}
+                            {recentSchools.length === 0 && (
+                                <tr>
+                                    <td colSpan="5" className="px-6 py-10 text-center text-gray-500 text-sm italic">
+                                        No recent schools found.
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

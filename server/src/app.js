@@ -20,47 +20,76 @@ app.use(cors());
 app.use(express.json());
 
 // Basic Health Check
+app.get('/', (req, res) => {
+  res.send(`
+    <html>
+      <head>
+        <title>Smart School API</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f8fafc; }
+          .card { background: white; padding: 2rem; border-radius: 1rem; shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); border: 1px solid #e2e8f0; max-width: 400px; text-align: center; }
+          h1 { color: #0f172a; margin-top: 0; }
+          p { color: #64748b; line-height: 1.5; }
+          .links { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1.5rem; }
+          a { color: #0ea5e9; text-decoration: none; font-weight: 500; }
+          a:hover { text-decoration: underline; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h1>Smart School API</h1>
+          <p>The backend server is running successfully. This is an API-only server.</p>
+          <div class="links">
+            <a href="http://localhost:5173">Go to Web App (Frontend)</a>
+            <a href="/api/health">Check API Health</a>
+          </div>
+        </div>
+      </body>
+    </html>
+  `);
+});
+
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'OK', message: 'Smart School API is running' });
+  res.json({ status: 'OK', message: 'Smart School API is running' });
 });
 
 app.get('/api/health/db', async (req, res) => {
-    try {
-        const u = new URL(process.env.DATABASE_URL);
-        const pool = new Pool({
-            user: decodeURIComponent(u.username),
-            password: decodeURIComponent(u.password),
-            host: u.hostname,
-            port: u.port ? Number(u.port) : 5432,
-            database: u.pathname.replace(/^\//, '') || 'postgres',
-            ssl: { rejectUnauthorized: false },
-        });
-        await pool.query('SELECT 1');
-        await pool.end();
-        res.json({ status: 'OK', database: 'connected' });
-    } catch (e) {
-        console.error('DB health check failed:', e);
-        res.status(503).json({ status: 'DEGRADED', database: 'unavailable' });
-    }
+  try {
+    const u = new URL(process.env.DATABASE_URL);
+    const pool = new Pool({
+      user: decodeURIComponent(u.username),
+      password: decodeURIComponent(u.password),
+      host: u.hostname,
+      port: u.port ? Number(u.port) : 5432,
+      database: u.pathname.replace(/^\//, '') || 'postgres',
+      ssl: { rejectUnauthorized: false },
+    });
+    await pool.query('SELECT 1');
+    await pool.end();
+    res.json({ status: 'OK', database: 'connected' });
+  } catch (e) {
+    console.error('DB health check failed:', e);
+    res.status(503).json({ status: 'DEGRADED', database: 'unavailable' });
+  }
 });
 
 const auth = (req, res, next) => {
-    const raw = req.headers.cookie || ''
-    const parts = raw.split(';').map(s => s.trim()).filter(Boolean)
-    let sid = ''
-    let tid = ''
-    for (const p of parts) {
-      const eq = p.indexOf('=')
-      if (eq > 0) {
-        const k = p.slice(0, eq)
-        const v = p.slice(eq + 1)
-        if (k === 'schoolId') sid = decodeURIComponent(v || '')
-        if (k === 'teacherId') tid = decodeURIComponent(v || '')
-      }
+  const raw = req.headers.cookie || ''
+  const parts = raw.split(';').map(s => s.trim()).filter(Boolean)
+  let sid = ''
+  let tid = ''
+  for (const p of parts) {
+    const eq = p.indexOf('=')
+    if (eq > 0) {
+      const k = p.slice(0, eq)
+      const v = p.slice(eq + 1)
+      if (k === 'schoolId') sid = decodeURIComponent(v || '')
+      if (k === 'teacherId') tid = decodeURIComponent(v || '')
     }
-    req.schoolId = sid || 'local'
-    req.teacherId = tid || ''
-    next();
+  }
+  req.schoolId = sid || 'local'
+  req.teacherId = tid || ''
+  next();
 };
 
 const TENANT_DIR = path.join(__dirname, '..', 'data', 'tenants')
@@ -148,7 +177,7 @@ function ensureSuperAdminFile() {
 }
 function readSuperAdminProfile() {
   ensureSuperAdminFile()
-  try { return JSON.parse(fs.readFileSync(SUPERADMIN_FILE, 'utf8')) } catch { return { name:'Super Admin', phone:'', email:'' } }
+  try { return JSON.parse(fs.readFileSync(SUPERADMIN_FILE, 'utf8')) } catch { return { name: 'Super Admin', phone: '', email: '' } }
 }
 function writeSuperAdminProfile(p) {
   ensureSuperAdminFile()
@@ -302,6 +331,27 @@ app.put('/api/students/:id', auth, async (req, res) => {
     if (guardianName !== undefined) data.guardianName = guardianName
     if (guardianRelationship !== undefined) data.guardianRelationship = guardianRelationship
     if (guardianContact !== undefined) data.guardianContact = guardianContact
+
+    if (req.schoolId && req.schoolId !== 'local') {
+      const store = readTenantStudents(req.schoolId)
+      const idx = (store.students || []).findIndex(s => s.id === id)
+      if (idx === -1) return res.status(404).json({ error: 'not found' })
+      const now = new Date().toISOString()
+      store.students[idx] = { ...store.students[idx], ...data, updatedAt: now }
+      writeTenantStudents(req.schoolId, store)
+      const updated = store.students[idx]
+      return res.json({
+        id: updated.id,
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        email: updated.email,
+        className: '',
+        grade: updated.grade || '',
+        studentId: updated.wristbandId || updated.id.slice(0, 8).toUpperCase(),
+        createdAt: updated.createdAt
+      })
+    }
+
     const updated = await prisma.student.update({
       where: { id },
       data,
@@ -575,9 +625,9 @@ app.get('/api/teachers', auth, async (req, res) => {
       const all = Array.isArray(store.teachers) ? store.teachers : []
       const filtered = q
         ? all.filter(t =>
-            (t.name || '').toLowerCase().includes(q) ||
-            (t.email || '').toLowerCase().includes(q) ||
-            (t.subject || '').toLowerCase().includes(q))
+          (t.name || '').toLowerCase().includes(q) ||
+          (t.email || '').toLowerCase().includes(q) ||
+          (t.subject || '').toLowerCase().includes(q))
         : all
       const total = filtered.length
       const items = filtered.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize)
@@ -595,12 +645,12 @@ app.get('/api/teachers', auth, async (req, res) => {
     const q = (req.query.q || '').toString().trim()
     const where = q
       ? {
-          OR: [
-            { name: { contains: q, mode: 'insensitive' } },
-            { email: { contains: q, mode: 'insensitive' } },
-            { subject: { contains: q, mode: 'insensitive' } },
-          ],
-        }
+        OR: [
+          { name: { contains: q, mode: 'insensitive' } },
+          { email: { contains: q, mode: 'insensitive' } },
+          { subject: { contains: q, mode: 'insensitive' } },
+        ],
+      }
       : {}
     const [total, items] = await Promise.all([
       prisma.teacher.count({ where }),
@@ -666,7 +716,7 @@ app.post('/api/allocations', auth, async (req, res) => {
       try {
         const existing = await prisma.teachingAssignment.findFirst({ where: { classId, teacherId, subject: String(subject) } })
         if (existing) return res.status(200).json({ id: existing.id })
-      } catch (_) {}
+      } catch (_) { }
       const c = allocationsStore.add({ classId, teacherId, subject })
       return res.status(201).json({ id: c.id })
     }
@@ -737,9 +787,9 @@ app.post('/api/allocations/bulk', auth, async (req, res) => {
 app.get('/api/subjects', auth, async (req, res) => {
   try {
     const grade = (req.query.grade || '').toString().toLowerCase()
-    const common = ['Mathematics','English','Science','Social Studies','Religious Moral Education','Computing','Creative Arts']
-    const early = ['Computing','Numeracy','Language and Literacy','Phonics','Pre-writing','Geography','Creative Arts']
-    const upper = ['Mathematics','English','Science','Computing','History','Geography','Religious Moral Education','Social Studies','Creative Arts']
+    const common = ['Mathematics', 'English', 'Science', 'Social Studies', 'Religious Moral Education', 'Computing', 'Creative Arts']
+    const early = ['Computing', 'Numeracy', 'Language and Literacy', 'Phonics', 'Pre-writing', 'Geography', 'Creative Arts']
+    const upper = ['Mathematics', 'English', 'Science', 'Computing', 'History', 'Geography', 'Religious Moral Education', 'Social Studies', 'Creative Arts']
     let list = common
     if (grade.includes('nursery') || grade.includes('kg') || grade.includes('creche')) list = early
     else if (grade.includes('grade') || grade.includes('primary')) list = upper
@@ -772,7 +822,7 @@ app.get('/api/lessons', auth, async (req, res) => {
     ])
     const mapped = items.map((l, i) => {
       let meta = {}
-      try { meta = JSON.parse(l.content || '{}') } catch {}
+      try { meta = JSON.parse(l.content || '{}') } catch { }
       const status = (meta.status || 'draft').toString()
       return ({
         id: l.id,
@@ -928,6 +978,36 @@ app.get('/api/admin/schools', auth, async (_req, res) => {
   } catch (e) {
     console.error('Admin schools error:', e)
     res.status(200).json([])
+  }
+})
+
+app.get('/api/admin/dashboard/stats', auth, async (req, res) => {
+  try {
+    const schools = schoolsStore.list()
+    const suspended = schools.filter(s => s.status === 'suspended').length
+    const studentsCount = await prisma.student.count({ where: { status: { not: 'archived' } } })
+
+    // Revenue tracking is currently not implemented in the current schema
+    const revenue = 0
+
+    // For now, "Active Users" can be estimated or calculated from students + teachers
+    const teachersCount = await prisma.teacher.count()
+    const activeUsers = studentsCount + teachersCount
+
+    res.json({
+      totalSchools: 1 + schools.length, // local + others
+      activeUsers,
+      monthlyRevenue: revenue,
+      suspendedSchools: suspended,
+      planDistribution: {
+        Premium: schools.filter(s => s.plan === 'Premium').length + (process.env.SUBSCRIPTION_PLAN === 'Premium' ? 1 : 0),
+        Basic: schools.filter(s => s.plan === 'Basic').length + (process.env.SUBSCRIPTION_PLAN === 'Basic' ? 1 : 0),
+        Free: schools.filter(s => s.plan === 'Free').length + (process.env.SUBSCRIPTION_PLAN === 'Free' || !process.env.SUBSCRIPTION_PLAN ? 1 : 0),
+      }
+    })
+  } catch (e) {
+    console.error('Admin dashboard stats error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
   }
 })
 
@@ -1185,11 +1265,13 @@ app.put('/api/lessons/:id', auth, async (req, res) => {
   try {
     const id = req.params.id
     const { topic, content, teacherId } = req.body || {}
-    const updated = await prisma.lesson.update({ where: { id }, data: {
-      topic: topic !== undefined ? topic : undefined,
-      content: content !== undefined ? String(content) : undefined,
-      teacherId: teacherId !== undefined ? teacherId : undefined,
-    }})
+    const updated = await prisma.lesson.update({
+      where: { id }, data: {
+        topic: topic !== undefined ? topic : undefined,
+        content: content !== undefined ? String(content) : undefined,
+        teacherId: teacherId !== undefined ? teacherId : undefined,
+      }
+    })
     res.json({ id: updated.id })
   } catch (e) {
     console.error('Update lesson error:', e)
@@ -1214,7 +1296,7 @@ app.post('/api/lessons/:id/submit', auth, async (req, res) => {
     const l = await prisma.lesson.findUnique({ where: { id } })
     if (!l) return res.status(404).json({ error: 'not found' })
     let meta = {}
-    try { meta = JSON.parse(l.content || '{}') } catch {}
+    try { meta = JSON.parse(l.content || '{}') } catch { }
     meta.status = 'pending'
     await prisma.lesson.update({ where: { id }, data: { content: JSON.stringify(meta) } })
     res.json({ status: 'pending' })
@@ -1228,11 +1310,11 @@ app.post('/api/lessons/:id/decision', auth, async (req, res) => {
   try {
     const id = req.params.id
     const { action, reviewer = 'Reviewer', comment = '' } = req.body || {}
-    if (!['approve','reject'].includes(action)) return res.status(400).json({ error: 'action must be approve or reject' })
+    if (!['approve', 'reject'].includes(action)) return res.status(400).json({ error: 'action must be approve or reject' })
     const l = await prisma.lesson.findUnique({ where: { id } })
     if (!l) return res.status(404).json({ error: 'not found' })
     let meta = {}
-    try { meta = JSON.parse(l.content || '{}') } catch {}
+    try { meta = JSON.parse(l.content || '{}') } catch { }
     meta.status = action === 'approve' ? 'approved' : 'rejected'
     const entry = { reviewer, action, comment, decidedAt: new Date().toISOString() }
     meta.reviews = Array.isArray(meta.reviews) ? meta.reviews : []
@@ -1253,7 +1335,7 @@ app.post('/api/lessons/:id/assign-reviewer', auth, async (req, res) => {
     const l = await prisma.lesson.findUnique({ where: { id } })
     if (!l) return res.status(404).json({ error: 'not found' })
     let meta = {}
-    try { meta = JSON.parse(l.content || '{}') } catch {}
+    try { meta = JSON.parse(l.content || '{}') } catch { }
     meta.assignedReviewer = reviewer.trim()
     await prisma.lesson.update({ where: { id }, data: { content: JSON.stringify(meta) } })
     res.json({ assignedReviewer: meta.assignedReviewer })
@@ -1381,10 +1463,10 @@ app.get('/api/teachers/:id/profile', auth, async (req, res) => {
         gender: prof.gender || '',
         phone: prof.phone || '',
         staffId: prof.staffId || '',
-        dateEmployed: prof.dateEmployed ? prof.dateEmployed.toISOString().slice(0,10) : '',
+        dateEmployed: prof.dateEmployed ? prof.dateEmployed.toISOString().slice(0, 10) : '',
         ssn: prof.ssn || '',
         nationalId: prof.nationalId || '',
-        dob: prof.dob ? prof.dob.toISOString().slice(0,10) : '',
+        dob: prof.dob ? prof.dob.toISOString().slice(0, 10) : '',
         momoNumber: prof.momoNumber || '',
         accountNumber: prof.accountNumber || '',
         bankBranch: prof.bankBranch || '',
@@ -1812,21 +1894,21 @@ app.post('/api/students/:id/archive', auth, async (req, res) => {
   }
 });
 
-async function queryStudentsForSearch(q, includeArchived=false) {
+async function queryStudentsForSearch(q, includeArchived = false) {
   const baseFilter = includeArchived ? {} : { status: { not: 'archived' } }
   const where = (q || '').trim()
     ? {
-        AND: [
-          baseFilter,
-          {
-            OR: [
-              { firstName: { contains: q, mode: 'insensitive' } },
-              { lastName: { contains: q, mode: 'insensitive' } },
-              { email: { contains: q, mode: 'insensitive' } },
-            ],
-          },
-        ],
-      }
+      AND: [
+        baseFilter,
+        {
+          OR: [
+            { firstName: { contains: q, mode: 'insensitive' } },
+            { lastName: { contains: q, mode: 'insensitive' } },
+            { email: { contains: q, mode: 'insensitive' } },
+          ],
+        },
+      ],
+    }
     : baseFilter
   return prisma.student.findMany({ where, include: { class: true }, orderBy: { createdAt: 'desc' } })
 }
@@ -1940,14 +2022,14 @@ app.get('/api/admissions/export.csv', auth, async (req, res) => {
     const where = admissionsWhere(type, q)
     const items = await prisma.student.findMany({ where, include: { class: true }, orderBy: { createdAt: 'desc' } })
     const rows = [
-      ['First Name','Last Name','Email','Class','Grade','Student ID'].join(','),
+      ['First Name', 'Last Name', 'Email', 'Class', 'Grade', 'Student ID'].join(','),
       ...items.map(s => [
-        `"${(s.firstName||'').replace(/"/g,'""')}"`,
-        `"${(s.lastName||'').replace(/"/g,'""')}"`,
-        `"${(s.email||'').replace(/"/g,'""')}"`,
-        `"${(s.class?.name||'').replace(/"/g,'""')}"`,
-        `"${(s.class?.grade||s.grade||'').replace(/"/g,'""')}"`,
-        `"${(s.wristbandId||s.id.slice(0,8).toUpperCase()).replace(/"/g,'""')}"`,
+        `"${(s.firstName || '').replace(/"/g, '""')}"`,
+        `"${(s.lastName || '').replace(/"/g, '""')}"`,
+        `"${(s.email || '').replace(/"/g, '""')}"`,
+        `"${(s.class?.name || '').replace(/"/g, '""')}"`,
+        `"${(s.class?.grade || s.grade || '').replace(/"/g, '""')}"`,
+        `"${(s.wristbandId || s.id.slice(0, 8).toUpperCase()).replace(/"/g, '""')}"`,
       ].join(','))
     ].join('\n')
     res.setHeader('Content-Type', 'text/csv; charset=utf-8')
@@ -2028,7 +2110,7 @@ app.get('/api/groups/:id', auth, async (req, res) => {
             memberId: s.id, // in file mode, memberId == studentId
           }))
         }
-      } catch (_) {}
+      } catch (_) { }
       return res.json({ id: g.id, name: g.name, description: g.description || '', members, scholarship: !!g.scholarship, debtor: !!g.debtor, billingTag: g.billingTag || '' })
     } else {
       const group = await prisma.group.findUnique({
@@ -2078,7 +2160,7 @@ app.post('/api/groups/:id/members', auth, async (req, res) => {
         try {
           const m = await prisma.studentGroup.create({ data: item })
           created.push(m)
-        } catch (_) {}
+        } catch (_) { }
       }
       res.status(201).json({ added: created.length })
     }
@@ -2103,7 +2185,7 @@ app.post('/api/groups/:id/members/bulk', auth, async (req, res) => {
       const data = ids.map(sid => ({ id: randomUUID(), studentId: sid, groupId: id }))
       let added = 0
       for (const item of data) {
-        try { await prisma.studentGroup.create({ data: item }); added += 1 } catch (_) {}
+        try { await prisma.studentGroup.create({ data: item }); added += 1 } catch (_) { }
       }
       return res.status(201).json({ added })
     }
@@ -2133,18 +2215,18 @@ app.get('/api/groups/:id/export.csv', auth, async (req, res) => {
     }
     const students = memberIds.length ? await prisma.student.findMany({ where: { id: { in: memberIds } }, include: { class: true } }) : []
     const rows = [
-      ['First Name','Last Name','Email','Class','Grade','Student ID'].join(','),
+      ['First Name', 'Last Name', 'Email', 'Class', 'Grade', 'Student ID'].join(','),
       ...students.map(s => [
-        `"${(s.firstName||'').replace(/"/g,'""')}"`,
-        `"${(s.lastName||'').replace(/"/g,'""')}"`,
-        `"${(s.email||'').replace(/"/g,'""')}"`,
-        `"${(s.class?.name||'').replace(/"/g,'""')}"`,
-        `"${(s.class?.grade||s.grade||'').replace(/"/g,'""')}"`,
-        `"${(s.wristbandId||s.id.slice(0,8).toUpperCase()).replace(/"/g,'""')}"`,
+        `"${(s.firstName || '').replace(/"/g, '""')}"`,
+        `"${(s.lastName || '').replace(/"/g, '""')}"`,
+        `"${(s.email || '').replace(/"/g, '""')}"`,
+        `"${(s.class?.name || '').replace(/"/g, '""')}"`,
+        `"${(s.class?.grade || s.grade || '').replace(/"/g, '""')}"`,
+        `"${(s.wristbandId || s.id.slice(0, 8).toUpperCase()).replace(/"/g, '""')}"`,
       ].join(','))
     ].join('\n')
     res.setHeader('Content-Type', 'text/csv; charset=utf-8')
-    res.setHeader('Content-Disposition', `attachment; filename="${groupName.replace(/[^a-z0-9_-]/gi,'_')}.csv"`)
+    res.setHeader('Content-Disposition', `attachment; filename="${groupName.replace(/[^a-z0-9_-]/gi, '_')}.csv"`)
     res.send(rows)
   } catch (e) {
     console.error('Export CSV error:', e)
@@ -2225,11 +2307,11 @@ app.get('/api/guardians/export.csv', auth, async (req, res) => {
     })
     const all = aggregateGuardians(students, q)
     const rows = [
-      ['Name','Contact Number','Email','Wards'].join(','),
+      ['Name', 'Contact Number', 'Email', 'Wards'].join(','),
       ...all.map(g => [
-        `"${(g.name||'').replace(/"/g,'""')}"`,
-        `"${(g.contact||'').replace(/"/g,'""')}"`,
-        `"${(g.email||'').replace(/"/g,'""')}"`,
+        `"${(g.name || '').replace(/"/g, '""')}"`,
+        `"${(g.contact || '').replace(/"/g, '""')}"`,
+        `"${(g.email || '').replace(/"/g, '""')}"`,
         String(g.wards),
       ].join(','))
     ].join('\n')
@@ -2287,5 +2369,5 @@ app.get('/api/attendance/summary', auth, async (req, res) => {
 })
 
 app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+  console.log(`Server is running on port ${port}`);
 });
