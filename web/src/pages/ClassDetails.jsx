@@ -27,6 +27,7 @@ const ClassDetails = () => {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [teachers, setTeachers] = useState([]);
     const [showAddModal, setShowAddModal] = useState(false);
     const [saving, setSaving] = useState(false);
     const [form, setForm] = useState({ firstName: '', lastName: '', email: '', gender: '', classId: id });
@@ -71,6 +72,10 @@ const ClassDetails = () => {
             setClasses(classesData);
             const currentClass = classesData.find(c => c.id === id);
             setClassInfo(currentClass);
+
+            const teacherRes = await fetch('/api/teachers?pageSize=100');
+            const teacherData = await teacherRes.json();
+            setTeachers(teacherData.data || []);
 
             const studentRes = await fetch(`/api/students?classId=${id}&pageSize=100`);
             const studentData = await studentRes.json();
@@ -340,7 +345,26 @@ const ClassDetails = () => {
                             </div>
                             <div className="flex items-center justify-between">
                                 <div className="text-xs font-bold text-muted-text">Assigned Teacher</div>
-                                <div className="text-xs font-black text-dark-text">Unassigned</div>
+                                <div className="flex items-center gap-2">
+                                    <select 
+                                        value={classInfo.teacherId || ''} 
+                                        onChange={async (e) => {
+                                            const tid = e.target.value
+                                            const res = await fetch(`/api/classes/${id}/assign-teacher`, {
+                                                method: 'PUT',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ teacherId: tid })
+                                            })
+                                            if (res.ok) loadData()
+                                        }}
+                                        className="text-xs font-black text-dark-text bg-light-bg border-none rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-primary-teal"
+                                    >
+                                        <option value="">Unassigned</option>
+                                        {teachers.map(t => (
+                                            <option key={t.id} value={t.id}>{t.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
                         </div>
                         <button className="w-full mt-6 py-3 rounded-2xl bg-light-bg text-xs font-black text-primary-teal hover:bg-primary-teal/10 transition">

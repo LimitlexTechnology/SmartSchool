@@ -144,6 +144,7 @@ const Dashboard = () => {
     const sid = (typeof window !== 'undefined' && window.localStorage.getItem('schoolId')) || 'local';
     const schoolName = (typeof window !== 'undefined' && (window.localStorage.getItem(`schoolName:${sid}`) || window.localStorage.getItem('schoolName'))) || 'Your School';
     const schoolLogo = (typeof window !== 'undefined' && window.localStorage.getItem(`schoolLogo:${sid}`)) || null;
+    const userAvatar = (typeof window !== 'undefined' && window.localStorage.getItem(`userAvatar:${sid}`)) || null;
     const displayName = (() => {
         if (role === 'teacher') return (typeof window !== 'undefined' && window.localStorage.getItem('teacherName')) || 'Teacher';
         if (role === 'superadmin') return 'Super Admin';
@@ -180,12 +181,19 @@ const Dashboard = () => {
 
             {/* ── Top Greeting Bar ── */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                <div>
-                    <h1 className="text-2xl font-extrabold text-dark-text tracking-tight">
-                        Good {today.getHours() < 12 ? 'morning' : today.getHours() < 17 ? 'afternoon' : 'evening'},
-                        <span className="text-primary-teal"> {displayName}</span>
-                    </h1>
-                    <p className="text-sm text-muted-text mt-0.5">What would you like to do today?</p>
+                <div className="flex items-center gap-4">
+                    {userAvatar && (
+                        <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-primary-teal/20 shadow-soft-sm">
+                            <img src={userAvatar} alt="User" className="w-full h-full object-cover" />
+                        </div>
+                    )}
+                    <div>
+                        <h1 className="text-2xl font-extrabold text-dark-text tracking-tight">
+                            Good {today.getHours() < 12 ? 'morning' : today.getHours() < 17 ? 'afternoon' : 'evening'},
+                            <span className="text-primary-teal"> {displayName}</span>
+                        </h1>
+                        <p className="text-sm text-muted-text mt-0.5">What would you like to do today?</p>
+                    </div>
                 </div>
 
                 {/* Search + actions */}

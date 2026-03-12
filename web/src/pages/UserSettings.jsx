@@ -184,6 +184,7 @@ const UserSettings = () => {
   })
 
   const sid = (typeof window !== 'undefined' && window.localStorage.getItem('schoolId')) || 'local'
+  const role = (typeof window !== 'undefined' && window.localStorage.getItem('userRole')) || 'admin'
   const keyName = `adminName:${sid}`
   const keyPhone = `adminPhone:${sid}`
   const keyEmail = `userEmail:${sid}`
@@ -205,25 +206,37 @@ const UserSettings = () => {
     const email = localStorage.getItem(eKey) || localStorage.getItem('userEmail') || 'admin@school.com'
     const phone = localStorage.getItem(pKey) || localStorage.getItem('adminPhone') || localStorage.getItem('userPhone') || ''
     const role = localStorage.getItem('userRole') || 'System Admin'
+    const profilePicture = localStorage.getItem(`userAvatar:${sidNow}`) || null
     
-    setProfile({ name, email, phone, role })
+    setProfile({ name, email, phone, role, profilePicture })
 
     const savedSettings = localStorage.getItem('userSettings')
     if (savedSettings) {
       setSettings(JSON.parse(savedSettings))
     }
     if (sidNow !== 'local') {
-      fetch('/api/school-auth/profile').then(r => r.ok ? r.ok ? r.json() : null : null).then(j => {
-        if (j) {
-          setProfile(p => ({ ...p, name: j.adminName || p.name, phone: j.adminPhone || p.phone, email: j.adminEmail || p.email, logo: j.schoolLogo || '' }))
-          if (j.schoolLogo) localStorage.setItem(`schoolLogo:${sidNow}`, j.schoolLogo)
-          if (j.schoolName) localStorage.setItem(`schoolName:${sidNow}`, j.schoolName)
-        }
-      }).catch(()=>{})
+      if (role === 'teacher') {
+        fetch('/api/teacher-auth/profile').then(r => r.ok ? r.json() : null).then(j => {
+          if (j) {
+            setProfile(p => ({ ...p, name: j.name || p.name, phone: j.phone || p.phone, email: j.email || p.email, profilePicture: j.profilePicture || '' }))
+            if (j.profilePicture) localStorage.setItem(`userAvatar:${sidNow}`, j.profilePicture)
+          }
+        }).catch(()=>{})
+      } else {
+        fetch('/api/school-auth/profile').then(r => r.ok ? r.ok ? r.json() : null : null).then(j => {
+          if (j) {
+            setProfile(p => ({ ...p, name: j.adminName || p.name, phone: j.adminPhone || p.phone, email: j.adminEmail || p.email, logo: j.schoolLogo || '', profilePicture: j.adminProfilePicture || '' }))
+            if (j.schoolLogo) localStorage.setItem(`schoolLogo:${sidNow}`, j.schoolLogo)
+            if (j.schoolName) localStorage.setItem(`schoolName:${sidNow}`, j.schoolName)
+            if (j.adminProfilePicture) localStorage.setItem(`userAvatar:${sidNow}`, j.adminProfilePicture)
+          }
+        }).catch(()=>{})
+      }
     } else {
       fetch('/api/superadmin/profile').then(r => r.ok ? r.json() : null).then(j => {
         if (j) {
-          setProfile(p => ({ ...p, name: j.name || p.name, phone: j.phone || p.phone, email: j.email || p.email }))
+          setProfile(p => ({ ...p, name: j.name || p.name, phone: j.phone || p.phone, email: j.email || p.email, profilePicture: j.profilePicture || '' }))
+          if (j.profilePicture) localStorage.setItem(`userAvatar:${sidNow}`, j.profilePicture)
         }
       }).catch(()=>{})
     }
@@ -243,24 +256,38 @@ const UserSettings = () => {
 
   const saveProfile = () => {
     const sidNow = localStorage.getItem('schoolId') || 'local'
+    const role = localStorage.getItem('userRole') || 'admin'
+    
     if (sidNow !== 'local') {
-      fetch('/api/school-auth/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          adminName: profile.name,
-          adminPhone: profile.phone,
-          adminEmail: profile.email,
-          schoolLogo: profile.logo
-        })
-      }).catch(()=>{})
-      localStorage.setItem(`schoolLogo:${sidNow}`, profile.logo)
+      if (role === 'teacher') {
+        fetch('/api/teacher-auth/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: profile.name, phone: profile.phone, profilePicture: profile.profilePicture })
+        }).catch(()=>{})
+        if (profile.profilePicture) localStorage.setItem(`userAvatar:${sidNow}`, profile.profilePicture)
+      } else {
+        fetch('/api/school-auth/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            adminName: profile.name,
+            adminPhone: profile.phone,
+            adminEmail: profile.email,
+            schoolLogo: profile.logo,
+            adminProfilePicture: profile.profilePicture
+          })
+        }).catch(()=>{})
+        if (profile.logo) localStorage.setItem(`schoolLogo:${sidNow}`, profile.logo)
+        if (profile.profilePicture) localStorage.setItem(`userAvatar:${sidNow}`, profile.profilePicture)
+      }
     } else {
       fetch('/api/superadmin/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: profile.name, phone: profile.phone, email: profile.email })
+        body: JSON.stringify({ name: profile.name, phone: profile.phone, email: profile.email, profilePicture: profile.profilePicture })
       }).catch(()=>{})
+      if (profile.profilePicture) localStorage.setItem(`userAvatar:${sidNow}`, profile.profilePicture)
     }
     localStorage.setItem(`adminName:${sidNow}`, profile.name)
     localStorage.setItem(`adminPhone:${sidNow}`, profile.phone)
@@ -285,10 +312,10 @@ const UserSettings = () => {
         <div className="mb-6 flex flex-col items-center">
           <div className="relative group">
             <div className="w-24 h-24 rounded-2xl bg-light-bg border border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
-              {profile.logo ? (
-                <img src={profile.logo} alt="School Logo" className="w-full h-full object-contain" />
+              {profile.profilePicture ? (
+                <img src={profile.profilePicture} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <Globe size={32} className="text-gray-300" />
+                <User size={32} className="text-gray-300" />
               )}
             </div>
             <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 transition rounded-2xl cursor-pointer">
@@ -299,15 +326,44 @@ const UserSettings = () => {
                   const reader = new FileReader()
                   reader.onloadend = async () => {
                     const compressed = await compressImage(reader.result, 300, 300)
-                    setProfile({ ...profile, logo: compressed })
+                    setProfile({ ...profile, profilePicture: compressed })
                   }
                   reader.readAsDataURL(file)
                 }
               }} />
             </label>
           </div>
-          <div className="text-[10px] font-black text-muted-text uppercase tracking-widest mt-2">School Logo</div>
+          <div className="text-[10px] font-black text-muted-text uppercase tracking-widest mt-2">Profile Picture</div>
         </div>
+
+        {role !== 'teacher' && (
+          <div className="mb-6 flex flex-col items-center">
+            <div className="relative group">
+              <div className="w-24 h-24 rounded-2xl bg-light-bg border border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
+                {profile.logo ? (
+                  <img src={profile.logo} alt="School Logo" className="w-full h-full object-contain" />
+                ) : (
+                  <Globe size={32} className="text-gray-300" />
+                )}
+              </div>
+              <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 transition rounded-2xl cursor-pointer">
+                <Camera size={20} />
+                <input type="file" accept="image/*" className="hidden" onChange={e => {
+                  const file = e.target.files[0]
+                  if (file) {
+                    const reader = new FileReader()
+                    reader.onloadend = async () => {
+                      const compressed = await compressImage(reader.result, 300, 300)
+                      setProfile({ ...profile, logo: compressed })
+                    }
+                    reader.readAsDataURL(file)
+                  }
+                }} />
+              </label>
+            </div>
+            <div className="text-[10px] font-black text-muted-text uppercase tracking-widest mt-2">School Logo</div>
+          </div>
+        )}
 
         <SettingRow icon={User} label="Full Name" description="Your display name across the platform">
           <input
