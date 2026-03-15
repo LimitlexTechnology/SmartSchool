@@ -22,6 +22,7 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import parentHero from '../assets/parent-hero.png';
 import studentHero from '../assets/student-hero.png';
+import SkullarLogoAnimation from '../components/ui/SkullarLogoAnimation';
 import SkullarLogo from '../assets/Skullar Logo.png';
 
 const LandingPage = () => {
@@ -133,7 +134,11 @@ const LandingPage = () => {
             <nav className={`fixed w-full z-50 transition-all duration-300 ${scrolled ? 'bg-white shadow-md py-4' : 'bg-transparent py-6'}`}>
                 <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <img src={SkullarLogo} alt="Skullar" className="w-[150px] h-auto object-contain" />
+                        <div className="w-[150px] h-[40px] relative">
+                            <div className="absolute top-1/2 left-0 -translate-y-1/2 scale-[0.3] origin-left">
+                                <SkullarLogoAnimation />
+                            </div>
+                        </div>
                     </div>
 
                     <div className="hidden md:flex items-center gap-8">
@@ -459,7 +464,11 @@ const LandingPage = () => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-12 mt-24 mb-12">
                         <div className="col-span-2 md:col-span-1 flex flex-col gap-6">
                             <div className="flex items-center gap-2">
-                                <img src={SkullarLogo} alt="Skullar" className="w-[150px] h-auto object-contain" />
+                                <div className="w-[150px] h-[40px] relative">
+                                    <div className="absolute top-1/2 left-0 -translate-y-1/2 scale-[0.3] origin-left">
+                                        <SkullarLogoAnimation />
+                                    </div>
+                                </div>
                             </div>
                             <p className="text-muted-text text-sm">
                                 Revolutionizing education through technology and connectivity.

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Phone, ArrowRight, ShieldCheck, Eye, EyeOff, Lock, GraduationCap } from 'lucide-react';
 import Button from '../components/ui/Button';
 import loginVideo from '../assets/login page gif.mp4';
+import SkullarLogoAnimation from '../components/ui/SkullarLogoAnimation';
 
 const Login = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -38,7 +39,7 @@ const Login = () => {
         localStorage.setItem('userPhone', phoneNumber);
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('userRole', 'superadmin');
-        document.cookie = `schoolId=local; Path=/; Max-Age=${60*60*24*7}`
+        document.cookie = `schoolId=local; Path=/; Max-Age=${60 * 60 * 24 * 7}`
         navigate('/superadmin');
         return
       }
@@ -56,7 +57,7 @@ const Login = () => {
         localStorage.setItem('userRole', 'admin');
         if (j.schoolId) localStorage.setItem('schoolId', j.schoolId)
         if (j.name) localStorage.setItem('schoolName', j.name)
-        if (j.schoolId) document.cookie = `schoolId=${encodeURIComponent(j.schoolId)}; Path=/; Max-Age=${60*60*24*7}`
+        if (j.schoolId) document.cookie = `schoolId=${encodeURIComponent(j.schoolId)}; Path=/; Max-Age=${60 * 60 * 24 * 7}`
         navigate('/dashboard');
         return
       }
@@ -74,12 +75,12 @@ const Login = () => {
         if (j.name) localStorage.setItem('teacherName', j.name)
         if (j.teacherId) localStorage.setItem('teacherId', j.teacherId)
         if (j.schoolId) localStorage.setItem('schoolId', j.schoolId)
-        if (j.schoolId) document.cookie = `schoolId=${encodeURIComponent(j.schoolId)}; Path=/; Max-Age=${60*60*24*7}`
-        if (j.teacherId) document.cookie = `teacherId=${encodeURIComponent(j.teacherId)}; Path=/; Max-Age=${60*60*24*7}`
+        if (j.schoolId) document.cookie = `schoolId=${encodeURIComponent(j.schoolId)}; Path=/; Max-Age=${60 * 60 * 24 * 7}`
+        if (j.teacherId) document.cookie = `teacherId=${encodeURIComponent(j.teacherId)}; Path=/; Max-Age=${60 * 60 * 24 * 7}`
         navigate('/teacher');
         return
       }
-      const t = await r.json().catch(()=>({}))
+      const t = await r.json().catch(() => ({}))
       throw new Error(t.error || 'Login failed')
     } catch (error) {
       alert('Login failed. Please check your phone number and password.');
@@ -134,11 +135,13 @@ const Login = () => {
       {/* Right Side - Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gray-50">
         <div className="w-full max-w-md bg-white p-8 rounded-3xl shadow-xl border border-gray-100">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-primary-teal/10 rounded-xl mb-4">
-              <ShieldCheck className="w-6 h-6 text-primary-teal" />
+          <div className="text-center mb-8 flex flex-col items-center">
+            <div className="w-[150px] h-[50px] relative mb-4">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 scale-[0.3]">
+                <SkullarLogoAnimation />
+              </div>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mt-2">Welcome Back</h2>
             <p className="text-gray-500 mt-2">Please enter your details to sign in</p>
           </div>
 

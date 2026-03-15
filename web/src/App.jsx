@@ -30,6 +30,7 @@ import Timetables from './pages/Timetables'
 import Classroom from './pages/Classroom'
 import ClassDetails from './pages/ClassDetails'
 import TeacherDashboard from './pages/teacher/TeacherDashboard'
+import LogoAnimationDemo from './pages/LogoAnimationDemo'
 
 // SuperAdmin Pages
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard'
@@ -78,6 +79,7 @@ const App = () => {
         {/* Public */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/logo-demo" element={<LogoAnimationDemo />} />
 
         {/* School Dashboard */}
         <Route path="/dashboard" element={
