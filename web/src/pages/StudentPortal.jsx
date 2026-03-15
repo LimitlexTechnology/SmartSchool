@@ -1,0 +1,635 @@
+import React, { useEffect, useState } from 'react'
+import {
+    Menu, Bell, User, Star, Calendar, Clock,
+    BookOpen, ClipboardCheck, Wallet, Layout,
+    ChevronRight, LogOut, ShieldCheck, GraduationCap,
+    MessageSquare, Settings, Users, Calculator, FileText, CheckCircle, TrendingUp, TrendingDown, Minus, Plus, X
+} from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import SkullarLogo from '../assets/Skullar Logo.png'
+
+const StudentPortal = () => {
+    const [student, setStudent] = useState(null)
+    const [siblings, setSiblings] = useState([])
+    const [behaviorHistory, setBehaviorHistory] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [activeTab, setActiveTab] = useState('Dashboard')
+    const [saving, setSaving] = useState(false)
+    const [showBehaviorsModal, setShowBehaviorsModal] = useState(false)
+    const navigate = useNavigate()
+
+    useEffect(() => {
+        const studentId = localStorage.getItem('studentTableId')
+        if (!studentId) {
+            navigate('/login')
+            return
+        }
+
+        const fetchData = async () => {
+            try {
+                const sRes = await fetch(`/api/students/${studentId}`)
+                if (!sRes.ok) throw new Error('Failed to fetch student')
+                const sData = await sRes.json()
+                setStudent(sData)
+
+                // Fetch siblings
+                const sibRes = await fetch(`/api/students/${studentId}/siblings`)
+                if (sibRes.ok) setSiblings(await sibRes.json())
+
+                // Fetch behavior history
+                const behRes = await fetch(`/api/students/${studentId}/behavior/history`)
+                if (behRes.ok) setBehaviorHistory(await behRes.json())
+
+            } catch (err) {
+                console.error(err)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchData()
+    }, [navigate])
+
+    const switchProfile = (sibId) => {
+        localStorage.setItem('studentTableId', sibId)
+        setLoading(true)
+        window.location.reload()
+    }
+
+    const handleLogout = () => {
+        localStorage.clear()
+        navigate('/login')
+    }
+
+    const handleGuardianPhotoUpload = async (e) => {
+        const file = e.target.files[0]
+        if (!file) return
+        if (file.size > 2 * 1024 * 1024) {
+            alert("Image is too large. Max 2MB.")
+            return
+        }
+        const reader = new FileReader()
+        reader.onloadend = async () => {
+            const base64 = reader.result
+            setSaving(true)
+            try {
+                const res = await fetch(`/api/students/${student.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ guardianPhoto: base64 })
+                })
+                if (!res.ok) throw new Error('Failed to upload')
+                const updated = await res.json()
+                setStudent(prev => ({ ...prev, guardianPhoto: updated.guardianPhoto || base64 }))
+                alert("Guardian photo updated successfully!")
+            } catch (err) {
+                console.error(err)
+                alert("Failed to update guardian photo.")
+            } finally {
+                setSaving(false)
+            }
+        }
+        reader.readAsDataURL(file)
+    }
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+                <div className="w-12 h-12 border-4 border-[#5E9E9E] border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        )
+    }
+
+    if (!student) return null
+
+    const getBehaviorStatus = (pts) => {
+        const p = pts || 0
+        if (p >= 80) return { label: 'EXCELLENT', bg: 'bg-[#065F46]', color: 'text-[#065F46]' }
+        if (p >= 70) return { label: 'GOOD', bg: 'bg-[#84CC16]', color: 'text-[#84CC16]' }
+        if (p >= 60) return { label: 'AVERAGE', bg: 'bg-[#EAB308]', color: 'text-[#EAB308]' }
+        if (p >= 50) return { label: 'WARNING', bg: 'bg-[#F97316]', color: 'text-[#F97316]' }
+        return { label: 'CRITICAL', bg: 'bg-[#991B1B]', color: 'text-[#991B1B]' }
+    }
+
+    const behStatus = getBehaviorStatus(student.behaviorPoints)
+
+    return (
+        <div className="min-h-screen bg-[#F4F7F9] font-sans">
+            {/* Top Bar Navigation */}
+            <header className="w-full bg-[#5E9E9E] px-6 py-2 flex items-center justify-between text-white shadow-sm">
+                <div className="flex items-center gap-6">
+                    <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                        <Menu className="w-5 h-5" />
+                    </button>
+                    <div className="h-8 border-r border-white/20 mx-2 hidden sm:block"></div>
+                    <img src={SkullarLogo} alt="School Logo" className="h-8 w-auto object-contain" />
+                </div>
+
+                <div className="flex items-center gap-4">
+                    <button className="relative p-2 hover:bg-white/10 rounded-lg transition-colors">
+                        <Bell className="w-5 h-5" />
+                        <span className="absolute top-2 right-2 w-2 h-2 bg-red-400 rounded-full border-2 border-[#5E9E9E]"></span>
+                    </button>
+                    <div className="flex items-center gap-3 pl-2">
+                        <div className="text-right hidden sm:block">
+                            <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Guardian</p>
+                            <p className="text-sm font-bold">{student.guardianName || 'Parent'}</p>
+                        </div>
+                        <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/20 bg-white/10 flex items-center justify-center shadow-inner group relative cursor-pointer">
+                            {student.guardianPhoto ? (
+                                <img src={student.guardianPhoto} alt="Guardian" className="w-full h-full object-cover" />
+                            ) : (
+                                <User className="w-5 h-5 text-white/60" />
+                            )}
+
+                            {siblings.length > 0 && (
+                                <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 hidden group-hover:block z-[1000]">
+                                    <p className="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 mb-1">Switch Profile</p>
+                                    {siblings.map(sib => (
+                                        <button
+                                            key={sib.id}
+                                            onClick={() => switchProfile(sib.id)}
+                                            className="w-full px-4 py-2 flex items-center gap-3 hover:bg-light-bg transition-colors text-left"
+                                        >
+                                            <div className="w-8 h-8 rounded-full bg-primary-teal/10 flex items-center justify-center overflow-hidden">
+                                                {sib.profilePhoto ? <img src={sib.profilePhoto} className="w-full h-full object-cover" /> : <User size={14} className="text-primary-teal" />}
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-bold text-dark-text">{sib.name}</p>
+                                                <p className="text-[10px] font-medium text-muted-text">{sib.studentId}</p>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            {/* Sub Navigation Tabs */}
+            <nav className="bg-white border-b border-gray-200 px-6 overflow-x-auto sticky top-0 z-40 shadow-sm">
+                <div className="flex items-center gap-8 py-1">
+                    {['Dashboard', 'Classroom', 'Accounts', 'Messages', 'Exams', 'Student Records', 'Parent Settings'].map((tab) => (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`text-xs font-bold whitespace-nowrap py-4 border-b-2 transition-all ${activeTab === tab ? 'text-[#5E9E9E] border-[#5E9E9E]' : 'text-gray-400 border-transparent hover:text-gray-600'}`}
+                        >
+                            {tab}
+                        </button>
+                    ))}
+                </div>
+            </nav>
+
+            <main className="max-w-[1200px] mx-auto p-6 space-y-6 animate-fade-in">
+
+                {activeTab === 'Dashboard' && (
+                    <>
+
+                        {/* Profile Hero Section */}
+                        <section className="bg-white rounded-2xl p-8 border border-gray-100 flex flex-col md:flex-row items-center md:items-start justify-between shadow-sm gap-8">
+                            <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+                                <div className="relative group">
+                                    <div className="w-32 h-32 rounded-2xl overflow-hidden border border-gray-100 shadow-md">
+                                        {student.profilePhoto ? (
+                                            <img src={student.profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full bg-gray-50 flex items-center justify-center">
+                                                <User className="w-16 h-16 text-gray-300" />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="text-center md:text-left pt-2">
+                                    <h2 className="text-2xl font-bold text-[#1F2937] leading-tight">{student.firstName} {student.lastName}</h2>
+                                    <p className="text-sm font-medium text-gray-500 mt-1">{student.className || student.grade} | {student.wristbandId || student.id.slice(0, 8).toUpperCase()}</p>
+                                </div>
+                            </div>
+
+                            <div
+                                onClick={() => setShowBehaviorsModal(true)}
+                                className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm min-w-[240px] cursor-pointer hover:border-[#5E9E9E] hover:shadow-md transition-all group"
+                            >
+                                <div className="flex items-center justify-between mb-6">
+                                    <p className="text-xs font-bold text-gray-800">Behaviour Summary</p>
+                                    <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#5E9E9E] transition-colors" />
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2">
+                                        <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Behaviour Points</span>
+                                    </div>
+                                    <div className="flex items-baseline gap-2">
+                                        <span className={`text-3xl font-bold ${behStatus.color}`}>{student.behaviorPoints || 0}</span>
+                                        <span className="text-sm font-medium text-gray-400">pts</span>
+                                    </div>
+                                    <div className={`inline-block px-4 py-1.5 rounded-full text-white text-[10px] font-black uppercase tracking-widest ${behStatus.bg}`}>
+                                        {behStatus.label}
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <h3 className="text-xs font-bold text-gray-800 uppercase tracking-widest mt-8">Quick Actions</h3>
+
+                        {/* 8-Grid Quick Actions */}
+                        <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <QuickAction icon={BookOpen} label="Classroom" color="#F4ECFF" textColor="#A855F7" />
+                            <QuickAction icon={Wallet} label="Accounts" color="#F0FDF4" textColor="#22C55E" />
+                            <QuickAction icon={MessageSquare} label="Messages" color="#EFF6FF" textColor="#3B82F6" />
+                            <QuickAction icon={GraduationCap} label="Exams" color="#FFF7ED" textColor="#F97316" />
+                            <QuickAction icon={FileText} label="Assignments" color="#FFF1F2" textColor="#FB7185" />
+                            <QuickAction icon={Users} label="Student Records" color="#F0F9FF" textColor="#0EA5E9" />
+                            <QuickAction icon={Calendar} label="Calendar" color="#F0FDF9" textColor="#0D9488" />
+                            <QuickAction icon={Settings} label="Settings" color="#F9FAFB" textColor="#4B5563" />
+                        </section>
+
+                        {/* Dashboard Grid Content */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Latest Alerts */}
+                            <div className="bg-white rounded-2xl border border-gray-100 p-6 flex items-center justify-between shadow-sm">
+                                <div className="space-y-1">
+                                    <h4 className="text-xs font-bold text-gray-800 uppercase tracking-widest">Latest Alerts</h4>
+                                    <p className="text-sm font-bold text-[#1F2937]">MID-TERM EXAM / SCHOOL FEES REMINDER</p>
+                                    <p className="text-[10px] font-medium text-gray-400">March 13, 2024 12:47 PM</p>
+                                </div>
+                                <span className="px-3 py-1 bg-red-500 text-white text-[10px] font-black rounded-lg">URGENT</span>
+                            </div>
+
+                            {/* Upcoming Events */}
+                            <div className="bg-white rounded-2xl border border-gray-100 p-6 flex items-center justify-between shadow-sm">
+                                <div className="space-y-1">
+                                    <h4 className="text-xs font-bold text-gray-800 uppercase tracking-widest">Upcoming Events</h4>
+                                    <p className="text-sm font-bold text-[#1F2937]">TENTATIVE HOLIDAY - EID UL FITR</p>
+                                    <p className="text-[10px] font-medium text-gray-400">March 17, 2026</p>
+                                </div>
+                                <Calendar className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
+                            </div>
+                        </div>
+
+
+                        {/* Stats Cards Row */}
+                        <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <StatsCard
+                                icon={Calendar}
+                                label="Attendance Rate"
+                                value="95%"
+                                status="Excellent"
+                                statusColor="#22C55E"
+                                statusBg="#F0FDF4"
+                            />
+                            <StatsCard
+                                icon={GraduationCap}
+                                label="Average Grade"
+                                value="85%"
+                                status="A"
+                                statusColor="#A855F7"
+                                statusBg="#F4ECFF"
+                            />
+                            <StatsCard
+                                icon={FileText}
+                                label="Assignments"
+                                value="28"
+                                status="5 Pending"
+                                statusColor="#F97316"
+                                statusBg="#FFF7ED"
+                                subtext="Completed"
+                            />
+                            <StatsCard
+                                icon={Wallet}
+                                label="Fee Status"
+                                value="GH₵1500"
+                                status="Due"
+                                statusColor="#EF4444"
+                                statusBg="#FEF2F2"
+                                valueColor="#EF4444"
+                                subtext="Outstanding"
+                            />
+                        </section>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Today's Schedule */}
+                            <div className="space-y-4">
+                                <h3 className="text-xs font-bold text-gray-800 uppercase tracking-widest">Today's Schedule</h3>
+                                <div className="bg-white rounded-2xl border border-gray-100 p-2 shadow-sm space-y-1">
+                                    <ScheduleItem time="8:00 - 9:00 AM" subject="Mathematics" teacher="Mrs. Johnson • Room 301" />
+                                    <ScheduleItem time="9:00 - 10:00 AM" subject="English Language" teacher="Mr. Smith • Room 205" active />
+                                    <ScheduleItem time="10:30 - 11:30 AM" subject="Science" teacher="Dr. Brown • Room Lab 2" />
+                                    <ScheduleItem time="11:30 - 12:30 PM" subject="Social Studies" teacher="Mrs. Davis • Room 108" />
+                                </div>
+                            </div>
+
+                            {/* Pending Assignments */}
+                            <div className="space-y-4">
+                                <h3 className="text-xs font-bold text-gray-800 uppercase tracking-widest">Pending Assignments</h3>
+                                <div className="bg-white rounded-2xl border border-gray-100 p-2 shadow-sm space-y-1">
+                                    <AssignmentItem title="Chapter 1 Exercises - Fractions" subject="Mathematics" due="Mar 16, 2026 (1 day left)" priority="high" />
+                                    <AssignmentItem title="Essay: My Best Friend" subject="English" due="Mar 18, 2026 (3 days left)" priority="medium" />
+                                    <AssignmentItem title="Plant Life Cycle Report" subject="Science" due="Mar 20, 2026 (5 days left)" priority="low" />
+                                    <AssignmentItem title="Ghana Map Drawing" subject="Social Studies" due="Mar 17, 2026 (2 days left)" priority="high" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-12">
+                            {/* Academic Performance */}
+                            <div className="space-y-4">
+                                <h3 className="text-xs font-bold text-gray-800 uppercase tracking-widest">Academic Performance</h3>
+                                <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm space-y-4">
+                                    <PerformanceItem subject="Mathematics" teacher="Mrs. Johnson" score="88%" trend="up" trendValue="6%" />
+                                    <PerformanceItem subject="English Language" teacher="Mr. Smith" score="85%" trend="down" trendValue="2%" />
+                                    <PerformanceItem subject="Science" teacher="Dr. Brown" score="92%" trend="up" trendValue="3%" />
+                                    <PerformanceItem subject="Social Studies" teacher="Mrs. Davis" score="78%" trend="neutral" trendValue="0%" />
+                                    <PerformanceItem subject="French" teacher="Mme. Laurent" score="81%" trend="up" trendValue="2%" />
+                                </div>
+                            </div>
+
+                            {/* Attendance Calendar */}
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-xs font-bold text-gray-800 uppercase tracking-widest">Attendance - March 2026</h3>
+                                    <div className="flex gap-4">
+                                        <LegendItem label="Present" color="#22C55E" />
+                                        <LegendItem label="Absent" color="#EF4444" />
+                                        <LegendItem label="Late" color="#FACC15" />
+                                    </div>
+                                </div>
+                                <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
+                                    <div className="grid grid-cols-7 gap-3 mb-4">
+                                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                                            <div key={day} className="text-[10px] font-bold text-gray-400 text-center uppercase tracking-widest">{day}</div>
+                                        ))}
+                                    </div>
+                                    <div className="grid grid-cols-7 gap-3">
+                                        <div className="col-span-6"></div>
+                                        <CalendarDay day="1" status="present" />
+                                        <CalendarDay day="2" status="present" />
+                                        <CalendarDay day="3" status="present" />
+                                        <CalendarDay day="4" status="present" />
+                                        <CalendarDay day="5" status="late" />
+                                        <CalendarDay day="6" status="present" />
+                                        <CalendarDay day="7" status="holiday" />
+                                        <CalendarDay day="8" status="holiday" />
+                                        <CalendarDay day="9" status="present" />
+                                        <CalendarDay day="10" status="present" />
+                                        <CalendarDay day="11" status="present" />
+                                        <CalendarDay day="12" status="absent" />
+                                        <CalendarDay day="13" status="present" />
+                                        <CalendarDay day="14" status="holiday" />
+                                        <CalendarDay day="15" status="holiday" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </>
+                )}
+
+                {activeTab === 'Parent Settings' && (
+                    <div className="space-y-6">
+                        <section className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
+                            <h3 className="text-lg font-bold text-gray-800 mb-6">Guardian Profile Settings</h3>
+                            <div className="flex flex-col md:flex-row gap-8 items-center md:items-start">
+                                <div className="relative group">
+                                    <div className="w-40 h-40 rounded-3xl overflow-hidden border-2 border-dashed border-[#5E9E9E] flex items-center justify-center bg-[#F4F7F9]">
+                                        {student.guardianPhoto ? (
+                                            <img src={student.guardianPhoto} alt="Guardian" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="flex flex-col items-center gap-2 text-gray-400">
+                                                <User className="w-10 h-10" />
+                                                <span className="text-[10px] font-bold uppercase tracking-widest text-center">No Photo<br />Uploaded</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <label className="absolute -bottom-2 -right-2 w-10 h-10 bg-[#5E9E9E] text-white rounded-xl shadow-lg flex items-center justify-center cursor-pointer hover:scale-110 active:scale-95 transition-all">
+                                        <Plus className="w-6 h-6" />
+                                        <input type="file" className="hidden" accept="image/*" onChange={handleGuardianPhotoUpload} disabled={saving} />
+                                    </label>
+                                </div>
+                                <div className="flex-1 space-y-4">
+                                    <div>
+                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-1">Guardian Name</h4>
+                                        <p className="text-xl font-bold text-gray-800">{student.guardianName || 'Not Set'}</p>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-1">Relationship</h4>
+                                        <p className="text-xl font-bold text-gray-800">{student.guardianRelationship || 'Not Set'}</p>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-1">Contact</h4>
+                                        <p className="text-xl font-bold text-gray-800">{student.guardianContact || 'Not Set'}</p>
+                                    </div>
+                                    <div className="pt-4">
+                                        <p className="text-sm text-gray-500 italic">Upload a profile photo to personalize your dashboard view. This photo will be visible on your ward's portal header.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                )}
+
+                {!['Dashboard', 'Parent Settings'].includes(activeTab) && (
+                    <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="w-16 h-16 bg-[#F4F7F9] rounded-2xl flex items-center justify-center mb-4">
+                            <Layout className="w-8 h-8 text-[#5E9E9E]/40" />
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-800">{activeTab}</h3>
+                        <p className="text-gray-400 font-medium">Coming soon in the next update.</p>
+                    </div>
+                )}
+
+            </main>
+
+            {/* Behavior History Modal */}
+            {showBehaviorsModal && (
+                <div className="fixed inset-0 z-[5000] flex items-center justify-center p-4 sm:p-6">
+                    <div className="absolute inset-0 bg-[#0F172A]/60 backdrop-blur-sm" onClick={() => setShowBehaviorsModal(false)}></div>
+                    <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] animate-slide-up">
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
+                            <div>
+                                <h3 className="text-lg font-black text-dark-text">Behaviour History</h3>
+                                <p className="text-[10px] font-bold text-muted-text uppercase tracking-widest mt-0.5">Full track record of points</p>
+                            </div>
+                            <button
+                                onClick={() => setShowBehaviorsModal(false)}
+                                className="p-2 hover:bg-light-bg rounded-xl transition-colors text-muted-text hover:text-dark-text"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                            <div className="bg-[#F4F7F9] rounded-2xl p-6 mb-2">
+                                <div className="flex items-center justify-between mb-4">
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Current Balance</span>
+                                    <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                                </div>
+                                <div className="flex items-baseline gap-2">
+                                    <span className={`text-4xl font-black ${behStatus.color}`}>{student.behaviorPoints || 0}</span>
+                                    <span className="text-sm font-bold text-muted-text">points</span>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                {behaviorHistory.length > 0 ? (
+                                    behaviorHistory.map(log => (
+                                        <div key={log.id} className="group p-4 rounded-2xl border border-gray-100 hover:border-primary-teal/30 hover:bg-primary-teal/[0.02] transition-all">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${log.type === 'addition' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                                                        {log.type === 'addition' ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-black text-dark-text">{log.category}</p>
+                                                        <p className="text-[10px] font-bold text-muted-text">{new Date(log.createdAt).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                                                    </div>
+                                                </div>
+                                                <div className={`text-sm font-black ${log.type === 'addition' ? 'text-green-500' : 'text-red-500'}`}>
+                                                    {log.type === 'addition' ? '+' : '-'}{log.score} pts
+                                                </div>
+                                            </div>
+                                            {log.reason && (
+                                                <div className="mt-3 pl-11">
+                                                    <p className="text-xs text-muted-text leading-relaxed font-medium italic">"{log.reason}"</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-12">
+                                        <div className="w-16 h-16 bg-light-bg rounded-2xl flex items-center justify-center mx-auto mb-4 opacity-50">
+                                            <Star className="w-8 h-8 text-gray-300" />
+                                        </div>
+                                        <p className="text-sm font-bold text-muted-text">No records found yet.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-gray-100 bg-gray-50/50">
+                            <button
+                                onClick={() => setShowBehaviorsModal(false)}
+                                className="w-full py-3 bg-dark-text text-white rounded-xl text-sm font-black hover:bg-black transition-all shadow-lg active:scale-[0.98]"
+                            >
+                                Got it, thanks!
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
+
+const QuickAction = ({ icon: Icon, label, color, textColor }) => (
+    <button className="bg-white rounded-xl p-6 border border-gray-100 flex flex-col items-center gap-4 shadow-sm hover:shadow-md transition-all group active:scale-95">
+        <div className="w-12 h-12 rounded-xl flex items-center justify-center transform group-hover:-translate-y-1 transition-transform" style={{ backgroundColor: color }}>
+            <Icon className="w-6 h-6" style={{ color: textColor }} />
+        </div>
+        <span className="text-xs font-bold text-gray-500">{label}</span>
+    </button>
+)
+
+const StatsCard = ({ icon: Icon, label, value, status, statusColor, statusBg, valueColor, subtext }) => (
+    <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-6">
+        <div className="flex items-center justify-between">
+            <div className="p-2 bg-blue-50 text-blue-500 rounded-lg">
+                <Icon className="w-4 h-4" />
+            </div>
+            <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold" style={{ color: statusColor, backgroundColor: statusBg }}>{status}</span>
+        </div>
+        <div>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">{label}</p>
+            <p className="text-2xl font-black" style={{ color: valueColor || '#111827' }}>{value}</p>
+            {subtext && <p className="text-[10px] font-bold text-gray-400 mt-1">{subtext}</p>}
+        </div>
+    </div>
+)
+
+const ScheduleItem = ({ time, subject, teacher, active }) => (
+    <div className={`p-4 rounded-xl flex items-center justify-between transition-colors ${active ? 'bg-[#EFF6FF] border border-[#BFDBFE]' : 'hover:bg-gray-50'}`}>
+        <div className="flex items-center gap-4">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${active ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                <Clock className="w-5 h-5" />
+            </div>
+            <div>
+                <p className="text-sm font-bold text-[#1F2937]">{subject}</p>
+                <p className="text-[10px] font-medium text-gray-400">{teacher}</p>
+            </div>
+        </div>
+        <div className="text-right">
+            <p className="text-xs font-bold text-gray-400">{time}</p>
+            {active && <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-1 inline-block">Now</span>}
+        </div>
+    </div>
+)
+
+const AssignmentItem = ({ title, subject, due, priority }) => {
+    const priorityColors = {
+        high: 'bg-red-500',
+        medium: 'bg-yellow-500',
+        low: 'bg-green-500'
+    }
+    return (
+        <div className="p-4 rounded-xl hover:bg-gray-50 flex items-center justify-between transition-colors">
+            <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#F4ECFF] flex items-center justify-center text-[#A855F7]">
+                    <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                    <p className="text-sm font-bold text-[#1F2937]">{title}</p>
+                    <p className="text-[10px] font-medium text-gray-400">{subject}</p>
+                </div>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+                <span className={`px-2 py-0.5 rounded text-white text-[8px] font-black uppercase tracking-widest ${priorityColors[priority]}`}>{priority}</span>
+                <div className="flex items-center gap-1.5 text-gray-400">
+                    <Clock className="w-3 h-3" />
+                    <p className="text-[10px] font-bold whitespace-nowrap"><span className="text-gray-400">Due:</span> <span className="text-gray-500">{due.split('(')[0]}</span> <span className="text-red-400 font-bold">{due.includes('(') ? '(' + due.split('(')[1] : ''}</span></p>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+const PerformanceItem = ({ subject, teacher, score, trend, trendValue }) => (
+    <div className="flex items-center justify-between group">
+        <div>
+            <p className="text-sm font-bold text-[#1F2937]">{subject}</p>
+            <p className="text-[10px] font-medium text-gray-400">{teacher}</p>
+        </div>
+        <div className="flex items-center gap-4">
+            <span className="text-xl font-black text-blue-600">{score}</span>
+            <div className="flex items-center gap-1">
+                {trend === 'up' && <TrendingUp className="w-4 h-4 text-green-500" />}
+                {trend === 'down' && <TrendingDown className="w-4 h-4 text-red-500" />}
+                {trend === 'neutral' && <Minus className="w-4 h-4 text-gray-300" />}
+                <span className={`text-[10px] font-bold ${trend === 'up' ? 'text-green-500' : trend === 'down' ? 'text-red-500' : 'text-gray-300'}`}>{trendValue}</span>
+            </div>
+        </div>
+    </div>
+)
+
+const LegendItem = ({ label, color }) => (
+    <div className="flex items-center gap-2">
+        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }}></div>
+        <span className="text-[10px] font-bold text-gray-500">{label}</span>
+    </div>
+)
+
+const CalendarDay = ({ day, status }) => {
+    const statusBg = {
+        present: 'bg-[#22C55E]',
+        absent: 'bg-[#EF4444]',
+        late: 'bg-[#FACC15]',
+        holiday: 'bg-[#3B82F6]'
+    }
+    return (
+        <div className={`aspect-square rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-sm ${statusBg[status]}`}>
+            {day}
+        </div>
+    )
+}
+
+export default StudentPortal

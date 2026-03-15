@@ -1,15 +1,27 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Search, Filter, ListFilter, Plus, RotateCw, Download, FileDown, X } from 'lucide-react'
+import { Search, Filter, ListFilter, Plus, RotateCw, Download, FileDown, X, Eye, EyeOff } from 'lucide-react'
 
-const Avatar = ({ name }) => {
+const Avatar = ({ name, src, size = 'w-8 h-8' }) => {
   const initials = useMemo(() => {
     const parts = name.trim().split(' ')
     return (parts[0]?.[0] || '').toUpperCase()
   }, [name])
   const colors = ['#0ea5b7', '#ef4444', '#f59e0b', '#10b981', '#6366f1']
   const bg = colors[(name.length + initials.charCodeAt(0)) % colors.length]
+
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        className={`${size} rounded-full object-cover border border-gray-100`}
+        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }}
+      />
+    )
+  }
+
   return (
-    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: bg }}>
+    <div className={`${size} rounded-full flex items-center justify-center text-white text-xs font-bold`} style={{ backgroundColor: bg }}>
       {initials || '?'}
     </div>
   )
@@ -28,9 +40,11 @@ const StudentsList = () => {
     gender: '', birthday: '', admittedAt: '',
     religion: '', nationality: '', hometown: '', address: '',
     guardianName: '', guardianRelationship: '', guardianContact: '',
+    password: '',
   })
   const [saving, setSaving] = useState(false)
   const [grid, setGrid] = useState(false)
+  const [showPass, setShowPass] = useState(false)
 
   const load = async (opts = {}) => {
     const p = opts.page ?? page
@@ -48,7 +62,7 @@ const StudentsList = () => {
 
   useEffect(() => {
     load({ page: 1 })
-    fetch('/api/classes').then(r=>r.json()).then(setClasses).catch(()=>setClasses([]))
+    fetch('/api/classes').then(r => r.json()).then(setClasses).catch(() => setClasses([]))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   useEffect(() => {
@@ -70,7 +84,7 @@ const StudentsList = () => {
         <button className="px-3 py-2 rounded-lg border border-gray-200 text-xs font-bold text-dark-text hover:bg-light-bg flex items-center gap-2">
           <Filter size={14} /> Filter
         </button>
-        <button onClick={() => setGrid(v=>!v)} className="px-3 py-2 rounded-lg border border-gray-200 text-xs font-bold text-dark-text hover:bg-light-bg flex items-center gap-2">
+        <button onClick={() => setGrid(v => !v)} className="px-3 py-2 rounded-lg border border-gray-200 text-xs font-bold text-dark-text hover:bg-light-bg flex items-center gap-2">
           <ListFilter size={14} /> Toggle View
         </button>
         <button onClick={() => setShowAdd(true)} className="px-3 py-2 rounded-lg border border-gray-200 text-xs font-bold text-dark-text hover:bg-light-bg flex items-center gap-2">
@@ -98,19 +112,19 @@ const StudentsList = () => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-bold text-muted-text">First Name</label>
-                <input value={form.firstName} onChange={e=>setForm({...form, firstName:e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
+                <input value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
               </div>
               <div>
                 <label className="text-xs font-bold text-muted-text">Last Name</label>
-                <input value={form.lastName} onChange={e=>setForm({...form, lastName:e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
+                <input value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
               </div>
               <div className="col-span-2">
                 <label className="text-xs font-bold text-muted-text">Email</label>
-                <input value={form.email} onChange={e=>setForm({...form, email:e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
+                <input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
               </div>
               <div>
                 <label className="text-xs font-bold text-muted-text">Gender</label>
-                <select value={form.gender} onChange={e=>setForm({...form, gender:e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm">
+                <select value={form.gender} onChange={e => setForm({ ...form, gender: e.target.value })} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm">
                   <option value="">Select gender</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
@@ -118,77 +132,97 @@ const StudentsList = () => {
               </div>
               <div>
                 <label className="text-xs font-bold text-muted-text">Birthday</label>
-                <input type="date" value={form.birthday} onChange={e=>setForm({...form, birthday:e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
+                <input type="date" value={form.birthday} onChange={e => setForm({ ...form, birthday: e.target.value })} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
               </div>
               <div>
                 <label className="text-xs font-bold text-muted-text">Class</label>
-                <select 
-                  value={form.classId} 
-                  onChange={e=>{
+                <select
+                  value={form.classId}
+                  onChange={e => {
                     const cid = e.target.value
                     const c = classes.find(cx => cx.id === cid)
-                    setForm({...form, classId:cid, grade: c ? c.grade : form.grade})
-                  }} 
+                    setForm({ ...form, classId: cid, grade: c ? c.grade : form.grade })
+                  }}
                   className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm"
                 >
                   <option value="">Select class</option>
-                  {classes.map(c=>(
+                  {classes.map(c => (
                     <option key={c.id} value={c.id}>{c.grade} • {c.name || 'No Section'}</option>
                   ))}
                 </select>
               </div>
               <div>
                 <label className="text-xs font-bold text-muted-text">Grade</label>
-                <input value={form.grade} onChange={e=>setForm({...form, grade:e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
+                <input value={form.grade} onChange={e => setForm({ ...form, grade: e.target.value })} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
               </div>
               <div>
                 <label className="text-xs font-bold text-muted-text">Date Admitted</label>
-                <input type="date" value={form.admittedAt} onChange={e=>setForm({...form, admittedAt:e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
+                <input type="date" value={form.admittedAt} onChange={e => setForm({ ...form, admittedAt: e.target.value })} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
               </div>
               <div className="col-span-2">
                 <label className="text-xs font-bold text-muted-text">Student ID</label>
-                <input value={form.wristbandId} onChange={e=>setForm({...form, wristbandId:e.target.value})} placeholder="Optional" className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
+                <input value={form.wristbandId} onChange={e => setForm({ ...form, wristbandId: e.target.value })} placeholder="Optional" className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
               </div>
               <div>
                 <label className="text-xs font-bold text-muted-text">Religion</label>
-                <input value={form.religion} onChange={e=>setForm({...form, religion:e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
+                <input value={form.religion} onChange={e => setForm({ ...form, religion: e.target.value })} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
               </div>
               <div>
                 <label className="text-xs font-bold text-muted-text">Nationality</label>
-                <input value={form.nationality} onChange={e=>setForm({...form, nationality:e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
+                <input value={form.nationality} onChange={e => setForm({ ...form, nationality: e.target.value })} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
               </div>
               <div>
                 <label className="text-xs font-bold text-muted-text">Hometown</label>
-                <input value={form.hometown} onChange={e=>setForm({...form, hometown:e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
+                <input value={form.hometown} onChange={e => setForm({ ...form, hometown: e.target.value })} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
               </div>
               <div className="col-span-2">
                 <label className="text-xs font-bold text-muted-text">Address</label>
-                <input value={form.address} onChange={e=>setForm({...form, address:e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
+                <input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
               </div>
               <div className="col-span-2 mt-2 text-xs font-extrabold text-dark-text">Guardian</div>
               <div>
                 <label className="text-xs font-bold text-muted-text">Name</label>
-                <input value={form.guardianName} onChange={e=>setForm({...form, guardianName:e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
+                <input value={form.guardianName} onChange={e => setForm({ ...form, guardianName: e.target.value })} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
               </div>
               <div>
                 <label className="text-xs font-bold text-muted-text">Relationship</label>
-                <input value={form.guardianRelationship} onChange={e=>setForm({...form, guardianRelationship:e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
+                <input value={form.guardianRelationship} onChange={e => setForm({ ...form, guardianRelationship: e.target.value })} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
               </div>
               <div className="col-span-2">
                 <label className="text-xs font-bold text-muted-text">Contact Number</label>
-                <input value={form.guardianContact} onChange={e=>setForm({...form, guardianContact:e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
+                <input value={form.guardianContact} onChange={e => setForm({ ...form, guardianContact: e.target.value })} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
+              </div>
+              <div className="col-span-2 mt-4">
+                <label className="text-xs font-bold text-muted-text">Initial Student Portal Password</label>
+                <div className="relative">
+                  <input
+                    type={showPass ? 'text' : 'password'}
+                    value={form.password}
+                    onChange={e => setForm({ ...form, password: e.target.value })}
+                    placeholder="Create a temporary password"
+                    className="mt-1 w-full pl-3 pr-10 py-2 rounded-xl border border-gray-200 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPass(!showPass)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-text hover:text-dark-text pt-1"
+                  >
+                    {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                <p className="text-[10px] text-muted-text mt-1 font-medium italic">Student will use this to login to their portal.</p>
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 mt-5">
-              <button onClick={()=>setShowAdd(false)} className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-bold">Cancel</button>
+              <button onClick={() => setShowAdd(false)} className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-bold">Cancel</button>
               <button
                 disabled={saving || !form.firstName || !form.lastName || !form.email}
-                onClick={async ()=>{
+                onClick={async () => {
                   setSaving(true)
-                  try{
-                    await fetch('/api/students',{
-                      method:'POST',
-                      headers:{'Content-Type':'application/json'},
+                  try {
+                    await fetch('/api/students', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
                         firstName: form.firstName.trim(),
                         lastName: form.lastName.trim(),
@@ -206,25 +240,28 @@ const StudentsList = () => {
                         guardianName: form.guardianName || null,
                         guardianRelationship: form.guardianRelationship || null,
                         guardianContact: form.guardianContact || null,
+                        password: form.password || null,
                       })
-                    }).then(async r=>{
-                      if(!r.ok){
-                        const t = await r.json().catch(()=>({}))
+                    }).then(async r => {
+                      if (!r.ok) {
+                        const t = await r.json().catch(() => ({}))
                         throw new Error(t.error || 'Failed')
                       }
                       return r.json()
                     })
                     setShowAdd(false)
                     setForm({
-                      firstName:'', lastName:'', email:'', grade:'', classId:'', wristbandId:'',
-                      gender:'', birthday:'', admittedAt:'',
-                      religion:'', nationality:'', hometown:'', address:'',
-                      guardianName:'', guardianRelationship:'', guardianContact:''
+                      firstName: '', lastName: '', email: '', grade: '', classId: '', wristbandId: '',
+                      gender: '', birthday: '', admittedAt: '',
+                      religion: '', nationality: '', hometown: '', address: '',
+                      guardianName: '', guardianRelationship: '', guardianContact: '',
+                      password: ''
                     })
-                    await load({ page: 1 })
-                  }catch(e){
+                    load()
+                    window.dispatchEvent(new CustomEvent('students:refresh'))
+                  } catch (e) {
                     alert(e.message)
-                  }finally{
+                  } finally {
                     setSaving(false)
                   }
                 }}
@@ -334,7 +371,7 @@ const StudentsList = () => {
   )
 }
 
-const StudentsDrawer = ({ id, onClose, initial, classes=[] }) => {
+const StudentsDrawer = ({ id, onClose, initial, classes = [] }) => {
   const [detail, setDetail] = useState(initial || null)
   const [loading, setLoading] = useState(false)
   const [edit, setEdit] = useState(false)
@@ -346,51 +383,77 @@ const StudentsDrawer = ({ id, onClose, initial, classes=[] }) => {
     admittedAt: initial.admittedAt ? String(initial.admittedAt).split('T')[0] : '',
     religion: initial.religion || '', nationality: initial.nationality || '', hometown: initial.hometown || '', address: initial.address || '',
     guardianName: initial.guardianName || '', guardianRelationship: initial.guardianRelationship || '', guardianContact: initial.guardianContact || '',
+    password: '', profilePhoto: initial.profilePhoto || null,
   } : null)
   useEffect(() => {
     let mounted = true
-    ;(async () => {
-      setLoading(true)
-      try {
-        const r = await fetch(`/api/students/${id}`)
-        if (!r.ok) throw new Error(`HTTP ${r.status}`)
-        const d = await r.json()
-        if (!mounted) return
-        setDetail(d)
-        setForm({
-          firstName: d.firstName || '', lastName: d.lastName || '', email: d.email || '',
-          className: d.className || '', grade: d.grade || '',
-          gender: d.gender || '', birthday: d.birthday ? d.birthday.split('T')[0] : '',
-          admittedAt: d.admittedAt ? d.admittedAt.split('T')[0] : '',
-          religion: d.religion || '', nationality: d.nationality || '', hometown: d.hometown || '', address: d.address || '',
-          guardianName: d.guardianName || '', guardianRelationship: d.guardianRelationship || '', guardianContact: d.guardianContact || '',
-        })
-      } catch (e) {
-        if (!mounted) return
-        if (!detail) {
-          setDetail({})
+      ; (async () => {
+        setLoading(true)
+        try {
+          const r = await fetch(`/api/students/${id}`)
+          if (!r.ok) throw new Error(`HTTP ${r.status}`)
+          const d = await r.json()
+          if (!mounted) return
+          setDetail(d)
           setForm({
-            firstName: '', lastName: '', email: '',
-            className: '', grade: '',
-            gender: '', birthday: '', admittedAt: '',
-            religion: '', nationality: '', hometown: '', address: '',
-            guardianName: '', guardianRelationship: '', guardianContact: '',
+            firstName: d.firstName || '', lastName: d.lastName || '', email: d.email || '',
+            classId: d.classId || '', className: d.className || '', grade: d.grade || '',
+            gender: d.gender || '', birthday: d.birthday ? d.birthday.split('T')[0] : '',
+            admittedAt: d.admittedAt ? d.admittedAt.split('T')[0] : '',
+            religion: d.religion || '', nationality: d.nationality || '', hometown: d.hometown || '', address: d.address || '',
+            guardianName: d.guardianName || '', guardianRelationship: d.guardianRelationship || '', guardianContact: d.guardianContact || '',
+            password: '', profilePhoto: d.profilePhoto || null,
           })
+        } catch (e) {
+          if (!mounted) return
+          if (!detail) {
+            setDetail({})
+            setForm({
+              firstName: '', lastName: '', email: '',
+              className: '', grade: '',
+              gender: '', birthday: '', admittedAt: '',
+              religion: '', nationality: '', hometown: '', address: '',
+              guardianName: '', guardianRelationship: '', guardianContact: '',
+              profilePhoto: null,
+            })
+          }
+        } finally {
+          if (mounted) setLoading(false)
         }
-      } finally {
-        if (mounted) setLoading(false)
-      }
-    })()
+      })()
     return () => { mounted = false }
   }, [id])
   const name = detail ? `${detail.firstName} ${detail.lastName}` : ''
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Image is too large. Max 2MB.")
+      return
+    }
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setForm(prev => ({ ...prev, profilePhoto: reader.result }))
+    }
+    reader.readAsDataURL(file)
+  }
+
   return (
     <div className="fixed inset-0 z-[3000]">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="absolute right-0 top-0 h-full w-full sm:w-[420px] bg-white border-l border-gray-100 shadow-soft-sm p-6 overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <Avatar name={name || 'U'} />
+            <div className="relative group">
+              <Avatar name={name || 'U'} src={form?.profilePhoto || detail?.profilePhoto} size="w-12 h-12" />
+              {edit && (
+                <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Plus className="w-5 h-5 text-white" />
+                  <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                </label>
+              )}
+            </div>
             <div>
               <div className="font-extrabold text-dark-text">{name || '—'}</div>
               <div className="text-xs text-muted-text font-bold">{detail?.studentId || '—'}</div>
@@ -398,14 +461,14 @@ const StudentsDrawer = ({ id, onClose, initial, classes=[] }) => {
           </div>
           <div className="flex items-center gap-2">
             <ArchiveButton id={id} onAfter={() => { setEdit(false); onClose(); window.dispatchEvent(new CustomEvent('students:refresh')) }} />
-            {!edit && <button onClick={()=>setEdit(true)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold">Edit</button>}
+            {!edit && <button onClick={() => setEdit(true)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold">Edit</button>}
             {edit && (
               <>
                 <button
                   disabled={saving}
-                  onClick={async ()=>{
+                  onClick={async () => {
                     setSaving(true)
-                    try{
+                    try {
                       const payload = {
                         firstName: form.firstName, lastName: form.lastName, email: form.email,
                         grade: form.grade, classId: form.classId || null,
@@ -416,32 +479,36 @@ const StudentsDrawer = ({ id, onClose, initial, classes=[] }) => {
                         nationality: form.nationality || null,
                         hometown: form.hometown || null,
                         address: form.address || null,
-                        guardianName: form.guardianName || null,
-                        guardianRelationship: form.guardianRelationship || null,
-                        guardianContact: form.guardianContact || null,
+                        guardianName: form.guardianName,
+                        guardianRelationship: form.guardianRelationship,
+                        guardianContact: form.guardianContact,
+                        password: form.password || null,
+                        profilePhoto: form.profilePhoto || null,
                       }
-                      await fetch(`/api/students/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
-                        .then(async r=>{ if(!r.ok){ const t=await r.json().catch(()=>({})); throw new Error(t.error || 'Failed')} return r.json() })
-                      const d = await fetch(`/api/students/${id}`).then(r=>r.json())
+                      await fetch(`/api/students/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+                        .then(async r => { if (!r.ok) { const t = await r.json().catch(() => ({})); throw new Error(t.error || 'Failed') } return r.json() })
+                      const d = await fetch(`/api/students/${id}`).then(r => r.json())
                       setDetail(d)
                       setEdit(false)
                       window.dispatchEvent(new CustomEvent('students:refresh'))
-                    }catch(e){
+                    } catch (e) {
                       alert(e.message)
-                    }finally{
+                    } finally {
                       setSaving(false)
                     }
                   }}
                   className="px-3 py-1.5 rounded-lg bg-primary-teal text-white text-xs font-bold disabled:opacity-50"
-                >{saving?'Saving…':'Save'}</button>
-                <button onClick={()=>{ setEdit(false); setForm({
-                  firstName: detail.firstName || '', lastName: detail.lastName || '', email: detail.email || '',
-                  className: detail.className || '', grade: detail.grade || '',
-                  gender: detail.gender || '', birthday: detail.birthday ? detail.birthday.split('T')[0] : '',
-                  admittedAt: detail.admittedAt ? detail.admittedAt.split('T')[0] : '',
-                  religion: detail.religion || '', nationality: detail.nationality || '', hometown: detail.hometown || '', address: detail.address || '',
-                  guardianName: detail.guardianName || '', guardianRelationship: detail.guardianRelationship || '', guardianContact: detail.guardianContact || '',
-                }) }} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold">Cancel</button>
+                >{saving ? 'Saving…' : 'Save'}</button>
+                <button onClick={() => {
+                  setEdit(false); setForm({
+                    firstName: detail.firstName || '', lastName: detail.lastName || '', email: detail.email || '',
+                    className: detail.className || '', grade: detail.grade || '',
+                    gender: detail.gender || '', birthday: detail.birthday ? detail.birthday.split('T')[0] : '',
+                    admittedAt: detail.admittedAt ? detail.admittedAt.split('T')[0] : '',
+                    religion: detail.religion || '', nationality: detail.nationality || '', hometown: detail.hometown || '', address: detail.address || '',
+                    guardianName: detail.guardianName || '', guardianRelationship: detail.guardianRelationship || '', guardianContact: detail.guardianContact || '',
+                  })
+                }} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold">Cancel</button>
               </>
             )}
             <button onClick={onClose} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold">Close</button>
@@ -478,54 +545,58 @@ const StudentsDrawer = ({ id, onClose, initial, classes=[] }) => {
         {!loading && detail && edit && form && (
           <div className="space-y-4">
             <Section title="Basic Info">
-              <EditField label="First Name" value={form.firstName} onChange={v=>setForm({...form, firstName:v})} />
-              <EditField label="Last Name" value={form.lastName} onChange={v=>setForm({...form, lastName:v})} />
-              <EditField label="Email" value={form.email} onChange={v=>setForm({...form, email:v})} />
+              <EditField label="First Name" value={form.firstName} onChange={v => setForm({ ...form, firstName: v })} />
+              <EditField label="Last Name" value={form.lastName} onChange={v => setForm({ ...form, lastName: v })} />
+              <EditField label="Email" value={form.email} onChange={v => setForm({ ...form, email: v })} />
               <div className="grid grid-cols-3 items-center">
                 <div className="text-xs font-bold text-muted-text">Gender</div>
                 <div className="col-span-2">
-                  <select value={form.gender} onChange={e=>setForm({...form, gender:e.target.value})} className="px-3 py-2 rounded-xl border border-gray-200 text-sm w-full">
+                  <select value={form.gender} onChange={e => setForm({ ...form, gender: e.target.value })} className="px-3 py-2 rounded-xl border border-gray-200 text-sm w-full">
                     <option value="">Select gender</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                   </select>
                 </div>
               </div>
-              <EditField type="date" label="Birthday" value={form.birthday} onChange={v=>setForm({...form, birthday:v})} />
-              <EditField type="date" label="Date Admitted" value={form.admittedAt} onChange={v=>setForm({...form, admittedAt:v})} />
+              <EditField type="date" label="Birthday" value={form.birthday} onChange={v => setForm({ ...form, birthday: v })} />
+              <EditField type="date" label="Date Admitted" value={form.admittedAt} onChange={v => setForm({ ...form, admittedAt: v })} />
             </Section>
             <Section title="Academics">
               <div className="grid grid-cols-3 items-center">
                 <div className="text-xs font-bold text-muted-text">Class</div>
                 <div className="col-span-2">
-                  <select 
-                    value={form.classId} 
-                    onChange={e=>{
+                  <select
+                    value={form.classId}
+                    onChange={e => {
                       const cid = e.target.value
                       const c = classes.find(cx => cx.id === cid)
-                      setForm({...form, classId:cid, grade: c ? c.grade : form.grade})
-                    }} 
+                      setForm({ ...form, classId: cid, grade: c ? c.grade : form.grade })
+                    }}
                     className="px-3 py-2 rounded-xl border border-gray-200 text-sm w-full"
                   >
                     <option value="">Select class</option>
-                    {classes.map(c=>(
+                    {classes.map(c => (
                       <option key={c.id} value={c.id}>{c.grade} • {c.name || 'No Section'}</option>
                     ))}
                   </select>
                 </div>
               </div>
-              <EditField label="Grade" value={form.grade} onChange={v=>setForm({...form, grade:v})} />
+              <EditField label="Grade" value={form.grade} onChange={v => setForm({ ...form, grade: v })} />
             </Section>
             <Section title="Personal Info">
-              <EditField label="Religion" value={form.religion} onChange={v=>setForm({...form, religion:v})} />
-              <EditField label="Nationality" value={form.nationality} onChange={v=>setForm({...form, nationality:v})} />
-              <EditField label="Hometown" value={form.hometown} onChange={v=>setForm({...form, hometown:v})} />
-              <EditField label="Postal Address" value={form.address} onChange={v=>setForm({...form, address:v})} />
+              <EditField label="Religion" value={form.religion} onChange={v => setForm({ ...form, religion: v })} />
+              <EditField label="Nationality" value={form.nationality} onChange={v => setForm({ ...form, nationality: v })} />
+              <EditField label="Hometown" value={form.hometown} onChange={v => setForm({ ...form, hometown: v })} />
+              <EditField label="Postal Address" value={form.address} onChange={v => setForm({ ...form, address: v })} />
             </Section>
             <Section title="Guardian">
-              <EditField label="Name" value={form.guardianName} onChange={v=>setForm({...form, guardianName:v})} />
-              <EditField label="Relationship" value={form.guardianRelationship} onChange={v=>setForm({...form, guardianRelationship:v})} />
-              <EditField label="Contact Number" value={form.guardianContact} onChange={v=>setForm({...form, guardianContact:v})} />
+              <EditField label="Name" value={form.guardianName} onChange={v => setForm({ ...form, guardianName: v })} />
+              <EditField label="Relationship" value={form.guardianRelationship} onChange={v => setForm({ ...form, guardianRelationship: v })} />
+              <EditField label="Contact Number" value={form.guardianContact} onChange={v => setForm({ ...form, guardianContact: v })} />
+            </Section>
+            <Section title="Student Portal Access">
+              <EditField type="password" label="Reset Password" value={form.password} onChange={v => setForm({ ...form, password: v })} />
+              <p className="text-[10px] text-muted-text px-4 pb-4 font-medium italic">Leave blank to keep existing password.</p>
             </Section>
           </div>
         )}
@@ -548,42 +619,61 @@ const Field = ({ label, value }) => (
   </div>
 )
 
-const EditField = ({ label, value, onChange, type='text' }) => (
-  <div className="grid grid-cols-3 items-center">
-    <div className="text-xs font-bold text-muted-text">{label}</div>
-    <div className="col-span-2">
-      <input type={type} value={value} onChange={e=>onChange(e.target.value)} className="px-3 py-2 rounded-xl border border-gray-200 text-sm w-full" />
-    </div>
-  </div>
-)
+const EditField = ({ label, value, onChange, type = 'text' }) => {
+  const [show, setShow] = useState(false)
+  const isPass = type === 'password'
 
-const StudentName = ({ name, id, initial, classes=[] }) => {
+  return (
+    <div className="grid grid-cols-3 items-center">
+      <div className="text-xs font-bold text-muted-text">{label}</div>
+      <div className="col-span-2 relative">
+        <input
+          type={isPass ? (show ? 'text' : 'password') : type}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className={`px-3 py-2 rounded-xl border border-gray-200 text-sm w-full ${isPass ? 'pr-10' : ''}`}
+        />
+        {isPass && (
+          <button
+            type="button"
+            onClick={() => setShow(!show)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-text hover:text-dark-text"
+          >
+            {show ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const StudentName = ({ name, id, initial, classes = [] }) => {
   const [open, setOpen] = useState(false)
   return (
     <>
       <button onClick={() => setOpen(true)} className="flex items-center gap-3 text-left">
-        <Avatar name={name} />
-        <span className="font-bold text-dark-text hover:underline">{name}</span>
+        <Avatar name={name} src={initial?.profilePhoto} />
+        <span className="font-bold text-dark-text hover:underline text-xs sm:text-base">{name}</span>
       </button>
       {open && <StudentsDrawer id={id} initial={initial} onClose={() => setOpen(false)} classes={classes} />}
     </>
   )
 }
 
-const StudentTile = ({ name, subtitle, id, initial, classes=[] }) => {
+const StudentTile = ({ name, subtitle, id, initial, classes = [] }) => {
   const [open, setOpen] = useState(false)
   return (
     <>
-      <button onClick={()=>setOpen(true)} className="flex flex-col items-center gap-3 focus:outline-none">
+      <button onClick={() => setOpen(true)} className="flex flex-col items-center gap-3 focus:outline-none">
         <div className="w-24 h-24 rounded-full bg-light-bg flex items-center justify-center shadow-sm">
-          <Avatar name={name} />
+          <Avatar name={name} src={initial?.profilePhoto} size="w-24 h-24" />
         </div>
         <div className="text-center">
           <div className="text-sm font-extrabold text-dark-text leading-tight">{name}</div>
           <div className="text-xs font-bold text-muted-text leading-tight">{subtitle}</div>
         </div>
       </button>
-      {open && <StudentsDrawer id={id} initial={initial} onClose={()=>setOpen(false)} classes={classes} />}
+      {open && <StudentsDrawer id={id} initial={initial} onClose={() => setOpen(false)} classes={classes} />}
     </>
   )
 }
@@ -594,41 +684,41 @@ const ArchiveButton = ({ id, onAfter }) => {
   const [saving, setSaving] = useState(false)
   return (
     <>
-      <button onClick={()=>setOpen(true)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-error">Archive</button>
+      <button onClick={() => setOpen(true)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-error">Archive</button>
       {open && (
         <div className="fixed inset-0 z-[3500] flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" onClick={()=>setOpen(false)} />
+          <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
           <div className="relative bg-white rounded-2xl border border-gray-100 shadow-soft-sm w-full max-w-lg p-6">
             <div className="text-lg font-bold text-dark-text mb-3">Confirm Archive</div>
             <div className="text-xs font-bold text-muted-text mb-2">Provide a reason for archive</div>
-            <select value={reason} onChange={e=>setReason(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm">
+            <select value={reason} onChange={e => setReason(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm">
               <option>Left school</option>
               <option>Completed school</option>
               <option>Expelled</option>
               <option>Incorrect entry</option>
             </select>
             <div className="flex items-center justify-end gap-2 mt-5">
-              <button onClick={()=>setOpen(false)} className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-bold">Cancel</button>
+              <button onClick={() => setOpen(false)} className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-bold">Cancel</button>
               <button
                 disabled={saving}
-                onClick={async ()=>{
+                onClick={async () => {
                   setSaving(true)
-                  try{
+                  try {
                     await fetch(`/api/students/${id}/archive`, {
-                      method:'POST',
-                      headers:{'Content-Type':'application/json'},
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ reason })
-                    }).then(async r=>{ if(!r.ok){ const t=await r.json().catch(()=>({})); throw new Error(t.error || 'Failed') } })
+                    }).then(async r => { if (!r.ok) { const t = await r.json().catch(() => ({})); throw new Error(t.error || 'Failed') } })
                     setOpen(false)
                     onAfter && onAfter()
-                  }catch(e){
+                  } catch (e) {
                     alert(e.message)
-                  }finally{
+                  } finally {
                     setSaving(false)
                   }
                 }}
                 className="px-4 py-2 rounded-lg bg-error text-white text-sm font-bold"
-              >{saving?'Archiving…':'Archive'}</button>
+              >{saving ? 'Archiving…' : 'Archive'}</button>
             </div>
           </div>
         </div>

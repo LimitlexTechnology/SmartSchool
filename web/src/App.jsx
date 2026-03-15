@@ -31,6 +31,7 @@ import Classroom from './pages/Classroom'
 import ClassDetails from './pages/ClassDetails'
 import TeacherDashboard from './pages/teacher/TeacherDashboard'
 import LogoAnimationDemo from './pages/LogoAnimationDemo'
+import StudentPortal from './pages/StudentPortal'
 
 // SuperAdmin Pages
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard'
@@ -69,6 +70,15 @@ const TeacherRoute = ({ children }) => {
   const role = localStorage.getItem('userRole')
   if (!isLoggedIn) return <Navigate to="/login" replace />
   if (role !== 'teacher') return <Navigate to="/dashboard" replace />
+  return children
+}
+
+// Protected student portal route
+const StudentRoute = ({ children }) => {
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
+  const role = localStorage.getItem('userRole')
+  if (!isLoggedIn) return <Navigate to="/login" replace />
+  if (role !== 'student') return <Navigate to="/login" replace />
   return children
 }
 
@@ -128,6 +138,11 @@ const App = () => {
         }>
           <Route index element={<TeacherDashboard />} />
         </Route>
+
+        {/* Student Portal */}
+        <Route path="/portal" element={
+          <StudentRoute><StudentPortal /></StudentRoute>
+        } />
       </Routes>
     </Router>
   )
