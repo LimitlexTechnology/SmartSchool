@@ -1,0 +1,84 @@
+{
+  "logs": [
+    {
+      "id": "2ca20cf8-5cd1-4608-a232-5bd54a1b4e60",
+      "studentId": "ef3d4a9a-fd1b-496b-afa5-19e84cc256a9",
+      "type": "deduction",
+      "category": "Talking back or Interrupting teachers",
+      "score": 5,
+      "reason": "",
+      "authorName": "Techi Soft Academy",
+      "createdAt": "2026-03-15T14:43:41.153Z"
+    },
+    {
+      "id": "62184088-c243-4cb9-9550-9fff818b7115",
+      "studentId": "821271ba-c001-4787-85a0-7a3029f2b109",
+      "type": "addition",
+      "category": "Excellent",
+      "score": 20,
+      "reason": "Good performance in the class test",
+      "authorName": "Techi Soft Academy",
+      "createdAt": "2026-03-15T14:44:28.395Z"
+    },
+    {
+      "id": "30da9b9b-9335-4a98-935a-79d430bab63a",
+      "studentId": "ef3d4a9a-fd1b-496b-afa5-19e84cc256a9",
+      "type": "deduction",
+      "category": "Vandalism",
+      "score": 10,
+      "reason": "",
+      "authorName": "Techi Soft Academy",
+      "createdAt": "2026-03-15T14:51:16.984Z"
+    },
+    {
+      "id": "1401fbd3-0166-46f6-8939-191a3509fd99",
+      "studentId": "ef3d4a9a-fd1b-496b-afa5-19e84cc256a9",
+      "type": "deduction",
+      "category": "Talking back or Interrupting teachers",
+      "score": 5,
+      "reason": "",
+      "authorName": "Techi Soft Academy",
+      "createdAt": "2026-03-15T14:51:22.886Z"
+    },
+    {
+      "id": "9f1deab8-79ef-4be9-88ba-aa6d28a42128",
+      "studentId": "ef3d4a9a-fd1b-496b-afa5-19e84cc256a9",
+      "type": "deduction",
+      "category": "Cheating in Exams",
+      "score": 10,
+      "reason": "",
+      "authorName": "Techi Soft Academy",
+      "createdAt": "2026-03-15T14:51:30.353Z"
+    },
+    {
+      "id": "f553d69d-01c0-41ea-93a5-a30024a07c82",
+      "studentId": "ef3d4a9a-fd1b-496b-afa5-19e84cc256a9",
+      "type": "deduction",
+      "category": "Bullying or intimidation",
+      "score": 10,
+      "reason": "",
+      "authorName": "Techi Soft Academy",
+      "createdAt": "2026-03-15T14:51:40.856Z"
+    },
+    {
+      "id": "416e3063-4e1e-4957-9439-629abbcce8da",
+      "studentId": "ef3d4a9a-fd1b-496b-afa5-19e84cc256a9",
+      "type": "deduction",
+      "category": "Loitering around",
+      "score": 5,
+      "reason": "",
+      "authorName": "Techi Soft Academy",
+      "createdAt": "2026-03-15T14:51:56.622Z"
+    },
+    {
+      "id": "519b481e-b606-49ae-873c-ccb93a62f258",
+      "studentId": "ef3d4a9a-fd1b-496b-afa5-19e84cc256a9",
+      "type": "deduction",
+      "category": "Incomplete Homework",
+      "score": 10,
+      "reason": "",
+      "authorName": "Techi Soft Academy",
+      "createdAt": "2026-03-15T14:59:10.005Z"
+    }
+  ]
+}

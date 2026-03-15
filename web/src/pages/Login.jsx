@@ -7,7 +7,9 @@ import SkullarLogoAnimation from '../components/ui/SkullarLogoAnimation';
 
 const Login = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [studentId, setStudentId] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('staff'); // 'staff' or 'student'
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -15,19 +17,47 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    if (!phoneNumber || phoneNumber.length < 10) {
+    if (role === 'staff' && (!phoneNumber || phoneNumber.length < 10)) {
       alert('Please enter a valid phone number');
       return;
     }
+    if (role === 'student' && !studentId) {
+      alert('Please enter your Student ID');
+      return;
+    }
 
-    if (!password || password.length < 6) {
-      alert('Password must be at least 6 characters');
+    if (!password || password.length < 4) {
+      alert('Password is required');
       return;
     }
 
     setIsLoading(true);
 
     try {
+      if (role === 'student') {
+        const rs = await fetch('/api/student-auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-school-id': localStorage.getItem('schoolId') || 'local'
+          },
+          body: JSON.stringify({ studentId, password })
+        })
+        if (rs.ok) {
+          const j = await rs.json()
+          localStorage.setItem('isLoggedIn', 'true');
+          localStorage.setItem('userRole', 'student');
+          localStorage.setItem('studentId', j.studentId);
+          localStorage.setItem('studentTableId', j.id);
+          localStorage.setItem('studentName', j.name);
+          if (j.schoolId) localStorage.setItem('schoolId', j.schoolId);
+          navigate('/portal');
+          return
+        }
+        const t = await rs.json().catch(() => ({}))
+        throw new Error(t.error || 'Login failed')
+      }
+
       // Try super admin login first
       const rs = await fetch('/api/superadmin/login', {
         method: 'POST',
@@ -83,7 +113,7 @@ const Login = () => {
       const t = await r.json().catch(() => ({}))
       throw new Error(t.error || 'Login failed')
     } catch (error) {
-      alert('Login failed. Please check your phone number and password.');
+      alert(error.message || 'Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
@@ -145,27 +175,65 @@ const Login = () => {
             <p className="text-gray-500 mt-2">Please enter your details to sign in</p>
           </div>
 
+          {/* Role Selector */}
+          <div className="flex p-1 bg-gray-100 rounded-2xl mb-8">
+            <button
+              onClick={() => setRole('staff')}
+              className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all ${role === 'staff' ? 'bg-white shadow-sm text-primary-teal' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              Staff / Admin
+            </button>
+            <button
+              onClick={() => setRole('student')}
+              className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all ${role === 'student' ? 'bg-white shadow-sm text-primary-teal' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              Student Portal
+            </button>
+          </div>
+
           <form onSubmit={handleLogin} className="space-y-6">
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Phone className="h-5 w-5 text-gray-400" />
+            {role === 'staff' ? (
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Phone className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="phone"
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={handlePhoneChange}
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-teal focus:border-transparent transition-all"
+                    placeholder="Enter your phone number"
+                    required
+                    maxLength="15"
+                  />
                 </div>
-                <input
-                  id="phone"
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={handlePhoneChange}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-teal focus:border-transparent transition-all"
-                  placeholder="Enter your phone number"
-                  required
-                  maxLength="15"
-                />
               </div>
-            </div>
+            ) : (
+              <div>
+                <label htmlFor="studentId" className="block text-sm font-medium text-gray-700 mb-2">
+                  Student ID
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <GraduationCap className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="studentId"
+                    type="text"
+                    value={studentId}
+                    onChange={(e) => setStudentId(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-teal focus:border-transparent transition-all"
+                    placeholder="Enter your Student ID"
+                    required
+                  />
+                </div>
+              </div>
+            )}
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
