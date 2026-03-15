@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import {
-    Menu, Bell, User, Star, Calendar, Clock,
-    BookOpen, ClipboardCheck, Wallet, Layout,
-    ChevronRight, LogOut, ShieldCheck, GraduationCap,
-    MessageSquare, Settings, Users, Calculator, FileText, CheckCircle, TrendingUp, TrendingDown, Minus, Plus, X
+    Bell, User, Star, Calendar, Clock,
+    BookOpen, ChevronRight, LogOut, GraduationCap,
+    MessageSquare, Settings, Users, FileText, TrendingUp, TrendingDown, X,
+    Menu, LayoutDashboard, CreditCard, ClipboardList, Filter, Search, Plus, Minus
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import SkullarLogo from '../assets/Skullar Logo.png'
@@ -16,6 +16,8 @@ const StudentPortal = () => {
     const [activeTab, setActiveTab] = useState('Dashboard')
     const [saving, setSaving] = useState(false)
     const [showBehaviorsModal, setShowBehaviorsModal] = useState(false)
+    const [showProfileSwitcher, setShowProfileSwitcher] = useState(false)
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -118,11 +120,17 @@ const StudentPortal = () => {
             {/* Top Bar Navigation */}
             <header className="w-full bg-[#5E9E9E] px-6 py-2 flex items-center justify-between text-white shadow-sm">
                 <div className="flex items-center gap-6">
-                    <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                        <Menu className="w-5 h-5" />
+                    <button
+                        onClick={() => setIsSidebarOpen(true)}
+                        className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white lg:hidden"
+                    >
+                        <Menu size={24} />
                     </button>
-                    <div className="h-8 border-r border-white/20 mx-2 hidden sm:block"></div>
-                    <img src={SkullarLogo} alt="School Logo" className="h-8 w-auto object-contain" />
+                    <div className="h-8 border-r border-white/20 mx-2 hidden lg:block"></div>
+                    <div className="flex items-center gap-3">
+                        <img src={SkullarLogo} alt="School Logo" className="h-8 w-auto object-contain" />
+                        <p className="text-[10px] font-bold text-white/50 tracking-widest uppercase">The Student Portal</p>
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-4">
@@ -135,41 +143,47 @@ const StudentPortal = () => {
                             <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Guardian</p>
                             <p className="text-sm font-bold">{student.guardianName || 'Parent'}</p>
                         </div>
-                        <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/20 bg-white/10 flex items-center justify-center shadow-inner group relative cursor-pointer">
+                        <div
+                            onClick={() => setShowProfileSwitcher(!showProfileSwitcher)}
+                            className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/20 bg-white/10 flex items-center justify-center shadow-inner relative cursor-pointer active:scale-95 transition-all"
+                        >
                             {student.guardianPhoto ? (
                                 <img src={student.guardianPhoto} alt="Guardian" className="w-full h-full object-cover" />
                             ) : (
                                 <User className="w-5 h-5 text-white/60" />
                             )}
 
-                            {siblings.length > 0 && (
-                                <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 hidden group-hover:block z-[1000]">
-                                    <p className="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 mb-1">Switch Profile</p>
-                                    {siblings.map(sib => (
-                                        <button
-                                            key={sib.id}
-                                            onClick={() => switchProfile(sib.id)}
-                                            className="w-full px-4 py-2 flex items-center gap-3 hover:bg-light-bg transition-colors text-left"
-                                        >
-                                            <div className="w-8 h-8 rounded-full bg-primary-teal/10 flex items-center justify-center overflow-hidden">
-                                                {sib.profilePhoto ? <img src={sib.profilePhoto} className="w-full h-full object-cover" /> : <User size={14} className="text-primary-teal" />}
-                                            </div>
-                                            <div>
-                                                <p className="text-xs font-bold text-dark-text">{sib.name}</p>
-                                                <p className="text-[10px] font-medium text-muted-text">{sib.studentId}</p>
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
+                            {showProfileSwitcher && siblings.length > 0 && (
+                                <>
+                                    <div className="fixed inset-0 z-[999]" onClick={() => setShowProfileSwitcher(false)}></div>
+                                    <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-[1000] animate-slide-up">
+                                        <p className="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 mb-1">Switch Profile</p>
+                                        {siblings.map(sib => (
+                                            <button
+                                                key={sib.id}
+                                                onClick={() => switchProfile(sib.id)}
+                                                className="w-full px-4 py-2 flex items-center gap-3 hover:bg-light-bg transition-colors text-left"
+                                            >
+                                                <div className="w-8 h-8 rounded-full bg-primary-teal/10 flex items-center justify-center overflow-hidden">
+                                                    {sib.profilePhoto ? <img src={sib.profilePhoto} className="w-full h-full object-cover" /> : <User size={14} className="text-primary-teal" />}
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-bold text-dark-text">{sib.name}</p>
+                                                    <p className="text-[10px] font-medium text-muted-text">{sib.studentId}</p>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
                             )}
                         </div>
                     </div>
                 </div>
             </header>
 
-            {/* Sub Navigation Tabs */}
-            <nav className="bg-white border-b border-gray-200 px-6 overflow-x-auto sticky top-0 z-40 shadow-sm">
-                <div className="flex items-center gap-8 py-1">
+            {/* Sub Navigation Tabs - Desktop Only */}
+            <nav className="bg-white border-b border-gray-200 px-6 overflow-x-auto sticky top-0 z-40 shadow-sm hidden lg:block">
+                <div className="max-w-[1200px] mx-auto flex items-center gap-8 py-1">
                     {['Dashboard', 'Classroom', 'Accounts', 'Messages', 'Exams', 'Student Records', 'Parent Settings'].map((tab) => (
                         <button
                             key={tab}
@@ -188,7 +202,7 @@ const StudentPortal = () => {
                     <>
 
                         {/* Profile Hero Section */}
-                        <section className="bg-white rounded-2xl p-8 border border-gray-100 flex flex-col md:flex-row items-center md:items-start justify-between shadow-sm gap-8">
+                        <section className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 flex flex-col md:flex-row items-center md:items-start justify-between shadow-sm gap-8 transition-all">
                             <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
                                 <div className="relative group">
                                     <div className="w-32 h-32 rounded-2xl overflow-hidden border border-gray-100 shadow-md">
@@ -209,7 +223,7 @@ const StudentPortal = () => {
 
                             <div
                                 onClick={() => setShowBehaviorsModal(true)}
-                                className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm min-w-[240px] cursor-pointer hover:border-[#5E9E9E] hover:shadow-md transition-all group"
+                                className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm w-full md:min-w-[240px] md:w-auto cursor-pointer hover:border-[#5E9E9E] hover:shadow-md transition-all group"
                             >
                                 <div className="flex items-center justify-between mb-6">
                                     <p className="text-xs font-bold text-gray-800">Behaviour Summary</p>
@@ -236,7 +250,7 @@ const StudentPortal = () => {
                         {/* 8-Grid Quick Actions */}
                         <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <QuickAction icon={BookOpen} label="Classroom" color="#F4ECFF" textColor="#A855F7" />
-                            <QuickAction icon={Wallet} label="Accounts" color="#F0FDF4" textColor="#22C55E" />
+                            <QuickAction icon={CreditCard} label="Accounts" color="#F0FDF4" textColor="#22C55E" />
                             <QuickAction icon={MessageSquare} label="Messages" color="#EFF6FF" textColor="#3B82F6" />
                             <QuickAction icon={GraduationCap} label="Exams" color="#FFF7ED" textColor="#F97316" />
                             <QuickAction icon={FileText} label="Assignments" color="#FFF1F2" textColor="#FB7185" />
@@ -297,7 +311,7 @@ const StudentPortal = () => {
                                 subtext="Completed"
                             />
                             <StatsCard
-                                icon={Wallet}
+                                icon={CreditCard}
                                 label="Fee Status"
                                 value="GH₵1500"
                                 status="Due"
@@ -432,7 +446,7 @@ const StudentPortal = () => {
                 {!['Dashboard', 'Parent Settings'].includes(activeTab) && (
                     <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
                         <div className="w-16 h-16 bg-[#F4F7F9] rounded-2xl flex items-center justify-center mb-4">
-                            <Layout className="w-8 h-8 text-[#5E9E9E]/40" />
+                            <LayoutDashboard className="w-8 h-8 text-[#5E9E9E]/40" />
                         </div>
                         <h3 className="text-lg font-bold text-gray-800">{activeTab}</h3>
                         <p className="text-gray-400 font-medium">Coming soon in the next update.</p>
@@ -507,7 +521,7 @@ const StudentPortal = () => {
                             </div>
                         </div>
 
-                        <div className="p-6 border-t border-gray-100 bg-gray-50/50">
+                        <div className="p-6 border-t border-gray-100 bg-gray-50/50 sticky bottom-0">
                             <button
                                 onClick={() => setShowBehaviorsModal(false)}
                                 className="w-full py-3 bg-dark-text text-white rounded-xl text-sm font-black hover:bg-black transition-all shadow-lg active:scale-[0.98]"
@@ -518,26 +532,82 @@ const StudentPortal = () => {
                     </div>
                 </div>
             )}
+
+            {/* Sidebar Navigation Drawer */}
+            {isSidebarOpen && (
+                <>
+                    <div className="fixed inset-0 bg-[#0F172A]/60 backdrop-blur-sm z-[10000] transition-opacity" onClick={() => setIsSidebarOpen(false)}></div>
+                    <div className="fixed top-0 left-0 bottom-0 w-[280px] bg-white z-[10001] shadow-2xl animate-slide-right flex flex-col">
+                        <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <img src={SkullarLogo} alt="Skullar" className="h-8 w-auto object-contain" />
+                                <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase">The Student Portal</p>
+                            </div>
+                            <button onClick={() => setIsSidebarOpen(false)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-4 space-y-1">
+                            {[
+                                { id: 'Dashboard', icon: LayoutDashboard },
+                                { id: 'Classroom', icon: Users },
+                                { id: 'Accounts', icon: CreditCard },
+                                { id: 'Messages', icon: MessageSquare },
+                                { id: 'Exams', icon: BookOpen },
+                                { id: 'Student Records', icon: ClipboardList },
+                                { id: 'Parent Settings', icon: Settings }
+                            ].map((item) => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => {
+                                        setActiveTab(item.id)
+                                        setIsSidebarOpen(false)
+                                    }}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === item.id
+                                        ? 'bg-primary-teal text-white shadow-lg shadow-primary-teal/20'
+                                        : 'text-gray-500 hover:bg-light-bg hover:text-dark-text'
+                                        }`}
+                                >
+                                    <item.icon size={18} className={activeTab === item.id ? 'text-white' : ''} />
+                                    <span className="text-sm font-bold">{item.id}</span>
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="p-4 border-t border-gray-50 space-y-1">
+                            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-light-bg hover:text-dark-text transition-all">
+                                <Settings size={18} />
+                                <span className="text-sm font-bold">Preferences</span>
+                            </button>
+                            <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 transition-all">
+                                <LogOut size={18} />
+                                <span className="text-sm font-bold">Logout</span>
+                            </button>
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     )
 }
 
 const QuickAction = ({ icon: Icon, label, color, textColor }) => (
-    <button className="bg-white rounded-xl p-6 border border-gray-100 flex flex-col items-center gap-4 shadow-sm hover:shadow-md transition-all group active:scale-95">
-        <div className="w-12 h-12 rounded-xl flex items-center justify-center transform group-hover:-translate-y-1 transition-transform" style={{ backgroundColor: color }}>
-            <Icon className="w-6 h-6" style={{ color: textColor }} />
+    <button className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100 flex flex-col items-center gap-3 sm:gap-4 shadow-sm hover:shadow-md transition-all group active:scale-95 w-full">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center transform group-hover:-translate-y-1 transition-transform" style={{ backgroundColor: color }}>
+            <Icon className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: textColor }} />
         </div>
-        <span className="text-xs font-bold text-gray-500">{label}</span>
+        <span className="text-[10px] sm:text-xs font-bold text-gray-500">{label}</span>
     </button>
 )
 
 const StatsCard = ({ icon: Icon, label, value, status, statusColor, statusBg, valueColor, subtext }) => (
-    <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-6">
+    <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
         <div className="flex items-center justify-between">
             <div className="p-2 bg-blue-50 text-blue-500 rounded-lg">
-                <Icon className="w-4 h-4" />
+                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
-            <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold" style={{ color: statusColor, backgroundColor: statusBg }}>{status}</span>
+            <span className="px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px] font-bold" style={{ color: statusColor, backgroundColor: statusBg }}>{status}</span>
         </div>
         <div>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">{label}</p>
@@ -548,7 +618,7 @@ const StatsCard = ({ icon: Icon, label, value, status, statusColor, statusBg, va
 )
 
 const ScheduleItem = ({ time, subject, teacher, active }) => (
-    <div className={`p-4 rounded-xl flex items-center justify-between transition-colors ${active ? 'bg-[#EFF6FF] border border-[#BFDBFE]' : 'hover:bg-gray-50'}`}>
+    <div className={`p-3 sm:p-4 rounded-xl flex items-center justify-between transition-colors ${active ? 'bg-[#EFF6FF] border border-[#BFDBFE]' : 'hover:bg-gray-50'}`}>
         <div className="flex items-center gap-4">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${active ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
                 <Clock className="w-5 h-5" />
@@ -572,7 +642,7 @@ const AssignmentItem = ({ title, subject, due, priority }) => {
         low: 'bg-green-500'
     }
     return (
-        <div className="p-4 rounded-xl hover:bg-gray-50 flex items-center justify-between transition-colors">
+        <div className="p-3 sm:p-4 rounded-xl hover:bg-gray-50 flex items-center justify-between transition-colors">
             <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-xl bg-[#F4ECFF] flex items-center justify-center text-[#A855F7]">
                     <FileText className="w-5 h-5" />
