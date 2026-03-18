@@ -13,6 +13,30 @@ const allocationsStore = require('./allocationsStore')
 const timetableStore = require('./timetableStore')
 const schoolsStore = require('./schoolsStore')
 
+// Global DB health flag
+let isDBConnected = false;
+async function checkDBStatus() {
+  try {
+    const u = new URL(process.env.DATABASE_URL);
+    const pool = new Pool({
+      user: decodeURIComponent(u.username),
+      password: decodeURIComponent(u.password),
+      host: u.hostname,
+      port: u.port ? Number(u.port) : 5432,
+      database: u.pathname.replace(/^\//, '') || 'postgres',
+      ssl: { rejectUnauthorized: false },
+    });
+    await pool.query('SELECT 1');
+    await pool.end();
+    isDBConnected = true;
+    console.log('Database connected');
+  } catch (e) {
+    isDBConnected = false;
+    console.log('Database unavailable, using file-based fallback');
+  }
+}
+checkDBStatus();
+
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -88,7 +112,9 @@ const auth = (req, res, next) => {
       if (k === 'teacherId') tid = decodeURIComponent(v || '')
     }
   }
-  req.schoolId = sid || 'local'
+  let schoolId = sid || 'local'
+  // If DB is down and we are on local, we stay on local but the routes will now use file fallback
+  req.schoolId = schoolId
   req.teacherId = tid || ''
   next();
 };
@@ -229,8 +255,18 @@ async function ensureGroupsSchema() {
 // Routes placeholder
 app.get('/api/dashboard/stats', auth, async (req, res) => {
   try {
-    if (req.schoolId && req.schoolId !== 'local') {
-      return res.json({ totalStudents: 0, totalClasses: 0, totalStaff: 0, totalGuardians: 0, revenue: 0, status: 'ok' })
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
+      const { students } = readTenantStudents(req.schoolId)
+      const { classes } = readTenantClasses(req.schoolId)
+      const { teachers } = readTenantTeachers(req.schoolId)
+      return res.json({ 
+        totalStudents: students.length, 
+        totalClasses: classes.length, 
+        totalStaff: teachers.length, 
+        totalGuardians: 0, 
+        revenue: 0, 
+        status: 'ok' 
+      })
     }
     const students = await prisma.student.count()
     const classes = await prisma.class.count()
@@ -382,7 +418,7 @@ app.put('/api/students/:id', auth, async (req, res) => {
 });
 app.get('/api/students', auth, async (req, res) => {
   try {
-    if (req.schoolId && req.schoolId !== 'local') {
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
       const page = Math.max(parseInt(req.query.page || '1', 10), 1)
       const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '20', 10), 1), 100)
       const q = (req.query.q || '').toString().trim().toLowerCase()
@@ -473,7 +509,7 @@ app.get('/api/students', auth, async (req, res) => {
 });
 app.get('/api/classes', auth, async (req, res) => {
   try {
-    if (req.schoolId && req.schoolId !== 'local') {
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
       const { classes } = readTenantClasses(req.schoolId)
       const { students } = readTenantStudents(req.schoolId)
       const { teachers } = readTenantTeachers(req.schoolId)
@@ -662,7 +698,7 @@ app.post('/api/students/:id/behavior', auth, async (req, res) => {
 // Teachers (Staff)
 app.get('/api/teachers', auth, async (req, res) => {
   try {
-    if (req.schoolId && req.schoolId !== 'local') {
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
       const page = Math.max(parseInt(req.query.page || '1', 10), 1)
       const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '20', 10), 1), 100)
       const q = (req.query.q || '').toString().trim().toLowerCase()
@@ -1010,9 +1046,18 @@ app.get('/api/admin/schools', auth, async (_req, res) => {
     const name = process.env.SCHOOL_NAME || 'SmartSchool Local'
     const admin = process.env.SCHOOL_ADMIN || 'Admin'
     const phone = process.env.SCHOOL_PHONE || ''
-    const [studentsCount] = await Promise.all([
-      prisma.student.count({ where: { status: { not: 'archived' } } })
-    ])
+    
+    let studentsCount = 0
+    if (isDBConnected) {
+      const [count] = await Promise.all([
+        prisma.student.count({ where: { status: { not: 'archived' } } })
+      ])
+      studentsCount = count
+    } else {
+      const { students } = readTenantStudents('local')
+      studentsCount = students.length
+    }
+
     const local = {
       id: 'local',
       name,
@@ -1036,13 +1081,23 @@ app.get('/api/admin/dashboard/stats', auth, async (req, res) => {
   try {
     const schools = schoolsStore.list()
     const suspended = schools.filter(s => s.status === 'suspended').length
-    const studentsCount = await prisma.student.count({ where: { status: { not: 'archived' } } })
+    
+    let studentsCount = 0
+    let teachersCount = 0
+    if (isDBConnected) {
+      studentsCount = await prisma.student.count({ where: { status: { not: 'archived' } } })
+      teachersCount = await prisma.teacher.count()
+    } else {
+      const { students } = readTenantStudents('local')
+      const { teachers } = readTenantTeachers('local')
+      studentsCount = students.length
+      teachersCount = teachers.length
+    }
 
     // Revenue tracking is currently not implemented in the current schema
     const revenue = 0
 
     // For now, "Active Users" can be estimated or calculated from students + teachers
-    const teachersCount = await prisma.teacher.count()
     const activeUsers = studentsCount + teachersCount
 
     res.json({

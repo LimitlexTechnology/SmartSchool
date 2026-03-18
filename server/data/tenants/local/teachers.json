@@ -1,0 +1,12 @@
+{
+  "teachers": [
+    {
+      "id": "34b7b1be-3bde-4c9e-aa98-c072a5594991",
+      "name": "Prosper",
+      "email": "prosperyesulig@gmail.com",
+      "subject": "Science",
+      "createdAt": "2026-03-12T17:18:26.944Z",
+      "updatedAt": "2026-03-12T18:14:47.699Z"
+    }
+  ]
+}
