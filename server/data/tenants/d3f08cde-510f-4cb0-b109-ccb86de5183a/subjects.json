@@ -1,0 +1,64 @@
+{
+  "subjects": [
+    {
+      "id": "64935e38-1a9e-4750-9391-7e5df8b3551b",
+      "name": "Numeracy",
+      "category": "General",
+      "createdAt": "2026-03-18T15:47:44.504Z"
+    },
+    {
+      "id": "27c8980b-2898-4670-aa82-b3186f85d4d1",
+      "name": "SCIENCE",
+      "category": "General",
+      "createdAt": "2026-03-18T15:47:54.669Z"
+    },
+    {
+      "id": "78dc99be-8138-41fd-8da7-224983a30722",
+      "name": "LITERACY",
+      "category": "General",
+      "createdAt": "2026-03-18T15:48:02.570Z"
+    },
+    {
+      "id": "aa38bbb4-1211-46e2-8b6c-6007331e19e7",
+      "name": "SOCIAL STUDIES",
+      "category": "General",
+      "createdAt": "2026-03-18T15:48:14.758Z"
+    },
+    {
+      "id": "69d9a5bb-641e-40ec-8573-e23e29888874",
+      "name": "COMPUTING",
+      "category": "General",
+      "createdAt": "2026-03-18T15:48:53.031Z"
+    },
+    {
+      "id": "bb2057e6-ec70-4b3f-9221-cc0d02c0f38d",
+      "name": "FRENCH",
+      "category": "General",
+      "createdAt": "2026-03-18T15:49:02.801Z"
+    },
+    {
+      "id": "634ed5ab-6475-46a8-86d8-69b6534ce8d1",
+      "name": "HISTORY",
+      "category": "General",
+      "createdAt": "2026-03-18T15:49:11.267Z"
+    },
+    {
+      "id": "775988d0-d504-49ea-8a8c-6e0a13718ca4",
+      "name": "CREATIVE ARTS",
+      "category": "General",
+      "createdAt": "2026-03-18T15:49:18.937Z"
+    },
+    {
+      "id": "d8461ef6-6f26-4b01-ab51-dcc17c98c316",
+      "name": "CAREER TECH",
+      "category": "General",
+      "createdAt": "2026-03-18T15:49:27.803Z"
+    },
+    {
+      "id": "c90b0443-15dd-4803-b8d0-16b63a7f4ff7",
+      "name": "GHANAIAN LANGUAGE",
+      "category": "General",
+      "createdAt": "2026-03-18T15:49:56.777Z"
+    }
+  ]
+}

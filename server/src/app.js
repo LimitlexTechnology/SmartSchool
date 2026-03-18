@@ -189,6 +189,40 @@ function writeTenantBehaviorLogs(schoolId, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2))
 }
 
+function ensureTenantSubjectsFile(schoolId) {
+  if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
+  const dir = path.join(TENANT_DIR, schoolId)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'subjects.json')
+  if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify({ subjects: [] }, null, 2))
+  return file
+}
+function readTenantSubjects(schoolId) {
+  const file = ensureTenantSubjectsFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { subjects: [] } }
+}
+function writeTenantSubjects(schoolId, data) {
+  const file = ensureTenantSubjectsFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
+function ensureTenantTeachingAssignmentsFile(schoolId) {
+  if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
+  const dir = path.join(TENANT_DIR, schoolId)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'teaching_assignments.json')
+  if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify({ assignments: [] }, null, 2))
+  return file
+}
+function readTenantTeachingAssignments(schoolId) {
+  const file = ensureTenantTeachingAssignmentsFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { assignments: [] } }
+}
+function writeTenantTeachingAssignments(schoolId, data) {
+  const file = ensureTenantTeachingAssignmentsFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
 // Super Admin profile store (file-based)
 const SUPERADMIN_FILE = path.join(__dirname, '..', 'data', 'superadmin-profile.json')
 function ensureSuperAdminFile() {
@@ -617,7 +651,7 @@ app.put('/api/classes/:id/assign-teacher', auth, async (req, res) => {
 app.delete('/api/classes/:id', auth, async (req, res) => {
   try {
     const id = req.params.id
-    if (req.schoolId && req.schoolId !== 'local') {
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
       const store = readTenantClasses(req.schoolId)
       store.classes = store.classes.filter(c => c.id !== id)
       writeTenantClasses(req.schoolId, store)
@@ -630,6 +664,112 @@ app.delete('/api/classes/:id', auth, async (req, res) => {
     res.status(500).json({ error: e?.message || 'unknown' })
   }
 });
+
+// ============== Subjects & Teaching Assignments ==============
+app.get('/api/subjects', auth, async (req, res) => {
+  try {
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
+      const { subjects } = readTenantSubjects(req.schoolId)
+      return res.json(subjects)
+    }
+    // Prisma fallback if implemented
+    res.json([])
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.post('/api/subjects', auth, async (req, res) => {
+  try {
+    const { name, category } = req.body
+    if (!name) return res.status(400).json({ error: 'Subject name is required' })
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
+      const store = readTenantSubjects(req.schoolId)
+      const newSub = { id: randomUUID(), name, category: category || 'General', createdAt: new Date().toISOString() }
+      store.subjects.push(newSub)
+      writeTenantSubjects(req.schoolId, store)
+      return res.json(newSub)
+    }
+    res.status(501).json({ error: 'DB implementation for subjects pending' })
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.delete('/api/subjects/:id', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
+      const store = readTenantSubjects(req.schoolId)
+      store.subjects = store.subjects.filter(s => s.id !== id)
+      writeTenantSubjects(req.schoolId, store)
+      return res.json({ success: true })
+    }
+    res.status(501).json({ error: 'DB implementation for subjects pending' })
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.get('/api/teaching-assignments', auth, async (req, res) => {
+  try {
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
+      const { assignments } = readTenantTeachingAssignments(req.schoolId)
+      const { subjects } = readTenantSubjects(req.schoolId)
+      const { teachers } = readTenantTeachers(req.schoolId)
+      const { classes } = readTenantClasses(req.schoolId)
+
+      const data = assignments.map(a => {
+        const s = subjects.find(sx => sx.id === a.subjectId)
+        const t = teachers.find(tx => tx.id === a.teacherId)
+        const c = classes.find(cx => cx.id === a.classId)
+        return {
+          ...a,
+          subjectName: s?.name || 'Unknown',
+          teacherName: t?.name || 'Unknown',
+          className: c?.name || 'Unknown',
+          grade: c?.grade || ''
+        }
+      })
+      return res.json({ assignments: data, classes, teachers, subjects })
+    }
+    res.json({ assignments: [], classes: [], teachers: [], subjects: [] })
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.post('/api/teaching-assignments', auth, async (req, res) => {
+  try {
+    const { teacherId, classId, subjectId } = req.body
+    if (!teacherId || !classId || !subjectId) return res.status(400).json({ error: 'All fields are required' })
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
+      const store = readTenantTeachingAssignments(req.schoolId)
+      const newAssign = { id: randomUUID(), teacherId, classId, subjectId, createdAt: new Date().toISOString() }
+      store.assignments.push(newAssign)
+      writeTenantTeachingAssignments(req.schoolId, store)
+      return res.json(newAssign)
+    }
+    res.status(501).json({ error: 'DB implementation pending' })
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.delete('/api/teaching-assignments/:id', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
+      const store = readTenantTeachingAssignments(req.schoolId)
+      store.assignments = store.assignments.filter(a => a.id !== id)
+      writeTenantTeachingAssignments(req.schoolId, store)
+      return res.json({ success: true })
+    }
+    res.status(501).json({ error: 'DB implementation pending' })
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
 
 // ============== Behavior Tracker ==============
 app.get('/api/students/:id/behavior/history', auth, async (req, res) => {

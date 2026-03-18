@@ -119,6 +119,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
         { label: 'Admissions', to: '/dashboard/admissions', key: 'admissions' },
         { label: 'Attendance', to: '/dashboard/attendance', key: 'attendance' },
         { label: 'Guardians', to: '/dashboard/guardians', key: 'guardians' },
+        { label: 'Online Campus', to: '/dashboard/online-campus', key: 'online_campus' },
     ];
     const staffLinks = [
         { label: 'Staff List', to: '/dashboard/staff', key: 'staff' },
@@ -126,7 +127,6 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
         { label: 'Course Allocation', to: '/dashboard/staff/course-allocation', key: 'course_allocation' },
         { label: 'Lesson Planner', to: '/dashboard/staff/lesson-planner', key: 'lesson_planner' },
         { label: 'Timetables', to: '/dashboard/staff/timetables', key: 'timetables' },
-        { label: 'Classroom', to: '/dashboard/staff/classroom', key: 'classroom' },
     ];
 
     useEffect(() => {

@@ -1,6 +1,32 @@
 {
   "students": [
     {
+      "id": "b0baa93b-bfb8-4b7e-aee6-4495e318f3c4",
+      "firstName": "Blankson",
+      "lastName": "Kwarteng",
+      "email": "kwarteng@mirekuaics.com",
+      "grade": " 7",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "wristbandId": null,
+      "gender": "Male",
+      "birthday": "2026-03-06T00:00:00.000Z",
+      "admittedAt": "2026-03-18T00:00:00.000Z",
+      "religion": null,
+      "nationality": null,
+      "hometown": null,
+      "address": null,
+      "guardianName": null,
+      "guardianRelationship": null,
+      "guardianContact": "3333333333",
+      "profilePicture": null,
+      "profilePhoto": null,
+      "guardianPhoto": null,
+      "password": "a9bc4e5e2422dd52f282a4d97a43dd6f:16b33fa849382f3af97f9f9832ef8f7fa0cc3fffcaae8592f1fd23779358e96a0653449ce747535b19e224911a18614045a0a7e8368d84809967ea1a3afd6f0f",
+      "status": "active",
+      "createdAt": "2026-03-18T15:23:40.636Z",
+      "updatedAt": "2026-03-18T15:27:14.816Z"
+    },
+    {
       "id": "cd358a50-4c79-4284-a84e-22644f362f89",
       "firstName": "Alpha",
       "lastName": "Duodu",
