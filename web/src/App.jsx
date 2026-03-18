@@ -30,6 +30,8 @@ import Timetables from './pages/Timetables'
 import Classroom from './pages/Classroom'
 import ClassDetails from './pages/ClassDetails'
 import TeacherDashboard from './pages/teacher/TeacherDashboard'
+import LogoAnimationDemo from './pages/LogoAnimationDemo'
+import StudentPortal from './pages/StudentPortal'
 
 // SuperAdmin Pages
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard'
@@ -71,6 +73,15 @@ const TeacherRoute = ({ children }) => {
   return children
 }
 
+// Protected student portal route
+const StudentRoute = ({ children }) => {
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
+  const role = localStorage.getItem('userRole')
+  if (!isLoggedIn) return <Navigate to="/login" replace />
+  if (role !== 'student') return <Navigate to="/login" replace />
+  return children
+}
+
 const App = () => {
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
@@ -78,6 +89,7 @@ const App = () => {
         {/* Public */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/logo-demo" element={<LogoAnimationDemo />} />
 
         {/* School Dashboard */}
         <Route path="/dashboard" element={
@@ -126,6 +138,11 @@ const App = () => {
         }>
           <Route index element={<TeacherDashboard />} />
         </Route>
+
+        {/* Student Portal */}
+        <Route path="/portal" element={
+          <StudentRoute><StudentPortal /></StudentRoute>
+        } />
       </Routes>
     </Router>
   )

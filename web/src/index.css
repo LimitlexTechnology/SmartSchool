@@ -46,6 +46,10 @@
   .shadow-3xl {
     box-shadow: 0 35px 60px -15px rgba(0, 0, 0, 0.3);
   }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out forwards;
+  }
 }
 
 @keyframes floatUp {
@@ -73,6 +77,18 @@
 
   50% {
     transform: translate(0, -25px);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }
 

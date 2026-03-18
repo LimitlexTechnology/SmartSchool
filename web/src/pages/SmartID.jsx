@@ -18,6 +18,7 @@ import {
     Receipt,
     Check
 } from 'lucide-react';
+import SkullarLogo from '../assets/Skullar Logo.png';
 
 const SmartID = () => {
     const [activeTab, setActiveTab] = useState('overview');
@@ -51,9 +52,8 @@ const SmartID = () => {
                         <div className="p-8 h-full flex flex-col justify-between relative z-10">
                             <div className="flex justify-between items-center">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center font-bold text-2xl text-primary-teal">S</div>
+                                    <img src={SkullarLogo} alt="Skullar" className="w-[150px] h-auto object-contain" />
                                     <div>
-                                        <h4 className="text-sm font-black tracking-tighter uppercase leading-none">Smart School</h4>
                                         <span className="text-[8px] font-bold text-white/40 uppercase tracking-[0.2em]">Academic Year 2026</span>
                                     </div>
                                 </div>

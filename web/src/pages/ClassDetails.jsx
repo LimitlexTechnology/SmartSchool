@@ -92,6 +92,12 @@ const ClassDetails = () => {
         setForm(f => ({ ...f, classId: id }));
     }, [id]);
 
+    useEffect(() => {
+        const handler = () => loadData();
+        window.addEventListener('students:refresh', handler);
+        return () => window.removeEventListener('students:refresh', handler);
+    }, [id]);
+
     const handleAddStudent = async () => {
         if (!form.firstName || !form.lastName || !form.email || !form.classId) return;
         setSaving(true);
@@ -109,6 +115,7 @@ const ClassDetails = () => {
                 setShowAddModal(false);
                 setForm({ firstName: '', lastName: '', email: '', gender: '', classId: id });
                 loadData();
+                window.dispatchEvent(new CustomEvent('students:refresh'));
             } else {
                 const error = await res.json();
                 alert(error.error || 'Failed to add student');
@@ -144,6 +151,7 @@ const ClassDetails = () => {
                 setShowBehaviorModal(false);
                 setBehaviorForm({ type: 'deduction', category: '', score: 0, reason: '' });
                 loadData();
+                window.dispatchEvent(new CustomEvent('students:refresh'));
             } else {
                 const error = await res.json();
                 alert(error.error || 'Failed to update behavior');
@@ -169,7 +177,7 @@ const ClassDetails = () => {
         }
     };
 
-    const filteredStudents = students.filter(s => 
+    const filteredStudents = students.filter(s =>
         `${s.firstName} ${s.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
         (s.email || '').toLowerCase().includes(search.toLowerCase()) ||
         (s.studentId || '').toLowerCase().includes(search.toLowerCase())
@@ -193,7 +201,7 @@ const ClassDetails = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    <button 
+                    <button
                         onClick={() => navigate('/dashboard/classroom')}
                         className="p-2.5 rounded-xl border border-gray-100 bg-white hover:bg-light-bg transition shadow-soft-sm text-gray-400 hover:text-dark-text"
                     >
@@ -214,7 +222,7 @@ const ClassDetails = () => {
                     <button className="px-4 py-2.5 rounded-xl border border-gray-100 bg-white text-sm font-bold text-dark-text hover:bg-light-bg transition shadow-soft-sm flex items-center gap-2">
                         <Calendar size={16} /> Timetable
                     </button>
-                    <button 
+                    <button
                         onClick={() => setShowAddModal(true)}
                         className="px-4 py-2.5 rounded-xl bg-primary-teal text-white text-sm font-bold hover:bg-secondary-teal transition shadow-lg shadow-primary-teal/20 flex items-center gap-2"
                     >
@@ -231,7 +239,7 @@ const ClassDetails = () => {
                     <div className="flex items-center gap-3">
                         <div className="relative flex-1">
                             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                            <input 
+                            <input
                                 type="text"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
@@ -282,14 +290,14 @@ const ClassDetails = () => {
                                                         <span className={`text-xs font-black px-2 py-1 rounded-lg ${s.behaviorPoints >= 100 ? 'bg-emerald-50 text-emerald-600' : s.behaviorPoints >= 70 ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'}`}>
                                                             {s.behaviorPoints || 100}
                                                         </span>
-                                                        <button 
+                                                        <button
                                                             onClick={() => { setSelectedStudent(s); setShowBehaviorModal(true); }}
                                                             className="p-1.5 text-gray-400 hover:text-primary-teal hover:bg-light-bg transition rounded-lg"
                                                             title="Update Behavior"
                                                         >
                                                             <Heart size={14} />
                                                         </button>
-                                                        <button 
+                                                        <button
                                                             onClick={() => { setSelectedStudent(s); setShowHistoryModal(true); loadBehaviorHistory(s.id); }}
                                                             className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-light-bg transition rounded-lg"
                                                             title="Behavior History"
@@ -305,7 +313,7 @@ const ClassDetails = () => {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
-                                                    <button 
+                                                    <button
                                                         onClick={() => loadProfile(s.id)}
                                                         className="text-xs font-black text-primary-teal hover:underline decoration-2 underline-offset-4"
                                                     >
@@ -376,7 +384,7 @@ const ClassDetails = () => {
                         <div className="relative z-10">
                             <h3 className="text-sm font-black mb-1">Add Student</h3>
                             <p className="text-[11px] font-bold text-white/70 mb-4">Enroll a new student directly into this class.</p>
-                            <button 
+                            <button
                                 onClick={() => setShowAddModal(true)}
                                 className="w-full py-2.5 bg-white text-primary-teal rounded-xl text-xs font-black hover:bg-light-bg transition"
                             >
@@ -405,7 +413,7 @@ const ClassDetails = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-black text-muted-text uppercase tracking-widest mb-1.5 ml-1">First Name</label>
-                                    <input 
+                                    <input
                                         type="text"
                                         value={form.firstName}
                                         onChange={(e) => setForm({ ...form, firstName: e.target.value })}
@@ -414,7 +422,7 @@ const ClassDetails = () => {
                                 </div>
                                 <div>
                                     <label className="block text-xs font-black text-muted-text uppercase tracking-widest mb-1.5 ml-1">Last Name</label>
-                                    <input 
+                                    <input
                                         type="text"
                                         value={form.lastName}
                                         onChange={(e) => setForm({ ...form, lastName: e.target.value })}
@@ -424,7 +432,7 @@ const ClassDetails = () => {
                             </div>
                             <div>
                                 <label className="block text-xs font-black text-muted-text uppercase tracking-widest mb-1.5 ml-1">Email Address</label>
-                                <input 
+                                <input
                                     type="email"
                                     value={form.email}
                                     onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -433,7 +441,7 @@ const ClassDetails = () => {
                             </div>
                             <div>
                                 <label className="block text-xs font-black text-muted-text uppercase tracking-widest mb-1.5 ml-1">Class</label>
-                                <select 
+                                <select
                                     value={form.classId}
                                     onChange={(e) => setForm({ ...form, classId: e.target.value })}
                                     className="w-full px-4 py-3 bg-light-bg border border-gray-100 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary-teal/20 transition appearance-none"
@@ -446,7 +454,7 @@ const ClassDetails = () => {
                             </div>
                             <div>
                                 <label className="block text-xs font-black text-muted-text uppercase tracking-widest mb-1.5 ml-1">Gender</label>
-                                <select 
+                                <select
                                     value={form.gender}
                                     onChange={(e) => setForm({ ...form, gender: e.target.value })}
                                     className="w-full px-4 py-3 bg-light-bg border border-gray-100 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary-teal/20 transition appearance-none"
@@ -457,13 +465,13 @@ const ClassDetails = () => {
                                 </select>
                             </div>
                             <div className="pt-2 flex gap-3">
-                                <button 
+                                <button
                                     onClick={() => setShowAddModal(false)}
                                     className="flex-1 py-3 rounded-2xl border border-gray-100 text-sm font-black text-muted-text hover:bg-light-bg transition"
                                 >
                                     Cancel
                                 </button>
-                                <button 
+                                <button
                                     onClick={handleAddStudent}
                                     disabled={saving || !form.firstName || !form.lastName || !form.email}
                                     className="flex-1 py-3 rounded-2xl bg-primary-teal text-white text-sm font-black hover:bg-secondary-teal transition shadow-lg shadow-primary-teal/20 disabled:opacity-50"
@@ -490,17 +498,17 @@ const ClassDetails = () => {
                                 <X size={20} />
                             </button>
                         </div>
-                        
+
                         <div className="space-y-6">
                             {/* Type Toggle */}
                             <div className="flex p-1 bg-light-bg rounded-2xl">
-                                <button 
+                                <button
                                     onClick={() => setBehaviorForm({ ...behaviorForm, type: 'deduction', category: '', score: 0 })}
                                     className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black transition ${behaviorForm.type === 'deduction' ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' : 'text-muted-text hover:text-rose-500'}`}
                                 >
                                     <TrendingDown size={14} /> Deduct Points
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => setBehaviorForm({ ...behaviorForm, type: 'addition', category: '', score: 0 })}
                                     className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black transition ${behaviorForm.type === 'addition' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-muted-text hover:text-emerald-500'}`}
                                 >
@@ -527,7 +535,7 @@ const ClassDetails = () => {
                             {/* Custom Reason */}
                             <div>
                                 <label className="block text-xs font-black text-muted-text uppercase tracking-widest mb-1.5 ml-1">Optional Comment / Note</label>
-                                <textarea 
+                                <textarea
                                     value={behaviorForm.reason}
                                     onChange={(e) => setBehaviorForm({ ...behaviorForm, reason: e.target.value })}
                                     placeholder="Add details about the behavior..."
@@ -536,13 +544,13 @@ const ClassDetails = () => {
                             </div>
 
                             <div className="pt-2 flex gap-3">
-                                <button 
+                                <button
                                     onClick={() => setShowBehaviorModal(false)}
                                     className="flex-1 py-3 rounded-2xl border border-gray-100 text-sm font-black text-muted-text hover:bg-light-bg transition"
                                 >
                                     Cancel
                                 </button>
-                                <button 
+                                <button
                                     onClick={handleUpdateBehavior}
                                     disabled={behaviorSaving || !behaviorForm.category}
                                     className={`flex-1 py-3 rounded-2xl text-white text-sm font-black transition shadow-lg disabled:opacity-50 ${behaviorForm.type === 'addition' ? 'bg-emerald-500 shadow-emerald-500/20' : 'bg-rose-500 shadow-rose-500/20'}`}
@@ -569,7 +577,7 @@ const ClassDetails = () => {
                                 <X size={20} />
                             </button>
                         </div>
-                        
+
                         <div className="overflow-y-auto pr-2 space-y-4">
                             {behaviorHistory.length > 0 ? (
                                 behaviorHistory.map((log) => (
@@ -595,9 +603,9 @@ const ClassDetails = () => {
                                 <div className="py-12 text-center text-muted-text font-bold italic">No behavior logs found for this student.</div>
                             )}
                         </div>
-                        
+
                         <div className="mt-6 pt-4 border-t border-gray-50 shrink-0">
-                            <button 
+                            <button
                                 onClick={() => setShowHistoryModal(false)}
                                 className="w-full py-3 rounded-2xl bg-light-bg text-sm font-black text-muted-text hover:bg-gray-200 transition"
                             >

@@ -4,6 +4,7 @@ import {
     LayoutDashboard, Building2, CreditCard, Users,
     BarChart3, ScrollText, Settings, Shield
 } from 'lucide-react';
+import SkullarLogo from '../../assets/Skullar Logo.png';
 
 const navItems = [
     { icon: LayoutDashboard, label: 'Overview', to: '/superadmin' },
@@ -36,15 +37,12 @@ const SuperAdminSidebar = () => {
         to === '/superadmin' ? location.pathname === '/superadmin' : location.pathname.startsWith(to);
 
     return (
-        <aside className="w-[240px] h-screen bg-[#0F1A2E] border-r border-white/5 flex flex-col flex-shrink-0 sticky top-0">
+        <aside className="w-[200px] h-screen bg-[#0F1A2E] border-r border-white/5 flex flex-col flex-shrink-0 sticky top-0">
             {/* Branding */}
             <div className="p-6 border-b border-white/5">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-teal to-secondary-teal flex items-center justify-center shadow-lg shadow-primary-teal/30">
-                        <Shield size={20} className="text-white" />
-                    </div>
+                    <img src={SkullarLogo} alt="Skullar" className="w-[150px] h-auto object-contain" />
                     <div>
-                        <p className="text-white font-extrabold text-sm leading-tight">SmartSchool</p>
                         <p className="text-[10px] font-bold text-primary-teal uppercase tracking-widest">Super Admin</p>
                     </div>
                 </div>

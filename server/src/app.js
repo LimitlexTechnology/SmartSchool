@@ -49,7 +49,8 @@ app.get('/', (req, res) => {
   res.send(`
     <html>
       <head>
-        <title>Smart School API</title>
+        <title>Skullar API</title>
+        <link rel="icon" type="image/svg+xml" href="http://localhost:5173/src/assets/Skullar%20Favicon.svg" />
         <style>
           body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f8fafc; }
           .card { background: white; padding: 2rem; border-radius: 1rem; shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); border: 1px solid #e2e8f0; max-width: 400px; text-align: center; }
@@ -62,7 +63,7 @@ app.get('/', (req, res) => {
       </head>
       <body>
         <div class="card">
-          <h1>Smart School API</h1>
+          <h1>Skullar API</h1>
           <p>The backend server is running successfully. This is an API-only server.</p>
           <div class="links">
             <a href="http://localhost:5173">Go to Web App (Frontend)</a>
@@ -75,7 +76,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Smart School API is running' });
+  res.json({ status: 'OK', message: 'Skullar API is running' });
 });
 
 app.get('/api/health/db', async (req, res) => {
@@ -197,7 +198,7 @@ function ensureSuperAdminFile() {
     const def = {
       name: process.env.SUPERADMIN_NAME || 'Super Admin',
       phone: (process.env.SUPERADMIN_PHONE || '0000000000'),
-      email: process.env.SUPERADMIN_EMAIL || 'superadmin@smartschool'
+      email: process.env.SUPERADMIN_EMAIL || 'superadmin@skullar'
     }
     fs.writeFileSync(SUPERADMIN_FILE, JSON.stringify(def, null, 2))
   }
@@ -303,7 +304,7 @@ app.put('/api/students/:id', auth, async (req, res) => {
       gender, birthday, admittedAt,
       religion, nationality, hometown, address,
       guardianName, guardianRelationship, guardianContact,
-      profilePicture
+      profilePicture, password, profilePhoto, guardianPhoto,
     } = req.body || {}
 
     if (req.schoolId && req.schoolId !== 'local') {
@@ -312,12 +313,12 @@ app.put('/api/students/:id', auth, async (req, res) => {
       const idx = store.students.findIndex(s => s.id === id)
       if (idx < 0) return res.status(404).json({ error: 'not found' })
       const s = store.students[idx]
-      
+
       if (email !== undefined && email.toLowerCase() !== (s.email || '').toLowerCase()) {
         const exists = store.students.some(st => (st.email || '').toLowerCase() === email.toLowerCase())
         if (exists) return res.status(409).json({ error: `A student with email ${email} already exists.` })
       }
-      
+
       if (wristbandId !== undefined && wristbandId !== s.wristbandId) {
         const idExists = store.students.some(st => st.wristbandId === wristbandId)
         if (idExists) return res.status(409).json({ error: `A student with ID ${wristbandId} already exists.` })
@@ -339,6 +340,14 @@ app.put('/api/students/:id', auth, async (req, res) => {
       if (guardianRelationship !== undefined) s.guardianRelationship = guardianRelationship
       if (guardianContact !== undefined) s.guardianContact = guardianContact
       if (profilePicture !== undefined) s.profilePicture = profilePicture
+      if (profilePhoto !== undefined) s.profilePhoto = profilePhoto
+      if (guardianPhoto !== undefined) s.guardianPhoto = guardianPhoto
+      if (password && password.trim()) {
+        const crypto = require('crypto')
+        const salt = crypto.randomBytes(16).toString('hex')
+        const hash = crypto.scryptSync(password.trim(), salt, 64).toString('hex')
+        s.password = `${salt}:${hash}`
+      }
       s.updatedAt = new Date().toISOString()
       writeTenantStudents(req.schoolId, store)
       const c = classesStore.classes.find(cx => cx.id === s.classId)
@@ -371,6 +380,14 @@ app.put('/api/students/:id', auth, async (req, res) => {
     if (guardianRelationship !== undefined) data.guardianRelationship = guardianRelationship
     if (guardianContact !== undefined) data.guardianContact = guardianContact
     if (profilePicture !== undefined) data.profilePicture = profilePicture
+    if (profilePhoto !== undefined) data.profilePhoto = profilePhoto
+    if (guardianPhoto !== undefined) data.guardianPhoto = guardianPhoto
+    if (password && password.trim()) {
+      const crypto = require('crypto')
+      const salt = crypto.randomBytes(16).toString('hex')
+      const hash = crypto.scryptSync(password.trim(), salt, 64).toString('hex')
+      data.password = `${salt}:${hash}`
+    }
 
     if (req.schoolId && req.schoolId !== 'local') {
       const store = readTenantStudents(req.schoolId)
@@ -451,6 +468,8 @@ app.get('/api/students', auth, async (req, res) => {
           profilePicture: s.profilePicture || null,
           behaviorPoints: s.behaviorPoints !== undefined ? s.behaviorPoints : 100,
           gender: s.gender || null,
+          profilePhoto: s.profilePhoto || null,
+          guardianPhoto: s.guardianPhoto || null,
           index: (page - 1) * pageSize + i + 1,
         }
       })
@@ -462,7 +481,7 @@ app.get('/api/students', auth, async (req, res) => {
     const classIdFilter = (req.query.classId || '').toString().trim()
     const includeArchived = (req.query.includeArchived || 'false') === 'true'
     const baseFilter = includeArchived ? {} : { status: { not: 'archived' } }
-    
+
     const andConditions = [baseFilter]
     if (q) {
       andConditions.push({
@@ -499,6 +518,8 @@ app.get('/api/students', auth, async (req, res) => {
       profilePicture: s.profilePicture || null,
       behaviorPoints: s.behaviorPoints,
       gender: null,
+      profilePhoto: s.profilePhoto || null,
+      guardianPhoto: s.guardianPhoto || null,
       index: (page - 1) * pageSize + i + 1,
     }))
     res.json({ total, page, pageSize, data })
@@ -616,7 +637,7 @@ app.get('/api/students/:id/behavior/history', auth, async (req, res) => {
     const id = req.params.id
     if (req.schoolId && req.schoolId !== 'local') {
       const { logs } = readTenantBehaviorLogs(req.schoolId)
-      const studentLogs = logs.filter(l => l.studentId === id).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))
+      const studentLogs = logs.filter(l => l.studentId === id).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       return res.json(studentLogs)
     }
     const logs = await prisma.behaviorLog.findMany({
@@ -642,15 +663,15 @@ app.post('/api/students/:id/behavior', auth, async (req, res) => {
       const studentStore = readTenantStudents(req.schoolId)
       const sIdx = studentStore.students.findIndex(s => s.id === id)
       if (sIdx < 0) return res.status(404).json({ error: 'student not found' })
-      
+
       const student = studentStore.students[sIdx]
       if (student.behaviorPoints === undefined) student.behaviorPoints = 100
-      
+
       if (type === 'addition') student.behaviorPoints += score
       else if (type === 'deduction') student.behaviorPoints -= score
-      
+
       writeTenantStudents(req.schoolId, studentStore)
-      
+
       const logStore = readTenantBehaviorLogs(req.schoolId)
       const newLog = {
         id: randomUUID(),
@@ -664,7 +685,7 @@ app.post('/api/students/:id/behavior', auth, async (req, res) => {
       }
       logStore.logs.push(newLog)
       writeTenantBehaviorLogs(req.schoolId, logStore)
-      
+
       return res.json({ behaviorPoints: student.behaviorPoints, log: newLog })
     }
 
@@ -1043,7 +1064,7 @@ app.delete('/api/timetables/:id', auth, async (req, res) => {
 // ============== Super Admin: Schools ==============
 app.get('/api/admin/schools', auth, async (_req, res) => {
   try {
-    const name = process.env.SCHOOL_NAME || 'SmartSchool Local'
+    const name = process.env.SCHOOL_NAME || 'Skullar Local'
     const admin = process.env.SCHOOL_ADMIN || 'Admin'
     const phone = process.env.SCHOOL_PHONE || ''
     
@@ -1143,7 +1164,7 @@ app.get('/api/admin/schools/:id', auth, async (req, res) => {
   try {
     const id = req.params.id
     if (id === 'local') {
-      const name = process.env.SCHOOL_NAME || 'SmartSchool Local'
+      const name = process.env.SCHOOL_NAME || 'Skullar Local'
       const admin = process.env.SCHOOL_ADMIN || 'Admin'
       const phone = process.env.SCHOOL_PHONE || ''
       const studentsCount = await prisma.student.count({ where: { status: { not: 'archived' } } })
@@ -1236,6 +1257,80 @@ app.post('/api/school-auth/login', async (req, res) => {
     res.json({ schoolId: school.id, name: school.name, plan: school.plan, status: school.status })
   } catch (e) {
     console.error('School auth error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+// Student Portal Login
+app.post('/api/student-auth/login', async (req, res) => {
+  try {
+    const { studentId, password } = req.body || {}
+    if (!studentId || !password) return res.status(400).json({ error: 'studentId and password are required' })
+
+    const sid = studentId.trim()
+    const headerSchoolId = req.headers['x-school-id'] || 'local'
+
+    // Check tenant mode
+    let student = null
+    let targetSchoolId = headerSchoolId
+
+    if (headerSchoolId && headerSchoolId !== 'local') {
+      const store = readTenantStudents(headerSchoolId)
+      student = (store.students || []).find(s =>
+        (s.wristbandId && s.wristbandId.toUpperCase() === sid.toUpperCase()) ||
+        (s.id && s.id.slice(0, 8).toUpperCase() === sid.toUpperCase())
+      )
+    } else {
+      student = await prisma.student.findFirst({
+        where: {
+          OR: [
+            { wristbandId: { equals: sid, mode: 'insensitive' } },
+            { id: { startsWith: sid.toLowerCase() } }
+          ]
+        }
+      })
+    }
+
+    // 2. Global search if not found locally
+    if (!student && headerSchoolId === 'local') {
+      const schools = schoolsStore.list().filter(s => s.id !== 'local')
+      for (const s of schools) {
+        try {
+          const store = readTenantStudents(s.id)
+          const found = (store.students || []).find(x =>
+            (x.wristbandId && x.wristbandId.toUpperCase() === sid.toUpperCase()) ||
+            (x.id && x.id.slice(0, 8).toUpperCase() === sid.toUpperCase())
+          )
+          if (found) {
+            student = found
+            targetSchoolId = s.id
+            break
+          }
+        } catch (e) { }
+      }
+    }
+
+    if (!student || !student.password) {
+      return res.status(401).json({ error: 'invalid credentials' })
+    }
+
+    const parts = student.password.split(':')
+    if (parts.length !== 2) return res.status(401).json({ error: 'invalid credentials' })
+    const salt = parts[0]
+    const hash = parts[1]
+
+    const crypto = require('crypto')
+    const attempt = crypto.scryptSync(password.trim(), salt, 64).toString('hex')
+    if (attempt !== hash) return res.status(401).json({ error: 'invalid credentials' })
+
+    res.json({
+      id: student.id,
+      name: student.firstName + ' ' + student.lastName,
+      studentId: student.wristbandId || student.id.slice(0, 8).toUpperCase(),
+      schoolId: targetSchoolId
+    })
+  } catch (e) {
+    console.error('Student auth error:', e)
     res.status(500).json({ error: e?.message || 'unknown' })
   }
 })
@@ -1760,7 +1855,7 @@ app.post('/api/students', auth, async (req, res) => {
       gender, birthday, admittedAt,
       religion, nationality, hometown, address,
       guardianName, guardianRelationship, guardianContact,
-      profilePicture
+      profilePicture, password, profilePhoto, guardianPhoto,
     } = req.body || {}
     if (!firstName || !lastName || !email) {
       return res.status(400).json({ error: 'firstName, lastName and email are required' })
@@ -1770,12 +1865,19 @@ app.post('/api/students', auth, async (req, res) => {
       const classesStore = readTenantClasses(req.schoolId)
       const exists = (store.students || []).some(s => (s.email || '').toLowerCase() === email.toLowerCase())
       if (exists) return res.status(409).json({ error: `A student with email ${email} already exists.` })
-      
+
       if (wristbandId) {
         const idExists = (store.students || []).some(s => s.wristbandId === wristbandId)
         if (idExists) return res.status(409).json({ error: `A student with ID ${wristbandId} already exists.` })
       }
       const now = new Date().toISOString()
+      let savedPassword = null
+      if (password && password.trim()) {
+        const crypto = require('crypto')
+        const salt = crypto.randomBytes(16).toString('hex')
+        const hash = crypto.scryptSync(password.trim(), salt, 64).toString('hex')
+        savedPassword = `${salt}:${hash}`
+      }
       const obj = {
         id: randomUUID(),
         firstName, lastName, email,
@@ -1793,6 +1895,9 @@ app.post('/api/students', auth, async (req, res) => {
         guardianRelationship: guardianRelationship || null,
         guardianContact: guardianContact || null,
         profilePicture: profilePicture || null,
+        profilePhoto: profilePhoto || null,
+        guardianPhoto: guardianPhoto || null,
+        password: savedPassword,
         status: 'active',
         createdAt: now,
         updatedAt: now
@@ -1831,6 +1936,17 @@ app.post('/api/students', auth, async (req, res) => {
         guardianRelationship: guardianRelationship || null,
         guardianContact: guardianContact || null,
         profilePicture: profilePicture || null,
+        profilePhoto: profilePhoto || null,
+        guardianPhoto: guardianPhoto || null,
+        password: (function () {
+          if (password && password.trim()) {
+            const crypto = require('crypto')
+            const salt = crypto.randomBytes(16).toString('hex')
+            const hash = crypto.scryptSync(password.trim(), salt, 64).toString('hex')
+            return `${salt}:${hash}`
+          }
+          return null
+        })()
       },
       include: { class: true },
     })
@@ -1868,36 +1984,74 @@ app.get('/api/students/:id', auth, async (req, res) => {
         grade: c?.grade || s.grade || '',
         studentId: s.wristbandId || s.id.slice(0, 8).toUpperCase(),
         profilePicture: s.profilePicture || null,
+        profilePhoto: s.profilePhoto || null,
+        guardianPhoto: s.guardianPhoto || null,
       })
     }
-    const s = await prisma.student.findUnique({ where: { id }, include: { class: true } })
-    if (!s) return res.status(404).json({ error: 'not found' })
+    const student = await prisma.student.findUnique({
+      where: { id },
+      include: { class: true }
+    })
+    if (!student) return res.status(404).json({ error: 'Student not found' })
     res.json({
-      id: s.id,
-      firstName: s.firstName,
-      lastName: s.lastName,
-      email: s.email,
-      className: s.class?.name || '',
-      grade: s.class?.grade || s.grade || '',
-      studentId: s.wristbandId || s.id.slice(0, 8).toUpperCase(),
-      profilePicture: s.profilePicture || null,
-      createdAt: s.createdAt,
-      gender: s.gender || null,
-      birthday: s.birthday || null,
-      admittedAt: s.admittedAt || null,
-      religion: s.religion || null,
-      nationality: s.nationality || null,
-      hometown: s.hometown || null,
-      address: s.address || null,
-      guardianName: s.guardianName || null,
-      guardianRelationship: s.guardianRelationship || null,
-      guardianContact: s.guardianContact || null,
+      ...student,
+      className: student.class?.name || '',
+      grade: student.class?.grade || student.grade || '',
+      studentId: student.wristbandId || student.id.slice(0, 8).toUpperCase(),
+      behaviorPoints: student.behaviorPoints !== undefined ? student.behaviorPoints : 100
     })
   } catch (e) {
     console.error('Student detail error:', e)
     res.status(500).json({ error: e?.message || 'unknown' })
   }
-});
+})
+
+app.get('/api/students/:id/siblings', auth, async (req, res) => {
+  try {
+    const { id } = req.params
+    let student = null
+    let schoolId = req.schoolId || 'local'
+
+    if (schoolId !== 'local') {
+      const store = readTenantStudents(schoolId)
+      student = (store.students || []).find(s => s.id === id)
+      if (!student) return res.status(404).json({ error: 'Student not found' })
+
+      const contact = student.guardianContact
+      if (!contact) return res.json([])
+
+      const siblings = (store.students || []).filter(s => s.id !== id && s.guardianContact === contact)
+      return res.json(siblings.map(s => ({
+        id: s.id,
+        name: s.firstName + ' ' + s.lastName,
+        studentId: s.wristbandId || s.id.slice(0, 8).toUpperCase(),
+        profilePhoto: s.profilePhoto
+      })))
+    }
+
+    student = await prisma.student.findUnique({ where: { id } })
+    if (!student) return res.status(404).json({ error: 'Student not found' })
+
+    const contact = student.guardianContact
+    if (!contact) return res.json([])
+
+    const siblings = await prisma.student.findMany({
+      where: {
+        id: { not: id },
+        guardianContact: contact
+      }
+    })
+    res.json(siblings.map(s => ({
+      id: s.id,
+      name: s.firstName + ' ' + s.lastName,
+      studentId: s.wristbandId || s.id.slice(0, 8).toUpperCase(),
+      profilePhoto: s.profilePhoto
+    })))
+  } catch (e) {
+    console.error('Fetch siblings error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
 
 // ============== Teacher Permissions ==============
 app.get('/api/teachers/:id/permissions', auth, async (req, res) => {

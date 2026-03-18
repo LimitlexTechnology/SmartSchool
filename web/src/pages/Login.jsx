@@ -3,10 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Phone, ArrowRight, ShieldCheck, Eye, EyeOff, Lock, GraduationCap } from 'lucide-react';
 import Button from '../components/ui/Button';
 import loginVideo from '../assets/login page gif.mp4';
+import SkullarLogoAnimation from '../components/ui/SkullarLogoAnimation';
 
 const Login = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [studentId, setStudentId] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('staff'); // 'staff' or 'student'
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -14,19 +17,47 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    if (!phoneNumber || phoneNumber.length < 10) {
+    if (role === 'staff' && (!phoneNumber || phoneNumber.length < 10)) {
       alert('Please enter a valid phone number');
       return;
     }
+    if (role === 'student' && !studentId) {
+      alert('Please enter your Student ID');
+      return;
+    }
 
-    if (!password || password.length < 6) {
-      alert('Password must be at least 6 characters');
+    if (!password || password.length < 4) {
+      alert('Password is required');
       return;
     }
 
     setIsLoading(true);
 
     try {
+      if (role === 'student') {
+        const rs = await fetch('/api/student-auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-school-id': localStorage.getItem('schoolId') || 'local'
+          },
+          body: JSON.stringify({ studentId, password })
+        })
+        if (rs.ok) {
+          const j = await rs.json()
+          localStorage.setItem('isLoggedIn', 'true');
+          localStorage.setItem('userRole', 'student');
+          localStorage.setItem('studentId', j.studentId);
+          localStorage.setItem('studentTableId', j.id);
+          localStorage.setItem('studentName', j.name);
+          if (j.schoolId) localStorage.setItem('schoolId', j.schoolId);
+          navigate('/portal');
+          return
+        }
+        const t = await rs.json().catch(() => ({}))
+        throw new Error(t.error || 'Login failed')
+      }
+
       // Try super admin login first
       const rs = await fetch('/api/superadmin/login', {
         method: 'POST',
@@ -38,7 +69,7 @@ const Login = () => {
         localStorage.setItem('userPhone', phoneNumber);
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('userRole', 'superadmin');
-        document.cookie = `schoolId=local; Path=/; Max-Age=${60*60*24*7}`
+        document.cookie = `schoolId=local; Path=/; Max-Age=${60 * 60 * 24 * 7}`
         navigate('/superadmin');
         return
       }
@@ -56,7 +87,7 @@ const Login = () => {
         localStorage.setItem('userRole', 'admin');
         if (j.schoolId) localStorage.setItem('schoolId', j.schoolId)
         if (j.name) localStorage.setItem('schoolName', j.name)
-        if (j.schoolId) document.cookie = `schoolId=${encodeURIComponent(j.schoolId)}; Path=/; Max-Age=${60*60*24*7}`
+        if (j.schoolId) document.cookie = `schoolId=${encodeURIComponent(j.schoolId)}; Path=/; Max-Age=${60 * 60 * 24 * 7}`
         navigate('/dashboard');
         return
       }
@@ -74,15 +105,15 @@ const Login = () => {
         if (j.name) localStorage.setItem('teacherName', j.name)
         if (j.teacherId) localStorage.setItem('teacherId', j.teacherId)
         if (j.schoolId) localStorage.setItem('schoolId', j.schoolId)
-        if (j.schoolId) document.cookie = `schoolId=${encodeURIComponent(j.schoolId)}; Path=/; Max-Age=${60*60*24*7}`
-        if (j.teacherId) document.cookie = `teacherId=${encodeURIComponent(j.teacherId)}; Path=/; Max-Age=${60*60*24*7}`
+        if (j.schoolId) document.cookie = `schoolId=${encodeURIComponent(j.schoolId)}; Path=/; Max-Age=${60 * 60 * 24 * 7}`
+        if (j.teacherId) document.cookie = `teacherId=${encodeURIComponent(j.teacherId)}; Path=/; Max-Age=${60 * 60 * 24 * 7}`
         navigate('/teacher');
         return
       }
-      const t = await r.json().catch(()=>({}))
+      const t = await r.json().catch(() => ({}))
       throw new Error(t.error || 'Login failed')
     } catch (error) {
-      alert('Login failed. Please check your phone number and password.');
+      alert(error.message || 'Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
@@ -121,7 +152,7 @@ const Login = () => {
               Empowering the Next Generation of Leaders
             </h1>
             <p className="text-lg text-white/90 max-w-lg">
-              Streamline school management, enhance learning experiences, and foster a connected educational community with SmartSchool.
+              Streamline school management, enhance learning experiences, and foster a connected educational community with Skullar.
             </p>
           </div>
           <div className="flex items-center gap-2 text-sm text-white/80">
@@ -134,35 +165,75 @@ const Login = () => {
       {/* Right Side - Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gray-50">
         <div className="w-full max-w-md bg-white p-8 rounded-3xl shadow-xl border border-gray-100">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-primary-teal/10 rounded-xl mb-4">
-              <ShieldCheck className="w-6 h-6 text-primary-teal" />
+          <div className="text-center mb-8 flex flex-col items-center">
+            <div className="w-[150px] h-[50px] relative mb-4">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 scale-[0.3]">
+                <SkullarLogoAnimation />
+              </div>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mt-2">Welcome Back</h2>
             <p className="text-gray-500 mt-2">Please enter your details to sign in</p>
           </div>
 
+          {/* Role Selector */}
+          <div className="flex p-1 bg-gray-100 rounded-2xl mb-8">
+            <button
+              onClick={() => setRole('staff')}
+              className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all ${role === 'staff' ? 'bg-white shadow-sm text-primary-teal' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              Staff / Admin
+            </button>
+            <button
+              onClick={() => setRole('student')}
+              className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all ${role === 'student' ? 'bg-white shadow-sm text-primary-teal' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              Student Portal
+            </button>
+          </div>
+
           <form onSubmit={handleLogin} className="space-y-6">
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Phone className="h-5 w-5 text-gray-400" />
+            {role === 'staff' ? (
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Phone className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="phone"
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={handlePhoneChange}
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-teal focus:border-transparent transition-all"
+                    placeholder="Enter your phone number"
+                    required
+                    maxLength="15"
+                  />
                 </div>
-                <input
-                  id="phone"
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={handlePhoneChange}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-teal focus:border-transparent transition-all"
-                  placeholder="Enter your phone number"
-                  required
-                  maxLength="15"
-                />
               </div>
-            </div>
+            ) : (
+              <div>
+                <label htmlFor="studentId" className="block text-sm font-medium text-gray-700 mb-2">
+                  Student ID
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <GraduationCap className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="studentId"
+                    type="text"
+                    value={studentId}
+                    onChange={(e) => setStudentId(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-teal focus:border-transparent transition-all"
+                    placeholder="Enter your Student ID"
+                    required
+                  />
+                </div>
+              </div>
+            )}
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
