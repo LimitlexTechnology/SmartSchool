@@ -805,9 +805,6 @@ const StudentTile = ({ name, subtitle, id, initial, classes = [], src }) => {
     </>
   )
 }
-    </>
-  )
-}
 
 const ArchiveButton = ({ id, onAfter }) => {
   const [open, setOpen] = useState(false)
