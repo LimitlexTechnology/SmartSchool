@@ -140,9 +140,11 @@ const Dashboard = () => {
     const dateStr = today.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
     const timeStr = today.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-    const schoolName = (typeof window !== 'undefined' && window.localStorage.getItem('schoolName')) || 'Your School';
     const role = (typeof window !== 'undefined' && window.localStorage.getItem('userRole')) || 'admin';
     const sid = (typeof window !== 'undefined' && window.localStorage.getItem('schoolId')) || 'local';
+    const schoolName = (typeof window !== 'undefined' && (window.localStorage.getItem(`schoolName:${sid}`) || window.localStorage.getItem('schoolName'))) || 'Your School';
+    const schoolLogo = (typeof window !== 'undefined' && window.localStorage.getItem(`schoolLogo:${sid}`)) || null;
+    const userAvatar = (typeof window !== 'undefined' && window.localStorage.getItem(`userAvatar:${sid}`)) || null;
     const displayName = (() => {
         if (role === 'teacher') return (typeof window !== 'undefined' && window.localStorage.getItem('teacherName')) || 'Teacher';
         if (role === 'superadmin') return 'Super Admin';
@@ -179,12 +181,19 @@ const Dashboard = () => {
 
             {/* ── Top Greeting Bar ── */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                <div>
-                    <h1 className="text-2xl font-extrabold text-dark-text tracking-tight">
-                        Good {today.getHours() < 12 ? 'morning' : today.getHours() < 17 ? 'afternoon' : 'evening'},
-                        <span className="text-primary-teal"> {displayName}</span>
-                    </h1>
-                    <p className="text-sm text-muted-text mt-0.5">What would you like to do today?</p>
+                <div className="flex items-center gap-4">
+                    {userAvatar && (
+                        <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-primary-teal/20 shadow-soft-sm">
+                            <img src={userAvatar} alt="User" className="w-full h-full object-cover" />
+                        </div>
+                    )}
+                    <div>
+                        <h1 className="text-2xl font-extrabold text-dark-text tracking-tight">
+                            Good {today.getHours() < 12 ? 'morning' : today.getHours() < 17 ? 'afternoon' : 'evening'},
+                            <span className="text-primary-teal"> {displayName}</span>
+                        </h1>
+                        <p className="text-sm text-muted-text mt-0.5">What would you like to do today?</p>
+                    </div>
                 </div>
 
                 {/* Search + actions */}
@@ -209,9 +218,15 @@ const Dashboard = () => {
             {/* ── School Banner Card ── */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-soft-sm p-5 flex flex-col md:flex-row items-start md:items-center gap-4">
                 {/* Logo */}
-                <div className="w-20 h-20 flex-shrink-0 rounded-2xl bg-gradient-to-br from-primary-teal to-secondary-teal flex items-center justify-center shadow-lg">
-                    <GraduationCap size={36} className="text-white" />
-                </div>
+                {schoolLogo ? (
+                    <div className="w-20 h-20 flex-shrink-0 rounded-2xl overflow-hidden shadow-lg border border-gray-100 flex items-center justify-center p-2 bg-white">
+                        <img src={schoolLogo} alt="School Logo" className="w-full h-full object-contain" />
+                    </div>
+                ) : (
+                    <div className="w-20 h-20 flex-shrink-0 rounded-2xl bg-gradient-to-br from-primary-teal to-secondary-teal flex items-center justify-center shadow-lg">
+                        <GraduationCap size={36} className="text-white" />
+                    </div>
+                )}
 
                 <div className="flex-1">
                     <h2 className="text-xl font-extrabold text-dark-text">{schoolName}</h2>

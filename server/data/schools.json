@@ -1,60 +1,18 @@
 {
   "schools": [
     {
-      "id": "22f75a87-4aff-44e5-8023-3824445f5951",
-      "status": "active",
-      "plan": "Premium",
-      "students": 0,
-      "expiry": "N/A",
-      "name": "Bella school",
-      "address": "Opah",
-      "admin": "Bella",
-      "phone": "0245123456",
-      "adminPassSalt": "f3a683e31699d2ceb66d4d4620aebcc5",
-      "adminPassHash": "765651907785b135d492d17ae2c0936dabe390de69df4df260840306a580335bec31660ee2679b0ac9ecf3c4d3f6795c74f8dc2b94eb99ca2a26dad3744e45b7",
-      "createdAt": "2026-03-05T20:59:33.414Z"
-    },
-    {
-      "id": "c9fd54a6-cc1a-408c-ada7-53d541fbab15",
+      "id": "d3f08cde-510f-4cb0-b109-ccb86de5183a",
       "status": "active",
       "plan": "Basic",
       "students": 0,
       "expiry": "N/A",
-      "name": "Testing",
-      "address": "Kumasi",
-      "admin": "Blankson Binos",
-      "phone": "3333333333",
-      "adminPassSalt": "59b6b0e064eabd9c203fee1440a60aba",
-      "adminPassHash": "6bf92f1a1dc5e02352a9ed0cff8f5a8f1b1bd23bbf2194f953c2b10846387ff2d10c1c17815ee4bfaa5e070afefb3e502c31ead6b7ed22d3c2be0e0a508e6a85",
-      "createdAt": "2026-03-12T15:32:50.019Z"
-    },
-    {
-      "id": "14e5c81f-8166-4f0e-90a2-96ef9f66eea3",
-      "status": "active",
-      "plan": "Premium",
-      "students": 0,
-      "expiry": "N/A",
-      "name": "Test school",
+      "name": "Newpage",
       "address": "Afrancho-Bronkong",
-      "admin": "Teacher",
+      "admin": "Blankson Kwarteng",
       "phone": "3333333333",
-      "adminPassSalt": "0e286f65cc41d6310414aeaf5f40ea01",
-      "adminPassHash": "ec8e2f02084e8f5573584020edbad949d126f4683385c1d3adca97c6ed36538de5b1f38275d2833d8f9441dff4f575f4e7e81282285c18198eb1c95b4ab91f6d",
-      "createdAt": "2026-03-09T08:31:32.755Z"
-    },
-    {
-      "id": "e5b5e855-f73a-44e9-ae0c-a18e5cc87b0f",
-      "status": "active",
-      "plan": "Premium",
-      "students": 0,
-      "expiry": "N/A",
-      "name": "Techi Soft Academy",
-      "address": "Accra",
-      "admin": "Binos",
-      "phone": "5555555555",
-      "adminPassSalt": "4fc36935d7c3b821536f42d6eb9291c1",
-      "adminPassHash": "40bc7998eec3bc2c0d04f86f34d91fe0c146a5bf9f884e9149b4a5a1c7d16adcc0bd4f0a850feb763828e28fc4f0573f4aef468b2c34efda3a5877724af8096c",
-      "createdAt": "2026-03-09T18:01:58.002Z"
+      "adminPassSalt": "278a2d5ab0b18cafc6ff211b10716bb8",
+      "adminPassHash": "8fce5a42dd07ca45069149f561886b1c66248bc3028af5327407dfc03d0892c30352191188237c3a12dc8ec8ec8b4dae249e9e8a55f5a27567936df7b4b49746",
+      "createdAt": "2026-03-18T12:58:23.908Z"
     }
   ]
 }

@@ -1,7 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Search, Plus, Download, FileDown, X } from 'lucide-react'
+import { Search, Plus, Download, FileDown, X, Camera, User } from 'lucide-react'
 
-const Avatar = ({ name }) => {
+const Avatar = ({ name, src }) => {
+  if (src) return (
+    <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-100 bg-white">
+      <img src={src} alt={name} className="w-full h-full object-cover" />
+    </div>
+  )
   const initials = useMemo(() => {
     const parts = (name || '').trim().split(' ')
     return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase()
@@ -15,6 +20,34 @@ const Avatar = ({ name }) => {
   )
 }
 
+const compressImage = (base64Str, maxWidth = 400, maxHeight = 400) => {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.src = base64Str
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      let width = img.width
+      let height = img.height
+      if (width > height) {
+        if (width > maxWidth) {
+          height *= maxWidth / width
+          width = maxWidth
+        }
+      } else {
+        if (height > maxHeight) {
+          width *= maxHeight / height
+          height = maxHeight
+        }
+      }
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, width, height)
+      resolve(canvas.toDataURL('image/jpeg', 0.7))
+    }
+  })
+}
+
 const StaffList = () => {
   const [q, setQ] = useState('')
   const [page, setPage] = useState(1)
@@ -24,6 +57,7 @@ const StaffList = () => {
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState({ name: '', email: '', subject: '' })
   const [saving, setSaving] = useState(false)
+  const [classes, setClasses] = useState([])
 
   const load = async (opts = {}) => {
     const p = opts.page ?? page
@@ -39,7 +73,10 @@ const StaffList = () => {
     }
   }
 
-  useEffect(() => { load({ page: 1 }) }, []) // eslint-disable-line
+  useEffect(() => { 
+    load({ page: 1 })
+    fetch('/api/classes').then(r=>r.json()).then(setClasses).catch(()=>setClasses([]))
+  }, []) // eslint-disable-line
 
   const totalPages = Math.max(1, Math.ceil((data.total || 0) / pageSize))
 
@@ -167,7 +204,7 @@ const StaffList = () => {
                   <td className="px-4 py-3 text-muted-text">{t.index}</td>
                   <td className="px-4 py-3">
                     <button onClick={()=>openDrawer(t)} className="flex items-center gap-3">
-                      <Avatar name={t.name} />
+                      <Avatar name={t.name} src={t.profilePicture} />
                       <span className="font-bold text-dark-text hover:underline">{t.name}</span>
                     </button>
                   </td>
@@ -201,7 +238,7 @@ const StaffList = () => {
           </div>
         </div>
       </div>
-      {drawerId && <TeacherDrawer id={drawerId} initial={drawerInitial} onClose={()=>{ setDrawerId(null); setDrawerInitial(null); }} onSaved={()=>load({ page })} />}
+      {drawerId && <TeacherDrawer id={drawerId} initial={drawerInitial} onClose={()=>{ setDrawerId(null); setDrawerInitial(null); }} onSaved={()=>load({ page })} classes={classes} />}
     </div>
   )
 }
@@ -229,7 +266,7 @@ const EditField = ({ label, value, onChange, type='text' }) => (
   </div>
 )
 
-const TeacherDrawer = ({ id, onClose, initial }) => {
+const TeacherDrawer = ({ id, onClose, initial, classes = [] }) => {
   const [detail, setDetail] = useState(initial || null)
   const [loading, setLoading] = useState(false)
   const [edit, setEdit] = useState(false)
@@ -238,7 +275,7 @@ const TeacherDrawer = ({ id, onClose, initial }) => {
   const [profile, setProfile] = useState({
     gender: '', phone: '', staffId: '', dateEmployed: '', ssn: '', nationalId: '', dob: '',
     momoNumber: '', accountNumber: '', bankBranch: '', bankName: '', nextOfKin: '', nextOfKinRelation: '', nextOfKinPhone: '',
-    classesTaught: [], subjectsTaught: [], formMaster: ''
+    classesTaught: [], subjectsTaught: [], formMaster: '', profilePicture: null
   })
   const [profileForm, setProfileForm] = useState(null)
   const featureOptions = [
@@ -277,13 +314,13 @@ const TeacherDrawer = ({ id, onClose, initial }) => {
           gender: p.gender || '', phone: p.phone || '', staffId: p.staffId || '', dateEmployed: p.dateEmployed || '', ssn: p.ssn || '',
           nationalId: p.nationalId || '', dob: p.dob || '', momoNumber: p.momoNumber || '', accountNumber: p.accountNumber || '',
           bankBranch: p.bankBranch || '', bankName: p.bankName || '', nextOfKin: p.nextOfKin || '', nextOfKinRelation: p.nextOfKinRelation || '',
-          nextOfKinPhone: p.nextOfKinPhone || '', classesTaught: Array.isArray(p.classesTaught)?p.classesTaught:[], subjectsTaught: Array.isArray(p.subjectsTaught)?p.subjectsTaught:[], formMaster: p.formMaster || ''
+          nextOfKinPhone: p.nextOfKinPhone || '', classesTaught: Array.isArray(p.classesTaught)?p.classesTaught:[], subjectsTaught: Array.isArray(p.subjectsTaught)?p.subjectsTaught:[], formMaster: p.formMaster || '', profilePicture: p.profilePicture || null
         })
         setProfileForm({
           gender: p.gender || '', phone: p.phone || '', staffId: p.staffId || '', dateEmployed: p.dateEmployed || '', ssn: p.ssn || '',
           nationalId: p.nationalId || '', dob: p.dob || '', momoNumber: p.momoNumber || '', accountNumber: p.accountNumber || '',
           bankBranch: p.bankBranch || '', bankName: p.bankName || '', nextOfKin: p.nextOfKin || '', nextOfKinRelation: p.nextOfKinRelation || '',
-          nextOfKinPhone: p.nextOfKinPhone || '', classesTaught: Array.isArray(p.classesTaught)?p.classesTaught:[], subjectsTaught: Array.isArray(p.subjectsTaught)?p.subjectsTaught:[], formMaster: p.formMaster || ''
+          nextOfKinPhone: p.nextOfKinPhone || '', classesTaught: Array.isArray(p.classesTaught)?p.classesTaught:[], subjectsTaught: Array.isArray(p.subjectsTaught)?p.subjectsTaught:[], formMaster: p.formMaster || '', profilePicture: p.profilePicture || null
         })
         const perms = await fetch(`/api/teachers/${id}/permissions`).then(r=>r.json()).catch(()=>({ allowedFeatures:[], allowedActions:[] }))
         setPermissionsForm({ allowedFeatures: Array.isArray(perms.allowedFeatures)?perms.allowedFeatures:[], allowedActions: Array.isArray(perms.allowedActions)?perms.allowedActions:[] })
@@ -310,7 +347,7 @@ const TeacherDrawer = ({ id, onClose, initial }) => {
       <div className="absolute right-0 top-0 h-full w-full sm:w-[420px] bg-white border-l border-gray-100 shadow-soft-sm p-6 overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <Avatar name={name || 'U'} />
+            <Avatar name={name || 'U'} src={profile.profilePicture} />
             <div>
               <div className="font-extrabold text-dark-text">{name || '—'}</div>
               <div className="text-xs text-muted-text font-bold">{detail?.email || '—'}</div>
@@ -378,14 +415,46 @@ const TeacherDrawer = ({ id, onClose, initial }) => {
               <Field label="Next Of Kin Number" value={profile.nextOfKinPhone || '—'} />
             </Section>
             <Section title="Academic Information">
-              <Field label="Classes Taught" value={(profile.classesTaught || []).join(', ') || '—'} />
+              <Field label="Classes Taught" value={(profile.classesTaught || []).map(cid => {
+                const c = classes.find(cx => cx.id === cid)
+                return c ? `${c.grade} ${c.name || ''}`.trim() : cid
+              }).join(', ') || '—'} />
               <Field label="Subjects Taught" value={(profile.subjectsTaught || []).join(', ') || '—'} />
-              <Field label="Form Master" value={profile.formMaster || '—'} />
+              <Field label="Form Master" value={(() => {
+                const c = classes.find(cx => cx.id === profile.formMaster)
+                return c ? `${c.grade} ${c.name || ''}`.trim() : profile.formMaster || '—'
+              })()} />
             </Section>
           </div>
         )}
         {!loading && detail && edit && form && (
           <div className="space-y-4">
+            <div className="flex flex-col items-center mb-4">
+              <div className="relative group">
+                <div className="w-20 h-20 rounded-2xl bg-light-bg border border-gray-100 flex items-center justify-center overflow-hidden">
+                  {profileForm.profilePicture ? (
+                    <img src={profileForm.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <User size={32} className="text-gray-300" />
+                  )}
+                </div>
+                <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 transition rounded-2xl cursor-pointer">
+                  <Camera size={18} />
+                  <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                    const file = e.target.files[0]
+                    if (file) {
+                      const reader = new FileReader()
+                      reader.onloadend = async () => {
+                        const compressed = await compressImage(reader.result, 300, 300)
+                        setProfileForm({ ...profileForm, profilePicture: compressed })
+                      }
+                      reader.readAsDataURL(file)
+                    }
+                  }} />
+                </label>
+              </div>
+              <div className="text-[10px] font-black text-muted-text uppercase tracking-widest mt-2">Profile Picture</div>
+            </div>
             <Section title="Basic Info">
               <EditField label="Full Name" value={form.name} onChange={v=>setForm({...form, name:v})} />
               <div className="grid grid-cols-3 items-center">
@@ -419,9 +488,45 @@ const TeacherDrawer = ({ id, onClose, initial }) => {
               <EditField label="Next Of Kin Number" value={profileForm.nextOfKinPhone} onChange={v=>setProfileForm({...profileForm, nextOfKinPhone:v})} />
             </Section>
             <Section title="Academic Information">
-              <EditField label="Classes Taught (comma-separated)" value={(profileForm.classesTaught||[]).join(', ')} onChange={v=>setProfileForm({...profileForm, classesTaught: v.split(',').map(s=>s.trim()).filter(Boolean)})} />
+              <div className="space-y-2">
+                <div className="text-xs font-bold text-muted-text">Classes Taught</div>
+                <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border border-gray-100 rounded-xl">
+                  {classes.map(c => {
+                    const label = `${c.grade} ${c.name || ''}`.trim()
+                    return (
+                      <label key={c.id} className="flex items-center gap-2 text-xs font-bold text-dark-text cursor-pointer hover:text-primary-teal">
+                        <input
+                          type="checkbox"
+                          checked={(profileForm.classesTaught || []).includes(c.id)}
+                          onChange={(e) => {
+                            const cur = new Set(profileForm.classesTaught || [])
+                            if (e.target.checked) cur.add(c.id); else cur.delete(c.id)
+                            setProfileForm(p => ({ ...p, classesTaught: Array.from(cur) }))
+                          }}
+                        />
+                        {label}
+                      </label>
+                    )
+                  })}
+                  {classes.length === 0 && <div className="text-xs text-muted-text italic">No classes found</div>}
+                </div>
+              </div>
               <EditField label="Subjects Taught (comma-separated)" value={(profileForm.subjectsTaught||[]).join(', ')} onChange={v=>setProfileForm({...profileForm, subjectsTaught: v.split(',').map(s=>s.trim()).filter(Boolean)})} />
-              <EditField label="Form Master" value={profileForm.formMaster} onChange={v=>setProfileForm({...profileForm, formMaster:v})} />
+              <div className="grid grid-cols-3 items-center">
+                <div className="text-xs font-bold text-muted-text">Form Master</div>
+                <div className="col-span-2">
+                  <select 
+                    value={profileForm.formMaster} 
+                    onChange={e=>setProfileForm({...profileForm, formMaster:e.target.value})} 
+                    className="px-3 py-2 rounded-xl border border-gray-200 text-sm w-full"
+                  >
+                    <option value="">None</option>
+                    {classes.map(c => (
+                      <option key={c.id} value={c.id}>{c.grade} {c.name || ''}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </Section>
             <Section title="Permissions">
               <div className="space-y-2">

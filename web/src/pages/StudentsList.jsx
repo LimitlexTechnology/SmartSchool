@@ -1,7 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Search, Filter, ListFilter, Plus, RotateCw, Download, FileDown, X, Eye, EyeOff } from 'lucide-react'
+import { Search, Filter, ListFilter, Plus, RotateCw, Download, FileDown, X, Camera, User, Archive, Trash2, Mail, Edit2, Eye, EyeOff } from 'lucide-react'
+import StudentProfileModal from '../components/StudentProfileModal'
 
 const Avatar = ({ name, src, size = 'w-8 h-8' }) => {
+  if (src) return (
+    <div className={`${size} rounded-full overflow-hidden border border-gray-100 bg-white`}>
+      <img src={src} alt={name} className="w-full h-full object-cover" />
+    </div>
+  )
   const initials = useMemo(() => {
     const parts = name.trim().split(' ')
     return (parts[0]?.[0] || '').toUpperCase()
@@ -27,11 +33,41 @@ const Avatar = ({ name, src, size = 'w-8 h-8' }) => {
   )
 }
 
+const compressImage = (base64Str, maxWidth = 400, maxHeight = 400) => {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.src = base64Str
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      let width = img.width
+      let height = img.height
+      if (width > height) {
+        if (width > maxWidth) {
+          height *= maxWidth / width
+          width = maxWidth
+        }
+      } else {
+        if (height > maxHeight) {
+          width *= maxHeight / height
+          height = maxHeight
+        }
+      }
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, width, height)
+      resolve(canvas.toDataURL('image/jpeg', 0.7))
+    }
+  })
+}
+
 const StudentsList = () => {
   const [q, setQ] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
   const [loading, setLoading] = useState(false)
+  const [showProfile, setShowProfile] = useState(false)
+  const [selectedProfileId, setSelectedProfileId] = useState(null)
   const [data, setData] = useState({ total: 0, page: 1, pageSize: 20, data: [] })
   const [showAdd, setShowAdd] = useState(false)
   const [classes, setClasses] = useState([])
@@ -40,11 +76,22 @@ const StudentsList = () => {
     gender: '', birthday: '', admittedAt: '',
     religion: '', nationality: '', hometown: '', address: '',
     guardianName: '', guardianRelationship: '', guardianContact: '',
-    password: '',
+    profilePicture: null, password: '',
   })
   const [saving, setSaving] = useState(false)
   const [grid, setGrid] = useState(false)
   const [showPass, setShowPass] = useState(false)
+
+  const handleFileChange = (e, callback) => {
+    const file = e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onloadend = async () => {
+      const compressed = await compressImage(reader.result, 300, 300)
+      callback(compressed)
+    }
+    reader.readAsDataURL(file)
+  }
 
   const load = async (opts = {}) => {
     const p = opts.page ?? page
@@ -109,6 +156,24 @@ const StudentsList = () => {
               <h3 className="text-lg font-bold text-dark-text">Add New Student</h3>
               <button onClick={() => setShowAdd(false)} className="p-1 rounded-lg hover:bg-light-bg"><X size={18} /></button>
             </div>
+
+            <div className="mb-6 flex flex-col items-center">
+              <div className="relative group">
+                <div className="w-24 h-24 rounded-2xl bg-light-bg border border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
+                  {form.profilePicture ? (
+                    <img src={form.profilePicture} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <User size={32} className="text-gray-300" />
+                  )}
+                </div>
+                <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 transition rounded-2xl cursor-pointer">
+                  <Camera size={20} />
+                  <input type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e, (res) => setForm({ ...form, profilePicture: res }))} />
+                </label>
+              </div>
+              <div className="text-[10px] font-black text-muted-text uppercase tracking-widest mt-2">Student Photo</div>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-bold text-muted-text">First Name</label>
@@ -240,6 +305,7 @@ const StudentsList = () => {
                         guardianName: form.guardianName || null,
                         guardianRelationship: form.guardianRelationship || null,
                         guardianContact: form.guardianContact || null,
+                        profilePicture: form.profilePicture || null,
                         password: form.password || null,
                       })
                     }).then(async r => {
@@ -296,30 +362,47 @@ const StudentsList = () => {
                   <th className="text-left px-4 py-3 w-32">Gender</th>
                   <th className="text-left px-4 py-3 w-40">Student ID</th>
                   <th className="text-left px-4 py-3 w-40">Class</th>
+                  <th className="text-right px-4 py-3">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {loading && (
                   <tr>
-                    <td className="px-4 py-6 text-muted-text" colSpan={5}>Loading…</td>
+                    <td className="px-4 py-6 text-muted-text" colSpan={6}>Loading…</td>
                   </tr>
                 )}
                 {!loading && data.data.length === 0 && (
                   <tr>
-                    <td className="px-4 py-6 text-muted-text" colSpan={5}>No students found</td>
+                    <td className="px-4 py-6 text-muted-text" colSpan={6}>No students found</td>
                   </tr>
                 )}
                 {!loading && data.data.map((s) => {
                   const name = `${s.firstName} ${s.lastName}`
                   return (
-                    <tr key={s.id} className="border-t border-gray-50">
+                    <tr key={s.id} className="border-t border-gray-50 group hover:bg-light-bg/50 transition">
                       <td className="px-4 py-3 text-muted-text">{s.index}</td>
                       <td className="px-4 py-3">
-                        <StudentName name={name} id={s.id} initial={s} classes={classes} />
+                        <StudentName name={name} id={s.id} initial={s} classes={classes} src={s.profilePicture} />
                       </td>
                       <td className="px-4 py-3">{s.gender || '—'}</td>
-                      <td className="px-4 py-3">{s.studentId}</td>
-                      <td className="px-4 py-3">{s.className || s.grade || '—'}</td>
+                      <td className="px-4 py-3">
+                        <span className="text-xs font-black text-dark-text font-mono bg-light-bg px-2 py-1 rounded-lg">
+                          {s.studentId}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-xs font-bold text-muted-text">
+                          {s.className || s.grade || '—'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button 
+                          onClick={() => { setSelectedProfileId(s.id); setShowProfile(true); }}
+                          className="text-xs font-black text-primary-teal hover:underline decoration-2 underline-offset-4"
+                        >
+                          Profile
+                        </button>
+                      </td>
                     </tr>
                   )
                 })}
@@ -337,7 +420,7 @@ const StudentsList = () => {
                 {data.data.map((s) => {
                   const name = `${s.firstName} ${s.lastName}`
                   return (
-                    <StudentTile key={s.id} name={name} id={s.id} subtitle={s.className || s.grade || '—'} initial={s} classes={classes} />
+                    <StudentTile key={s.id} name={name} id={s.id} subtitle={s.className || s.grade || '—'} initial={s} classes={classes} src={s.profilePicture} />
                   )
                 })}
               </div>
@@ -367,6 +450,13 @@ const StudentsList = () => {
           </div>
         </div>
       </div>
+      
+      {showProfile && selectedProfileId && (
+        <StudentProfileModal 
+          studentId={selectedProfileId} 
+          onClose={() => setShowProfile(false)} 
+        />
+      )}
     </div>
   )
 }
@@ -383,6 +473,7 @@ const StudentsDrawer = ({ id, onClose, initial, classes = [] }) => {
     admittedAt: initial.admittedAt ? String(initial.admittedAt).split('T')[0] : '',
     religion: initial.religion || '', nationality: initial.nationality || '', hometown: initial.hometown || '', address: initial.address || '',
     guardianName: initial.guardianName || '', guardianRelationship: initial.guardianRelationship || '', guardianContact: initial.guardianContact || '',
+    profilePicture: initial.profilePicture || null,
     password: '', profilePhoto: initial.profilePhoto || null,
   } : null)
   useEffect(() => {
@@ -479,9 +570,10 @@ const StudentsDrawer = ({ id, onClose, initial, classes = [] }) => {
                         nationality: form.nationality || null,
                         hometown: form.hometown || null,
                         address: form.address || null,
-                        guardianName: form.guardianName,
-                        guardianRelationship: form.guardianRelationship,
-                        guardianContact: form.guardianContact,
+                        guardianName: form.guardianName || null,
+                        guardianRelationship: form.guardianRelationship || null,
+                        guardianContact: form.guardianContact || null,
+                        profilePicture: form.profilePicture || null,
                         password: form.password || null,
                         profilePhoto: form.profilePhoto || null,
                       }
@@ -544,6 +636,32 @@ const StudentsDrawer = ({ id, onClose, initial, classes = [] }) => {
         )}
         {!loading && detail && edit && form && (
           <div className="space-y-4">
+            <div className="flex flex-col items-center mb-4">
+              <div className="relative group">
+                <div className="w-20 h-20 rounded-2xl bg-light-bg border border-gray-100 flex items-center justify-center overflow-hidden">
+                  {form.profilePicture ? (
+                    <img src={form.profilePicture} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <User size={24} className="text-gray-300" />
+                  )}
+                </div>
+                <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 transition rounded-2xl cursor-pointer">
+                  <Camera size={16} />
+                  <input type="file" accept="image/*" className="hidden" onChange={e => {
+                    const file = e.target.files[0]
+                    if (file) {
+                      const reader = new FileReader()
+                      reader.onloadend = async () => {
+                        const compressed = await compressImage(reader.result, 300, 300)
+                        setForm({ ...form, profilePicture: compressed })
+                      }
+                      reader.readAsDataURL(file)
+                    }
+                  }} />
+                </label>
+              </div>
+              <div className="text-[10px] font-black text-muted-text uppercase tracking-widest mt-2">Change Photo</div>
+            </div>
             <Section title="Basic Info">
               <EditField label="First Name" value={form.firstName} onChange={v => setForm({ ...form, firstName: v })} />
               <EditField label="Last Name" value={form.lastName} onChange={v => setForm({ ...form, lastName: v })} />
@@ -647,12 +765,12 @@ const EditField = ({ label, value, onChange, type = 'text' }) => {
   )
 }
 
-const StudentName = ({ name, id, initial, classes = [] }) => {
+const StudentName = ({ name, id, initial, classes = [], src }) => {
   const [open, setOpen] = useState(false)
   return (
     <>
       <button onClick={() => setOpen(true)} className="flex items-center gap-3 text-left">
-        <Avatar name={name} src={initial?.profilePhoto} />
+        <Avatar name={name} src={src || initial?.profilePhoto} />
         <span className="font-bold text-dark-text hover:underline text-xs sm:text-base">{name}</span>
       </button>
       {open && <StudentsDrawer id={id} initial={initial} onClose={() => setOpen(false)} classes={classes} />}
@@ -660,20 +778,30 @@ const StudentName = ({ name, id, initial, classes = [] }) => {
   )
 }
 
-const StudentTile = ({ name, subtitle, id, initial, classes = [] }) => {
-  const [open, setOpen] = useState(false)
+const StudentTile = ({ name, subtitle, id, initial, classes = [], src }) => {
+  const [openDrawer, setOpenDrawer] = useState(false)
+  const [openProfile, setOpenProfile] = useState(false)
   return (
     <>
-      <button onClick={() => setOpen(true)} className="flex flex-col items-center gap-3 focus:outline-none">
-        <div className="w-24 h-24 rounded-full bg-light-bg flex items-center justify-center shadow-sm">
-          <Avatar name={name} src={initial?.profilePhoto} size="w-24 h-24" />
-        </div>
+      <div className="flex flex-col items-center gap-3 group relative">
+        <button onClick={() => setOpenProfile(true)} className="w-24 h-24 rounded-3xl bg-light-bg flex items-center justify-center shadow-soft-sm overflow-hidden border-2 border-transparent hover:border-primary-teal transition duration-300">
+          <Avatar name={name} src={src || initial?.profilePhoto} size="w-24 h-24" />
+        </button>
         <div className="text-center">
-          <div className="text-sm font-extrabold text-dark-text leading-tight">{name}</div>
-          <div className="text-xs font-bold text-muted-text leading-tight">{subtitle}</div>
+          <button onClick={() => setOpenProfile(true)} className="text-sm font-extrabold text-dark-text leading-tight hover:text-primary-teal transition">{name}</button>
+          <div className="text-[10px] font-bold text-muted-text uppercase tracking-widest mt-1">{subtitle}</div>
         </div>
-      </button>
-      {open && <StudentsDrawer id={id} initial={initial} onClose={() => setOpen(false)} classes={classes} />}
+        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <button onClick={() => setOpenDrawer(true)} className="p-2 rounded-xl bg-white border border-gray-100 text-muted-text hover:text-primary-teal shadow-sm transition">
+            <Edit2 size={14} />
+          </button>
+          <button onClick={() => setOpenProfile(true)} className="p-2 rounded-xl bg-white border border-gray-100 text-muted-text hover:text-primary-teal shadow-sm transition">
+            <User size={14} />
+          </button>
+        </div>
+      </div>
+      {openDrawer && <StudentsDrawer id={id} initial={initial} onClose={() => setOpenDrawer(false)} classes={classes} />}
+      {openProfile && <StudentProfileModal studentId={id} onClose={() => setOpenProfile(false)} />}
     </>
   )
 }

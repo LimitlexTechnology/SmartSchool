@@ -13,11 +13,36 @@ const allocationsStore = require('./allocationsStore')
 const timetableStore = require('./timetableStore')
 const schoolsStore = require('./schoolsStore')
 
+// Global DB health flag
+let isDBConnected = false;
+async function checkDBStatus() {
+  try {
+    const u = new URL(process.env.DATABASE_URL);
+    const pool = new Pool({
+      user: decodeURIComponent(u.username),
+      password: decodeURIComponent(u.password),
+      host: u.hostname,
+      port: u.port ? Number(u.port) : 5432,
+      database: u.pathname.replace(/^\//, '') || 'postgres',
+      ssl: { rejectUnauthorized: false },
+    });
+    await pool.query('SELECT 1');
+    await pool.end();
+    isDBConnected = true;
+    console.log('Database connected');
+  } catch (e) {
+    isDBConnected = false;
+    console.log('Database unavailable, using file-based fallback');
+  }
+}
+checkDBStatus();
+
 const app = express();
 const port = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Basic Health Check
 app.get('/', (req, res) => {
@@ -88,7 +113,9 @@ const auth = (req, res, next) => {
       if (k === 'teacherId') tid = decodeURIComponent(v || '')
     }
   }
-  req.schoolId = sid || 'local'
+  let schoolId = sid || 'local'
+  // If DB is down and we are on local, we stay on local but the routes will now use file fallback
+  req.schoolId = schoolId
   req.teacherId = tid || ''
   next();
 };
@@ -229,8 +256,18 @@ async function ensureGroupsSchema() {
 // Routes placeholder
 app.get('/api/dashboard/stats', auth, async (req, res) => {
   try {
-    if (req.schoolId && req.schoolId !== 'local') {
-      return res.json({ totalStudents: 0, totalClasses: 0, totalStaff: 0, totalGuardians: 0, revenue: 0, status: 'ok' })
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
+      const { students } = readTenantStudents(req.schoolId)
+      const { classes } = readTenantClasses(req.schoolId)
+      const { teachers } = readTenantTeachers(req.schoolId)
+      return res.json({ 
+        totalStudents: students.length, 
+        totalClasses: classes.length, 
+        totalStaff: teachers.length, 
+        totalGuardians: 0, 
+        revenue: 0, 
+        status: 'ok' 
+      })
     }
     const students = await prisma.student.count()
     const classes = await prisma.class.count()
@@ -267,7 +304,7 @@ app.put('/api/students/:id', auth, async (req, res) => {
       gender, birthday, admittedAt,
       religion, nationality, hometown, address,
       guardianName, guardianRelationship, guardianContact,
-      password, profilePhoto, guardianPhoto,
+      profilePicture, password, profilePhoto, guardianPhoto,
     } = req.body || {}
 
     if (req.schoolId && req.schoolId !== 'local') {
@@ -302,6 +339,7 @@ app.put('/api/students/:id', auth, async (req, res) => {
       if (guardianName !== undefined) s.guardianName = guardianName
       if (guardianRelationship !== undefined) s.guardianRelationship = guardianRelationship
       if (guardianContact !== undefined) s.guardianContact = guardianContact
+      if (profilePicture !== undefined) s.profilePicture = profilePicture
       if (profilePhoto !== undefined) s.profilePhoto = profilePhoto
       if (guardianPhoto !== undefined) s.guardianPhoto = guardianPhoto
       if (password && password.trim()) {
@@ -341,6 +379,7 @@ app.put('/api/students/:id', auth, async (req, res) => {
     if (guardianName !== undefined) data.guardianName = guardianName
     if (guardianRelationship !== undefined) data.guardianRelationship = guardianRelationship
     if (guardianContact !== undefined) data.guardianContact = guardianContact
+    if (profilePicture !== undefined) data.profilePicture = profilePicture
     if (profilePhoto !== undefined) data.profilePhoto = profilePhoto
     if (guardianPhoto !== undefined) data.guardianPhoto = guardianPhoto
     if (password && password.trim()) {
@@ -396,7 +435,7 @@ app.put('/api/students/:id', auth, async (req, res) => {
 });
 app.get('/api/students', auth, async (req, res) => {
   try {
-    if (req.schoolId && req.schoolId !== 'local') {
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
       const page = Math.max(parseInt(req.query.page || '1', 10), 1)
       const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '20', 10), 1), 100)
       const q = (req.query.q || '').toString().trim().toLowerCase()
@@ -426,6 +465,7 @@ app.get('/api/students', auth, async (req, res) => {
           className: c?.name || '',
           grade: c?.grade || s.grade || '',
           studentId: s.wristbandId || (s.id || '').slice(0, 8).toUpperCase(),
+          profilePicture: s.profilePicture || null,
           behaviorPoints: s.behaviorPoints !== undefined ? s.behaviorPoints : 100,
           gender: s.gender || null,
           profilePhoto: s.profilePhoto || null,
@@ -475,6 +515,7 @@ app.get('/api/students', auth, async (req, res) => {
       className: s.class?.name || '',
       grade: s.class?.grade || s.grade || '',
       studentId: s.wristbandId || s.id.slice(0, 8).toUpperCase(),
+      profilePicture: s.profilePicture || null,
       behaviorPoints: s.behaviorPoints,
       gender: null,
       profilePhoto: s.profilePhoto || null,
@@ -489,20 +530,36 @@ app.get('/api/students', auth, async (req, res) => {
 });
 app.get('/api/classes', auth, async (req, res) => {
   try {
-    if (req.schoolId && req.schoolId !== 'local') {
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
       const { classes } = readTenantClasses(req.schoolId)
       const { students } = readTenantStudents(req.schoolId)
-      const data = classes.map(c => ({
-        ...c,
-        studentCount: students.filter(s => s.classId === c.id).length
-      }))
+      const { teachers } = readTenantTeachers(req.schoolId)
+      const data = classes.map(c => {
+        const t = teachers.find(tx => tx.id === c.teacherId)
+        return {
+          ...c,
+          studentCount: students.filter(s => s.classId === c.id).length,
+          teacherName: t ? t.name : 'Unassigned',
+          teacherId: c.teacherId || null
+        }
+      })
       return res.json(data)
     }
-    const items = await prisma.class.findMany({
-      include: { _count: { select: { students: true } } },
-      orderBy: [{ grade: 'asc' }, { name: 'asc' }]
+    const items = await prisma.class.findMany({ 
+      include: { 
+        _count: { select: { students: true } },
+        teacher: { select: { name: true } }
+      },
+      orderBy: [{ grade: 'asc' }, { name: 'asc' }] 
     })
-    res.json(items.map(c => ({ id: c.id, name: c.name, grade: c.grade, studentCount: c._count.students })))
+    res.json(items.map(c => ({ 
+      id: c.id, 
+      name: c.name, 
+      grade: c.grade, 
+      studentCount: c._count.students,
+      teacherName: c.teacher?.name || 'Unassigned',
+      teacherId: c.teacherId || null
+    })))
   } catch (e) {
     console.error('Classes error:', e)
     res.status(200).json([])
@@ -530,6 +587,29 @@ app.post('/api/classes', auth, async (req, res) => {
     res.json(created)
   } catch (e) {
     console.error('Create class error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+});
+
+app.put('/api/classes/:id/assign-teacher', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    const { teacherId } = req.body
+    if (req.schoolId && req.schoolId !== 'local') {
+      const store = readTenantClasses(req.schoolId)
+      const cIdx = store.classes.findIndex(c => c.id === id)
+      if (cIdx < 0) return res.status(404).json({ error: 'Class not found' })
+      store.classes[cIdx].teacherId = teacherId || null
+      writeTenantClasses(req.schoolId, store)
+      return res.json({ success: true })
+    }
+    await prisma.class.update({
+      where: { id },
+      data: { teacherId: teacherId || null }
+    })
+    res.json({ success: true })
+  } catch (e) {
+    console.error('Assign teacher error:', e)
     res.status(500).json({ error: e?.message || 'unknown' })
   }
 });
@@ -639,7 +719,7 @@ app.post('/api/students/:id/behavior', auth, async (req, res) => {
 // Teachers (Staff)
 app.get('/api/teachers', auth, async (req, res) => {
   try {
-    if (req.schoolId && req.schoolId !== 'local') {
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
       const page = Math.max(parseInt(req.query.page || '1', 10), 1)
       const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '20', 10), 1), 100)
       const q = (req.query.q || '').toString().trim().toLowerCase()
@@ -653,13 +733,17 @@ app.get('/api/teachers', auth, async (req, res) => {
         : all
       const total = filtered.length
       const items = filtered.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize)
-      const data = items.map((t, i) => ({
-        id: t.id,
-        name: t.name,
-        email: t.email,
-        subject: t.subject || '',
-        index: (page - 1) * pageSize + i + 1,
-      }))
+      const data = items.map((t, i) => {
+        const p = staffStore.get(t.id) || {}
+        return {
+          id: t.id,
+          name: t.name,
+          email: t.email,
+          subject: t.subject || '',
+          profilePicture: p.profilePicture || null,
+          index: (page - 1) * pageSize + i + 1,
+        }
+      })
       return res.json({ total, page, pageSize, data })
     }
     const page = Math.max(parseInt(req.query.page || '1', 10), 1)
@@ -678,6 +762,7 @@ app.get('/api/teachers', auth, async (req, res) => {
       prisma.teacher.count({ where }),
       prisma.teacher.findMany({
         where,
+        include: { profile: { select: { profilePicture: true } } },
         skip: (page - 1) * pageSize,
         take: pageSize,
         orderBy: { name: 'asc' },
@@ -688,6 +773,7 @@ app.get('/api/teachers', auth, async (req, res) => {
       name: t.name,
       email: t.email,
       subject: t.subject,
+      profilePicture: t.profile?.profilePicture || null,
       index: (page - 1) * pageSize + i + 1,
     }))
     res.json({ total, page, pageSize, data })
@@ -981,9 +1067,18 @@ app.get('/api/admin/schools', auth, async (_req, res) => {
     const name = process.env.SCHOOL_NAME || 'Skullar Local'
     const admin = process.env.SCHOOL_ADMIN || 'Admin'
     const phone = process.env.SCHOOL_PHONE || ''
-    const [studentsCount] = await Promise.all([
-      prisma.student.count({ where: { status: { not: 'archived' } } })
-    ])
+    
+    let studentsCount = 0
+    if (isDBConnected) {
+      const [count] = await Promise.all([
+        prisma.student.count({ where: { status: { not: 'archived' } } })
+      ])
+      studentsCount = count
+    } else {
+      const { students } = readTenantStudents('local')
+      studentsCount = students.length
+    }
+
     const local = {
       id: 'local',
       name,
@@ -1007,13 +1102,23 @@ app.get('/api/admin/dashboard/stats', auth, async (req, res) => {
   try {
     const schools = schoolsStore.list()
     const suspended = schools.filter(s => s.status === 'suspended').length
-    const studentsCount = await prisma.student.count({ where: { status: { not: 'archived' } } })
+    
+    let studentsCount = 0
+    let teachersCount = 0
+    if (isDBConnected) {
+      studentsCount = await prisma.student.count({ where: { status: { not: 'archived' } } })
+      teachersCount = await prisma.teacher.count()
+    } else {
+      const { students } = readTenantStudents('local')
+      const { teachers } = readTenantTeachers('local')
+      studentsCount = students.length
+      teachersCount = teachers.length
+    }
 
     // Revenue tracking is currently not implemented in the current schema
     const revenue = 0
 
     // For now, "Active Users" can be estimated or calculated from students + teachers
-    const teachersCount = await prisma.teacher.count()
     const activeUsers = studentsCount + teachersCount
 
     res.json({
@@ -1306,9 +1411,11 @@ app.get('/api/school-auth/profile', auth, async (req, res) => {
     res.json({
       schoolId: s.id,
       schoolName: s.name || '',
+      schoolLogo: s.logo || '',
       adminName: s.admin || '',
       adminPhone: s.phone || '',
-      adminEmail: s.adminEmail || ''
+      adminEmail: s.adminEmail || '',
+      adminProfilePicture: s.adminProfilePicture || ''
     })
   } catch (e) {
     res.status(500).json({ error: e?.message || 'unknown' })
@@ -1319,12 +1426,14 @@ app.put('/api/school-auth/profile', auth, async (req, res) => {
   try {
     const schoolId = req.schoolId
     if (!schoolId || schoolId === 'local') return res.status(400).json({ error: 'not allowed' })
-    const { schoolName, adminName, adminPhone, adminEmail } = req.body || {}
+    const { schoolName, adminName, adminPhone, adminEmail, schoolLogo, adminProfilePicture } = req.body || {}
     const patch = {}
     if (schoolName !== undefined) patch.name = String(schoolName).trim()
     if (adminName !== undefined) patch.admin = String(adminName).trim()
     if (adminPhone !== undefined) patch.phone = String(adminPhone).trim()
     if (adminEmail !== undefined) patch.adminEmail = String(adminEmail).trim()
+    if (schoolLogo !== undefined) patch.logo = schoolLogo
+    if (adminProfilePicture !== undefined) patch.adminProfilePicture = adminProfilePicture
     const updated = schoolsStore.update(schoolId, patch)
     if (!updated) return res.status(404).json({ error: 'school not found' })
     res.json({ status: 'ok' })
@@ -1609,7 +1718,7 @@ app.put('/api/teachers/:id/profile', auth, async (req, res) => {
       gender, phone, staffId, dateEmployed, ssn, nationalId, dob,
       momoNumber, accountNumber, bankBranch, bankName,
       nextOfKin, nextOfKinRelation, nextOfKinPhone,
-      classesTaught, subjectsTaught, formMaster
+      classesTaught, subjectsTaught, formMaster, profilePicture
     } = req.body || {}
     const toDate = (v) => v ? new Date(v) : null
     try {
@@ -1631,6 +1740,7 @@ app.put('/api/teachers/:id/profile', auth, async (req, res) => {
         classesTaught: Array.isArray(classesTaught) ? classesTaught : classesTaught === undefined ? undefined : [],
         subjectsTaught: Array.isArray(subjectsTaught) ? subjectsTaught : subjectsTaught === undefined ? undefined : [],
         formMaster: formMaster ?? undefined,
+        profilePicture: profilePicture ?? undefined,
       }
       const updated = await prisma.teacherProfile.upsert({
         where: { teacherId: id },
@@ -1657,6 +1767,7 @@ app.put('/api/teachers/:id/profile', auth, async (req, res) => {
       if (classesTaught !== undefined) patch.classesTaught = Array.isArray(classesTaught) ? classesTaught : []
       if (subjectsTaught !== undefined) patch.subjectsTaught = Array.isArray(subjectsTaught) ? subjectsTaught : []
       if (formMaster !== undefined) patch.formMaster = formMaster
+      if (profilePicture !== undefined) patch.profilePicture = profilePicture
       const updatedFallback = staffStore.upsert(id, patch)
       return res.json(updatedFallback)
     }
@@ -1743,7 +1854,8 @@ app.post('/api/students', auth, async (req, res) => {
       firstName, lastName, email, grade, classId, wristbandId,
       gender, birthday, admittedAt,
       religion, nationality, hometown, address,
-      guardianName, guardianRelationship, guardianContact, password, profilePhoto, guardianPhoto,
+      guardianName, guardianRelationship, guardianContact,
+      profilePicture, password, profilePhoto, guardianPhoto,
     } = req.body || {}
     if (!firstName || !lastName || !email) {
       return res.status(400).json({ error: 'firstName, lastName and email are required' })
@@ -1782,6 +1894,7 @@ app.post('/api/students', auth, async (req, res) => {
         guardianName: guardianName || null,
         guardianRelationship: guardianRelationship || null,
         guardianContact: guardianContact || null,
+        profilePicture: profilePicture || null,
         profilePhoto: profilePhoto || null,
         guardianPhoto: guardianPhoto || null,
         password: savedPassword,
@@ -1822,6 +1935,7 @@ app.post('/api/students', auth, async (req, res) => {
         guardianName: guardianName || null,
         guardianRelationship: guardianRelationship || null,
         guardianContact: guardianContact || null,
+        profilePicture: profilePicture || null,
         profilePhoto: profilePhoto || null,
         guardianPhoto: guardianPhoto || null,
         password: (function () {
@@ -1869,6 +1983,7 @@ app.get('/api/students/:id', auth, async (req, res) => {
         className: c?.name || '',
         grade: c?.grade || s.grade || '',
         studentId: s.wristbandId || s.id.slice(0, 8).toUpperCase(),
+        profilePicture: s.profilePicture || null,
         profilePhoto: s.profilePhoto || null,
         guardianPhoto: s.guardianPhoto || null,
       })
@@ -1880,6 +1995,9 @@ app.get('/api/students/:id', auth, async (req, res) => {
     if (!student) return res.status(404).json({ error: 'Student not found' })
     res.json({
       ...student,
+      className: student.class?.name || '',
+      grade: student.class?.grade || student.grade || '',
+      studentId: student.wristbandId || student.id.slice(0, 8).toUpperCase(),
       behaviorPoints: student.behaviorPoints !== undefined ? student.behaviorPoints : 100
     })
   } catch (e) {
@@ -1984,6 +2102,56 @@ app.post('/api/teacher-auth/login', async (req, res) => {
     res.json({ teacherId, name: t?.name || 'Teacher', schoolId: p.schoolId || 'local' })
   } catch (e) {
     console.error('Teacher auth error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.get('/api/teacher-auth/profile', auth, async (req, res) => {
+  try {
+    const teacherId = req.teacherId
+    if (!teacherId) return res.status(400).json({ error: 'not logged in as teacher' })
+    const t = await prisma.teacher.findUnique({ where: { id: teacherId } })
+    const p = staffStore.get(teacherId) || {}
+    res.json({
+      name: t?.name || '',
+      email: t?.email || '',
+      phone: p.phone || '',
+      subject: t?.subject || '',
+      gender: p.gender || '',
+      dob: p.dob || '',
+      address: p.address || '',
+      profilePicture: p.profilePicture || ''
+    })
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.put('/api/teacher-auth/profile', auth, async (req, res) => {
+  try {
+    const teacherId = req.teacherId
+    if (!teacherId) return res.status(400).json({ error: 'not logged in as teacher' })
+    const { name, phone, gender, dob, address, profilePicture } = req.body || {}
+    
+    if (name) {
+      await prisma.teacher.update({
+        where: { id: teacherId },
+        data: { name }
+      })
+    }
+    
+    const cur = staffStore.get(teacherId) || {}
+    staffStore.upsert(teacherId, {
+      ...cur,
+      phone: phone !== undefined ? phone : cur.phone,
+      gender: gender !== undefined ? gender : cur.gender,
+      dob: dob !== undefined ? dob : cur.dob,
+      address: address !== undefined ? address : cur.address,
+      profilePicture: profilePicture !== undefined ? profilePicture : cur.profilePicture
+    })
+    
+    res.json({ success: true })
+  } catch (e) {
     res.status(500).json({ error: e?.message || 'unknown' })
   }
 })

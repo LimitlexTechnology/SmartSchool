@@ -78,7 +78,26 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
     const staffMenuRef = useRef(null);
     const [submenuPos, setSubmenuPos] = useState({ top: 0, left: 0 });
     const [staffMenuPos, setStaffMenuPos] = useState({ top: 0, left: 0 });
+    const [schoolLogo, setSchoolLogo] = useState(null);
+    const [userAvatar, setUserAvatar] = useState(null);
     const location = useLocation();
+    
+    useEffect(() => {
+        const sid = localStorage.getItem('schoolId') || 'local';
+        const logo = localStorage.getItem(`schoolLogo:${sid}`);
+        const avatar = localStorage.getItem(`userAvatar:${sid}`);
+        if (logo) setSchoolLogo(logo);
+        if (avatar) setUserAvatar(avatar);
+        
+        const handleProfileChange = () => {
+            const updatedLogo = localStorage.getItem(`schoolLogo:${sid}`);
+            const updatedAvatar = localStorage.getItem(`userAvatar:${sid}`);
+            setSchoolLogo(updatedLogo);
+            setUserAvatar(updatedAvatar);
+        };
+        window.addEventListener('adminProfile:change', handleProfileChange);
+        return () => window.removeEventListener('adminProfile:change', handleProfileChange);
+    }, []);
     const role = (typeof window !== 'undefined' && window.localStorage.getItem('userRole')) || 'admin';
     const teacherId = (typeof window !== 'undefined' && window.localStorage.getItem('teacherId')) || '';
     const [allowedFeatures, setAllowedFeatures] = useState(null);
@@ -181,7 +200,13 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
 
                 {/* ── School Logo / Crest ── */}
                 <div className="flex flex-col items-center pt-5 pb-3 px-2 border-b border-gray-50">
-                    <img src={SkullarLogo} alt="Skullar" className="w-[150px] h-auto flex-shrink-0 object-contain" />
+                    {collapsed ? (
+                        <div className="w-10 h-10 rounded-xl bg-primary-teal flex items-center justify-center shadow-lg shadow-primary-teal/20">
+                            <GraduationCap size={22} className="text-white" />
+                        </div>
+                    ) : (
+                        <img src={SkullarLogo} alt="Skullar" className="w-[150px] h-auto flex-shrink-0 object-contain" />
+                    )}
                     {/* Mobile close btn */}
                     <button
                         onClick={() => setIsMobileMenuOpen(false)}
@@ -291,6 +316,26 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
                         );
                     })}
                 </nav>
+
+                {/* ── User Avatar & Settings ── */}
+                <div className="p-3 border-t border-gray-50">
+                    <Link
+                        to="/dashboard/settings"
+                        className="flex flex-col items-center gap-1 py-2 rounded-xl hover:bg-light-bg transition-colors no-underline group"
+                        title="Settings"
+                    >
+                        <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-gray-100 group-hover:border-primary-teal transition-colors flex items-center justify-center bg-gray-50 shrink-0">
+                            {userAvatar ? (
+                                <img src={userAvatar} alt="User" className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-gray-400">
+                                    <Home size={18} />
+                                </div>
+                            )}
+                        </div>
+                        {!collapsed && <span className="text-[9px] font-black text-muted-text uppercase tracking-widest group-hover:text-primary-teal transition-colors">Settings</span>}
+                    </Link>
+                </div>
 
                 {/* ── Collapse Toggle (Desktop only) ── */}
                 <div className="p-3 border-t border-gray-50 hidden md:block">
