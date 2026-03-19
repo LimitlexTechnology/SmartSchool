@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Search, Filter, BookOpen, GraduationCap, ChevronRight, User, ArrowLeft } from 'lucide-react'
 
 const OnlineCampus = () => {
+  const navigate = useNavigate()
   const [view, setView] = useState('classes') // 'classes' or 'subjects'
   const [selectedClass, setSelectedClass] = useState(null)
   const [classes, setClasses] = useState([])
@@ -178,7 +180,10 @@ const OnlineCampus = () => {
                       </div>
                     </div>
                     
-                    <button className="w-full py-3 bg-light-bg text-dark-text rounded-2xl text-xs font-black hover:bg-primary-teal hover:text-white transition-all duration-300 flex items-center justify-center gap-2">
+                    <button 
+                      onClick={() => navigate(`/dashboard/online-campus/${s.id}`)}
+                      className="w-full py-3 bg-light-bg text-dark-text rounded-2xl text-xs font-black hover:bg-primary-teal hover:text-white transition-all duration-300 flex items-center justify-center gap-2"
+                    >
                       Open Learning Materials
                     </button>
                   </div>

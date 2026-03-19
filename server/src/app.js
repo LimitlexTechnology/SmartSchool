@@ -741,14 +741,33 @@ app.get('/api/teaching-assignments', auth, async (req, res) => {
 
 app.post('/api/teaching-assignments', auth, async (req, res) => {
   try {
-    const { teacherId, classId, subjectId } = req.body
-    if (!teacherId || !classId || !subjectId) return res.status(400).json({ error: 'All fields are required' })
+    const { teacherId, classIds, subjectIds } = req.body
+    if (!teacherId || !classIds || !subjectIds || !Array.isArray(classIds) || !Array.isArray(subjectIds)) {
+      return res.status(400).json({ error: 'teacherId, classIds (array), and subjectIds (array) are required' })
+    }
+    
     if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
       const store = readTenantTeachingAssignments(req.schoolId)
-      const newAssign = { id: randomUUID(), teacherId, classId, subjectId, createdAt: new Date().toISOString() }
-      store.assignments.push(newAssign)
+      const newAssignments = []
+      
+      for (const classId of classIds) {
+        for (const subjectId of subjectIds) {
+          // Avoid duplicates
+          const exists = store.assignments.find(a => 
+            a.teacherId === teacherId && 
+            a.classId === classId && 
+            a.subjectId === subjectId
+          )
+          if (!exists) {
+            const a = { id: randomUUID(), teacherId, classId, subjectId, createdAt: new Date().toISOString() }
+            store.assignments.push(a)
+            newAssignments.push(a)
+          }
+        }
+      }
+      
       writeTenantTeachingAssignments(req.schoolId, store)
-      return res.json(newAssign)
+      return res.json({ success: true, count: newAssignments.length, assignments: newAssignments })
     }
     res.status(501).json({ error: 'DB implementation pending' })
   } catch (e) {

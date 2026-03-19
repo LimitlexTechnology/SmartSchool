@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Search, Plus, X, BookOpen, User, Trash2, Filter } from 'lucide-react'
+import { Search, Plus, X, BookOpen, User, Trash2, Filter, Check, ChevronDown } from 'lucide-react'
 
 const CourseAllocation = () => {
   const [q, setQ] = useState('')
@@ -15,7 +15,15 @@ const CourseAllocation = () => {
   
   // Form States
   const [newSubject, setNewSubject] = useState({ name: '', category: 'General' })
-  const [newAssign, setNewAssign] = useState({ classId: '', teacherId: '', subjectId: '' })
+  const [newAssign, setNewAssign] = useState({ 
+    teacherId: '', 
+    classIds: [], // Multiple classes
+    subjectIds: [] // Multiple subjects
+  })
+
+  // Multi-select helpers
+  const [showClassDropdown, setShowClassDropdown] = useState(false)
+  const [showSubjectDropdown, setShowSubjectDropdown] = useState(false)
 
   const loadData = async () => {
     setLoading(true)
@@ -57,6 +65,11 @@ const CourseAllocation = () => {
 
   const handleCreateAssignment = async (e) => {
     e.preventDefault()
+    if (!newAssign.teacherId || newAssign.classIds.length === 0 || newAssign.subjectIds.length === 0) {
+      alert('Please select a teacher, at least one class, and at least one subject.')
+      return
+    }
+    
     try {
       const r = await fetch('/api/teaching-assignments', {
         method: 'POST',
@@ -65,7 +78,7 @@ const CourseAllocation = () => {
       })
       if (r.ok) {
         setShowAssignModal(false)
-        setNewAssign({ classId: '', teacherId: '', subjectId: '' })
+        setNewAssign({ teacherId: '', classIds: [], subjectIds: [] })
         loadData()
       }
     } catch (e) { console.error(e) }
@@ -87,12 +100,20 @@ const CourseAllocation = () => {
     )
   }, [assignments, q])
 
+  const toggleSelection = (list, item, setList) => {
+    if (list.includes(item)) {
+      setList(list.filter(i => i !== item))
+    } else {
+      setList([...list, item])
+    }
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-black text-dark-text">Course Allocation</h1>
-          <p className="text-sm font-bold text-muted-text">Manage subjects and assign teachers to classes</p>
+          <p className="text-sm font-bold text-muted-text">Assign multiple subjects and classes to teachers</p>
         </div>
         <div className="flex items-center gap-3">
           <button 
@@ -105,7 +126,7 @@ const CourseAllocation = () => {
             onClick={() => setShowAssignModal(true)}
             className="px-4 py-2.5 bg-primary-teal text-white rounded-xl text-sm font-black hover:bg-secondary-teal transition flex items-center gap-2 shadow-lg shadow-primary-teal/20"
           >
-            <Plus size={18} /> New Assignment
+            <Plus size={18} /> Bulk Assignment
           </button>
         </div>
       </div>
@@ -258,45 +279,20 @@ const CourseAllocation = () => {
         </div>
       )}
 
-      {/* Assignment Modal */}
+      {/* Bulk Assignment Modal */}
       {showAssignModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="p-8">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-black text-dark-text">New Assignment</h2>
+                <h2 className="text-xl font-black text-dark-text">Bulk Teacher Assignment</h2>
                 <button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-light-bg rounded-xl transition text-muted-text"><X size={20} /></button>
               </div>
 
               <form onSubmit={handleCreateAssignment} className="space-y-6">
+                {/* Teacher Selection */}
                 <div>
-                  <label className="text-[10px] font-black text-muted-text uppercase tracking-widest mb-1 block">Select Subject</label>
-                  <select 
-                    required
-                    value={newAssign.subjectId}
-                    onChange={(e) => setNewAssign({...newAssign, subjectId: e.target.value})}
-                    className="w-full px-4 py-3 bg-light-bg border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-primary-teal/20"
-                  >
-                    <option value="">Choose a subject...</option>
-                    {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-black text-muted-text uppercase tracking-widest mb-1 block">Select Class</label>
-                  <select 
-                    required
-                    value={newAssign.classId}
-                    onChange={(e) => setNewAssign({...newAssign, classId: e.target.value})}
-                    className="w-full px-4 py-3 bg-light-bg border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-primary-teal/20"
-                  >
-                    <option value="">Choose a class...</option>
-                    {classes.map(c => <option key={c.id} value={c.id}>{c.grade} - {c.name}</option>)}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-black text-muted-text uppercase tracking-widest mb-1 block">Assign Teacher</label>
+                  <label className="text-[10px] font-black text-muted-text uppercase tracking-widest mb-1 block">1. Select Teacher</label>
                   <select 
                     required
                     value={newAssign.teacherId}
@@ -308,7 +304,84 @@ const CourseAllocation = () => {
                   </select>
                 </div>
 
-                <button type="submit" className="w-full py-4 bg-primary-teal text-white rounded-2xl text-sm font-black hover:bg-secondary-teal transition shadow-lg shadow-primary-teal/20">Create Assignment</button>
+                <div className="grid grid-cols-2 gap-6">
+                  {/* Classes Multi-select */}
+                  <div className="relative">
+                    <label className="text-[10px] font-black text-muted-text uppercase tracking-widest mb-1 block">2. Select Classes</label>
+                    <button
+                      type="button"
+                      onClick={() => { setShowClassDropdown(!showClassDropdown); setShowSubjectDropdown(false); }}
+                      className="w-full px-4 py-3 bg-light-bg border-none rounded-2xl text-sm font-bold flex items-center justify-between group"
+                    >
+                      <span className="truncate">
+                        {newAssign.classIds.length === 0 ? 'Choose classes...' : `${newAssign.classIds.length} Selected`}
+                      </span>
+                      <ChevronDown size={18} className={`transition-transform ${showClassDropdown ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {showClassDropdown && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-[110] max-h-60 overflow-y-auto p-2">
+                        {classes.map(c => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => toggleSelection(newAssign.classIds, c.id, (list) => setNewAssign({...newAssign, classIds: list}))}
+                            className="w-full p-3 flex items-center justify-between hover:bg-light-bg rounded-xl transition group"
+                          >
+                            <span className="text-xs font-bold text-dark-text">{c.grade} - {c.name}</span>
+                            {newAssign.classIds.includes(c.id) && <Check size={16} className="text-primary-teal" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Subjects Multi-select */}
+                  <div className="relative">
+                    <label className="text-[10px] font-black text-muted-text uppercase tracking-widest mb-1 block">3. Select Subjects</label>
+                    <button
+                      type="button"
+                      onClick={() => { setShowSubjectDropdown(!showSubjectDropdown); setShowClassDropdown(false); }}
+                      className="w-full px-4 py-3 bg-light-bg border-none rounded-2xl text-sm font-bold flex items-center justify-between group"
+                    >
+                      <span className="truncate">
+                        {newAssign.subjectIds.length === 0 ? 'Choose subjects...' : `${newAssign.subjectIds.length} Selected`}
+                      </span>
+                      <ChevronDown size={18} className={`transition-transform ${showSubjectDropdown ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {showSubjectDropdown && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-[110] max-h-60 overflow-y-auto p-2">
+                        {subjects.map(s => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => toggleSelection(newAssign.subjectIds, s.id, (list) => setNewAssign({...newAssign, subjectIds: list}))}
+                            className="w-full p-3 flex items-center justify-between hover:bg-light-bg rounded-xl transition group"
+                          >
+                            <span className="text-xs font-bold text-dark-text">{s.name}</span>
+                            {newAssign.subjectIds.includes(s.id) && <Check size={16} className="text-primary-teal" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-primary-teal/5 p-4 rounded-2xl border border-primary-teal/10">
+                  <p className="text-[10px] font-bold text-primary-teal uppercase tracking-widest">Summary</p>
+                  <p className="text-xs font-bold text-dark-text mt-1">
+                    This will create <span className="font-black underline">{newAssign.classIds.length * newAssign.subjectIds.length}</span> teaching assignments for the selected teacher.
+                  </p>
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={!newAssign.teacherId || newAssign.classIds.length === 0 || newAssign.subjectIds.length === 0}
+                  className="w-full py-4 bg-primary-teal text-white rounded-2xl text-sm font-black hover:bg-secondary-teal transition shadow-lg shadow-primary-teal/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Confirm Bulk Assignment
+                </button>
               </form>
             </div>
           </div>

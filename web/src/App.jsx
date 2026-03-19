@@ -26,6 +26,7 @@ import UserSettings from './pages/UserSettings'
 import StaffList from './pages/StaffList'
 import CourseAllocation from './pages/CourseAllocation'
 import OnlineCampus from './pages/OnlineCampus'
+import SubjectDetails from './pages/SubjectDetails'
 import LessonPlanner from './pages/LessonPlanner'
 import Timetables from './pages/Timetables'
 import Classroom from './pages/Classroom'
@@ -105,6 +106,7 @@ const App = () => {
           <Route path="classroom" element={<Classroom />} />
           <Route path="classroom/:id" element={<ClassDetails />} />
           <Route path="online-campus" element={<OnlineCampus />} />
+          <Route path="online-campus/:subjectId" element={<SubjectDetails />} />
           <Route path="students" element={<StudentsList />} />
           <Route path="staff" element={<StaffList />} />
           <Route path="staff/course-allocation" element={<CourseAllocation />} />
