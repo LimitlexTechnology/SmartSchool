@@ -184,7 +184,7 @@ const StudentPortal = () => {
             {/* Sub Navigation Tabs - Desktop Only */}
             <nav className="bg-white border-b border-gray-200 px-6 overflow-x-auto sticky top-0 z-40 shadow-sm hidden lg:block">
                 <div className="max-w-[1200px] mx-auto flex items-center gap-8 py-1">
-                    {['Dashboard', 'Classroom', 'Accounts', 'Messages', 'Exams', 'Student Records', 'Parent Settings'].map((tab) => (
+                    {['Dashboard', 'Online Campus', 'Classroom', 'Accounts', 'Messages', 'Exams', 'Student Records', 'Parent Settings'].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -400,6 +400,8 @@ const StudentPortal = () => {
                     </>
                 )}
 
+                {activeTab === 'Online Campus' && <StudentOnlineCampus />}
+
                 {activeTab === 'Parent Settings' && (
                     <div className="space-y-6">
                         <section className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
@@ -551,10 +553,11 @@ const StudentPortal = () => {
                         <div className="flex-1 overflow-y-auto p-4 space-y-1">
                             {[
                                 { id: 'Dashboard', icon: LayoutDashboard },
+                                { id: 'Online Campus', icon: BookOpen },
                                 { id: 'Classroom', icon: Users },
                                 { id: 'Accounts', icon: CreditCard },
                                 { id: 'Messages', icon: MessageSquare },
-                                { id: 'Exams', icon: BookOpen },
+                                { id: 'Exams', icon: GraduationCap },
                                 { id: 'Student Records', icon: ClipboardList },
                                 { id: 'Parent Settings', icon: Settings }
                             ].map((item) => (

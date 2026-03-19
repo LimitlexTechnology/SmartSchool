@@ -19,29 +19,80 @@ const SubjectDetails = () => {
   const [activeTab, setActiveTab] = useState('Announcements')
   const [loading, setLoading] = useState(true)
   const [subjectData, setSubjectData] = useState(null)
+  const [announcements, setAnnouncements] = useState([])
+  const [showAnnounceModal, setShowAnnounceModal] = useState(false)
+  const [newAnnouncement, setNewAnnouncement] = useState('')
+  const [isPosting, setIsPosting] = useState(false)
   
   const tabs = ['Announcements', 'Assignments', 'Course Materials', 'People', 'Grades']
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true)
-      try {
-        const r = await fetch('/api/teaching-assignments')
-        const j = await r.json()
-        if (r.ok) {
-          const assignment = j.assignments.find(a => a.id === subjectId)
-          if (assignment) {
-            setSubjectData(assignment)
+  const loadData = async () => {
+    setLoading(true)
+    try {
+      const r = await fetch('/api/teaching-assignments')
+      const j = await r.json()
+      if (r.ok) {
+        const assignment = j.assignments.find(a => a.id === subjectId)
+        if (assignment) {
+          setSubjectData(assignment)
+          // Load announcements for this subject
+          const ar = await fetch(`/api/announcements?subjectId=${subjectId}`)
+          const aj = await ar.json()
+          if (ar.ok) {
+            setAnnouncements(aj.announcements || [])
           }
         }
-      } catch (e) {
-        console.error('Failed to load subject details:', e)
-      } finally {
-        setLoading(false)
       }
+    } catch (e) {
+      console.error('Failed to load subject details:', e)
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
     loadData()
   }, [subjectId])
+
+  const handlePostAnnouncement = async (e) => {
+    e.preventDefault()
+    if (!newAnnouncement.trim()) return
+
+    setIsPosting(true)
+    try {
+      const role = localStorage.getItem('userRole') || 'teacher'
+      const sid = localStorage.getItem('schoolId') || 'local'
+      const nameKey = role === 'teacher' ? `teacherName:${sid}` : `adminName:${sid}`
+      const authorName = localStorage.getItem(nameKey) || localStorage.getItem('adminName') || 'Teacher'
+
+      const r = await fetch('/api/announcements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: newAnnouncement,
+          subjectId,
+          classId: subjectData?.classId,
+          authorName,
+          authorRole: role
+        })
+      })
+
+      if (r.ok) {
+        setNewAnnouncement('')
+        setShowAnnounceModal(false)
+        // Reload announcements
+        const ar = await fetch(`/api/announcements?subjectId=${subjectId}`)
+        const aj = await ar.json()
+        if (ar.ok) {
+          setAnnouncements(aj.announcements || [])
+        }
+      }
+    } catch (e) {
+      console.error('Failed to post announcement:', e)
+    } finally {
+      setIsPosting(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -80,6 +131,55 @@ const SubjectDetails = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-3 md:p-6">
+      {/* Announcement Modal */}
+      {showAnnounceModal && (
+        <div className="fixed inset-0 bg-dark-text/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-8">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-black text-dark-text">New Announcement</h3>
+                <button 
+                  onClick={() => setShowAnnounceModal(false)}
+                  className="p-2 hover:bg-light-bg rounded-xl text-muted-text transition"
+                >
+                  <Plus size={24} className="rotate-45" />
+                </button>
+              </div>
+              <form onSubmit={handlePostAnnouncement}>
+                <textarea
+                  value={newAnnouncement}
+                  onChange={(e) => setNewAnnouncement(e.target.value)}
+                  placeholder="What's on your mind? Share it with the class..."
+                  className="w-full h-40 p-4 bg-light-bg border-2 border-transparent focus:border-primary-teal/20 rounded-2xl resize-none outline-none text-sm font-bold text-dark-text transition"
+                  autoFocus
+                />
+                <div className="flex items-center justify-end gap-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowAnnounceModal(false)}
+                    className="px-6 py-3 text-xs font-black text-muted-text uppercase tracking-widest hover:text-dark-text transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isPosting || !newAnnouncement.trim()}
+                    className="px-8 py-3 bg-primary-teal text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-secondary-teal transition shadow-lg shadow-primary-teal/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {isPosting ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <MessageSquare size={16} />
+                    )}
+                    Post Now
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header with Tabs */}
       <div className="flex flex-col md:flex-row items-center justify-between border-b border-gray-100 mb-6 sticky top-0 bg-white/80 backdrop-blur-md z-20 pb-2 -mx-3 px-3 md:mx-0 md:px-0">
         <div className="flex items-center w-full md:w-auto gap-2 md:gap-4 mb-3 md:mb-0">
@@ -154,7 +254,10 @@ const SubjectDetails = () => {
           {activeTab === 'Announcements' && (
             <div className="space-y-6">
               {/* Announce Input */}
-              <div className="bg-white rounded-[2rem] border border-gray-100 p-5 md:p-6 shadow-soft-sm flex items-center gap-4 group hover:shadow-md transition cursor-pointer">
+              <div 
+                onClick={() => setShowAnnounceModal(true)}
+                className="bg-white rounded-[2rem] border border-gray-100 p-5 md:p-6 shadow-soft-sm flex items-center gap-4 group hover:shadow-md transition cursor-pointer"
+              >
                 <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-primary-teal/10 flex items-center justify-center text-primary-teal overflow-hidden border border-primary-teal/20 shrink-0">
                   <User size={20} className="md:hidden" />
                   <User size={24} className="hidden md:block" />
@@ -167,20 +270,64 @@ const SubjectDetails = () => {
                 </div>
               </div>
 
-              {/* Feed Content Placeholder */}
-              <div className="bg-white rounded-[2rem] border border-gray-100 p-8 md:p-16 shadow-soft-sm text-center">
-                <div className="w-20 h-20 md:w-32 md:h-32 bg-light-bg rounded-[1.5rem] md:rounded-[2.5rem] flex items-center justify-center text-muted-text mx-auto mb-6 border border-gray-50 shadow-inner">
-                  <MessageSquare size={32} className="md:hidden" />
-                  <MessageSquare size={48} className="hidden md:block" />
+              {/* Feed Content */}
+              {announcements.length > 0 ? (
+                <div className="space-y-6">
+                  {announcements.map((announcement) => (
+                    <div key={announcement.id} className="bg-white rounded-[2rem] border border-gray-100 p-6 md:p-8 shadow-soft-sm hover:shadow-md transition">
+                      <div className="flex items-start justify-between mb-6">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-primary-teal/10 flex items-center justify-center text-primary-teal overflow-hidden border border-primary-teal/20">
+                            <User size={24} />
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-black text-dark-text">{announcement.authorName}</h4>
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-muted-text uppercase tracking-widest">
+                              <span>{announcement.authorRole}</span>
+                              <span className="w-1 h-1 bg-gray-300 rounded-full" />
+                              <span>{new Date(announcement.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <button className="p-2 hover:bg-light-bg rounded-xl text-muted-text transition">
+                          <MoreVertical size={18} />
+                        </button>
+                      </div>
+                      <div className="text-sm font-bold text-dark-text leading-relaxed whitespace-pre-wrap">
+                        {announcement.content}
+                      </div>
+                      {announcement.attachments && announcement.attachments.length > 0 && (
+                        <div className="mt-6 flex flex-wrap gap-3">
+                          {announcement.attachments.map((file, idx) => (
+                            <div key={idx} className="flex items-center gap-2 p-3 bg-light-bg border border-gray-100 rounded-xl hover:bg-gray-100 transition cursor-pointer group">
+                              <FileText size={16} className="text-primary-teal" />
+                              <span className="text-[10px] font-black text-dark-text uppercase tracking-widest">{file.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-                <h3 className="text-xl md:text-2xl font-black text-dark-text mb-2">This is where you can talk to your class.</h3>
-                <p className="text-xs md:text-sm font-bold text-muted-text max-w-md mx-auto">
-                  Use this stream to share announcements, post assignments, and answer students' questions.
-                </p>
-                <button className="mt-8 w-full md:w-auto px-6 py-3 md:py-4 bg-primary-teal text-white rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-widest hover:bg-secondary-teal transition shadow-lg shadow-primary-teal/20">
-                  Post Announcement
-                </button>
-              </div>
+              ) : (
+                /* Feed Content Placeholder */
+                <div className="bg-white rounded-[2rem] border border-gray-100 p-8 md:p-16 shadow-soft-sm text-center">
+                  <div className="w-20 h-20 md:w-32 md:h-32 bg-light-bg rounded-[1.5rem] md:rounded-[2.5rem] flex items-center justify-center text-muted-text mx-auto mb-6 border border-gray-50 shadow-inner">
+                    <MessageSquare size={32} className="md:hidden" />
+                    <MessageSquare size={48} className="hidden md:block" />
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-black text-dark-text mb-2">This is where you can talk to your class.</h3>
+                  <p className="text-xs md:text-sm font-bold text-muted-text max-w-md mx-auto">
+                    Use this stream to share announcements, post assignments, and answer students' questions.
+                  </p>
+                  <button 
+                    onClick={() => setShowAnnounceModal(true)}
+                    className="mt-8 w-full md:w-auto px-6 py-3 md:py-4 bg-primary-teal text-white rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-widest hover:bg-secondary-teal transition shadow-lg shadow-primary-teal/20"
+                  >
+                    Post Announcement
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

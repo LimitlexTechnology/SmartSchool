@@ -104,6 +104,7 @@ const auth = (req, res, next) => {
   const parts = raw.split(';').map(s => s.trim()).filter(Boolean)
   let sid = ''
   let tid = ''
+  let studentId = ''
   for (const p of parts) {
     const eq = p.indexOf('=')
     if (eq > 0) {
@@ -111,12 +112,14 @@ const auth = (req, res, next) => {
       const v = p.slice(eq + 1)
       if (k === 'schoolId') sid = decodeURIComponent(v || '')
       if (k === 'teacherId') tid = decodeURIComponent(v || '')
+      if (k === 'studentId') studentId = decodeURIComponent(v || '')
     }
   }
   let schoolId = sid || 'local'
   // If DB is down and we are on local, we stay on local but the routes will now use file fallback
   req.schoolId = schoolId
   req.teacherId = tid || ''
+  req.studentId = studentId || ''
   next();
 };
 
@@ -196,6 +199,31 @@ function ensureTenantSubjectsFile(schoolId) {
   const file = path.join(dir, 'subjects.json')
   if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify({ subjects: [] }, null, 2))
   return file
+}
+function readTenantSubjects(schoolId) {
+  const file = ensureTenantSubjectsFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { subjects: [] } }
+}
+function writeTenantSubjects(schoolId, data) {
+  const file = ensureTenantSubjectsFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
+function ensureTenantAnnouncementsFile(schoolId) {
+  if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
+  const dir = path.join(TENANT_DIR, schoolId)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'announcements.json')
+  if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify({ announcements: [] }, null, 2))
+  return file
+}
+function readTenantAnnouncements(schoolId) {
+  const file = ensureTenantAnnouncementsFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { announcements: [] } }
+}
+function writeTenantAnnouncements(schoolId, data) {
+  const file = ensureTenantAnnouncementsFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
 }
 function readTenantSubjects(schoolId) {
   const file = ensureTenantSubjectsFile(schoolId)
@@ -2847,6 +2875,86 @@ app.get('/api/attendance/summary', auth, async (req, res) => {
     res.status(200).json({ date: '', totals: { totalStudents: 0, present: 0, absent: 0, notMarked: 0 }, page: 1, pageSize: 15, totalClasses: 0, data: [] })
   }
 })
+
+// ============== Announcements APIs ==============
+app.get('/api/announcements', auth, async (req, res) => {
+  try {
+    const { subjectId, classId } = req.query
+    if (req.schoolId && req.schoolId !== 'local') {
+      const store = readTenantAnnouncements(req.schoolId)
+      let data = store.announcements
+      if (subjectId) data = data.filter(a => a.subjectId === subjectId)
+      if (classId) data = data.filter(a => a.classId === classId)
+      data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      return res.json({ announcements: data })
+    }
+    // Fallback for DB if needed, but using file-based for now as per project pattern
+    return res.json({ announcements: [] })
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.post('/api/announcements', auth, async (req, res) => {
+  try {
+    const { content, subjectId, classId, authorName, authorRole, attachments } = req.body
+    if (!content || !subjectId) return res.status(400).json({ error: 'content and subjectId are required' })
+
+    if (req.schoolId && req.schoolId !== 'local') {
+      const store = readTenantAnnouncements(req.schoolId)
+      const newAnnouncement = {
+        id: randomUUID(),
+        content,
+        subjectId,
+        classId: classId || '',
+        authorName: authorName || 'Teacher',
+        authorRole: authorRole || 'teacher',
+        attachments: attachments || [],
+        createdAt: new Date().toISOString()
+      }
+      store.announcements.push(newAnnouncement)
+      writeTenantAnnouncements(req.schoolId, store)
+      return res.status(201).json(newAnnouncement)
+    }
+    res.status(501).json({ error: 'Not implemented' })
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.get('/api/student/subjects', auth, async (req, res) => {
+  try {
+    const studentId = req.studentId; // Assuming studentId is set in auth middleware
+    if (!studentId) return res.status(401).json({ error: 'Unauthorized' });
+
+    if (req.schoolId && req.schoolId !== 'local') {
+      const studentsStore = readTenantStudents(req.schoolId);
+      const student = studentsStore.students.find(s => s.id === studentId);
+      if (!student) return res.status(404).json({ error: 'Student not found' });
+
+      const assignmentsStore = readTenantTeachingAssignments(req.schoolId);
+      const subjectsStore = readTenantSubjects(req.schoolId);
+      const teachersStore = readTenantTeachers(req.schoolId);
+
+      const studentAssignments = assignmentsStore.assignments.filter(a => a.classId === student.classId);
+      const subjects = studentAssignments.map(a => {
+        const subject = subjectsStore.subjects.find(s => s.id === a.subjectId);
+        const teacher = teachersStore.teachers.find(t => t.id === a.teacherId);
+        return {
+          ...a,
+          subjectName: subject?.name || 'Unknown',
+          teacherName: teacher?.name || 'Unassigned',
+        };
+      });
+
+      return res.json({ subjects });
+    }
+
+    res.status(501).json({ error: 'Not implemented for DB mode' });
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' });
+  }
+});
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);

@@ -34,6 +34,7 @@ import ClassDetails from './pages/ClassDetails'
 import TeacherDashboard from './pages/teacher/TeacherDashboard'
 import LogoAnimationDemo from './pages/LogoAnimationDemo'
 import StudentPortal from './pages/StudentPortal'
+import StudentOnlineCampus from './pages/StudentOnlineCampus'
 
 // SuperAdmin Pages
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard'
@@ -144,9 +145,9 @@ const App = () => {
         </Route>
 
         {/* Student Portal */}
-        <Route path="/portal" element={
-          <StudentRoute><StudentPortal /></StudentRoute>
-        } />
+        <Route path="/portal" element={<StudentRoute><StudentPortal /></StudentRoute>}>
+          <Route path="online-campus" element={<StudentOnlineCampus />} />
+        </Route>
       </Routes>
     </Router>
   )

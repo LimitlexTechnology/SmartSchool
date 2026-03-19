@@ -1,0 +1,14 @@
+{
+  "announcements": [
+    {
+      "id": "b378a03a-e1cf-4f1c-b002-acf89b0d4c5e",
+      "content": "Hi",
+      "subjectId": "10b3e13c-a22a-4b47-aca4-991c125de3f7",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "authorName": "Teacher",
+      "authorRole": "admin",
+      "attachments": [],
+      "createdAt": "2026-03-19T14:56:14.036Z"
+    }
+  ]
+}
