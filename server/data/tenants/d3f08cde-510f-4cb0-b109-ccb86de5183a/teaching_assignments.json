@@ -1,0 +1,102 @@
+{
+  "assignments": [
+    {
+      "id": "a1126873-5531-4018-8622-35e6a948d135",
+      "teacherId": "4b02ef49-2ffc-4b60-bf64-5b84826094a2",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subjectId": "69d9a5bb-641e-40ec-8573-e23e29888874",
+      "createdAt": "2026-03-18T17:20:49.212Z"
+    },
+    {
+      "id": "b01c801e-6e9e-4b43-a617-b7a136d5e85d",
+      "teacherId": "4b02ef49-2ffc-4b60-bf64-5b84826094a2",
+      "classId": "29c28936-aa89-49d4-bac5-8bce1ce1fbba",
+      "subjectId": "69d9a5bb-641e-40ec-8573-e23e29888874",
+      "createdAt": "2026-03-18T17:26:50.037Z"
+    },
+    {
+      "id": "7e0e6f44-4dc0-4747-ab32-681d6793b635",
+      "teacherId": "4b02ef49-2ffc-4b60-bf64-5b84826094a2",
+      "classId": "b08719b9-2848-491f-9b76-a39fe450b7b5",
+      "subjectId": "69d9a5bb-641e-40ec-8573-e23e29888874",
+      "createdAt": "2026-03-18T17:26:50.037Z"
+    },
+    {
+      "id": "10b3e13c-a22a-4b47-aca4-991c125de3f7",
+      "teacherId": "930351e6-54ed-4703-8603-b9b1ad1f5a02",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subjectId": "bb2057e6-ec70-4b3f-9221-cc0d02c0f38d",
+      "createdAt": "2026-03-18T17:29:09.283Z"
+    },
+    {
+      "id": "cfc37b7f-08fd-4bf3-96e3-afb6a81bd775",
+      "teacherId": "930351e6-54ed-4703-8603-b9b1ad1f5a02",
+      "classId": "0cb69dca-7d9d-423b-bb38-c2562fe18357",
+      "subjectId": "bb2057e6-ec70-4b3f-9221-cc0d02c0f38d",
+      "createdAt": "2026-03-18T17:29:09.283Z"
+    },
+    {
+      "id": "7d9abc04-56a8-4f2f-a32a-777649b104c6",
+      "teacherId": "930351e6-54ed-4703-8603-b9b1ad1f5a02",
+      "classId": "6cbae387-d0ff-4f3b-803c-1010fe9f16cd",
+      "subjectId": "bb2057e6-ec70-4b3f-9221-cc0d02c0f38d",
+      "createdAt": "2026-03-18T17:29:09.283Z"
+    },
+    {
+      "id": "d6d4c5b9-0b3f-4afa-b6e1-21fecf820b0e",
+      "teacherId": "930351e6-54ed-4703-8603-b9b1ad1f5a02",
+      "classId": "1ad31406-312c-4547-a05e-5555c65e7197",
+      "subjectId": "bb2057e6-ec70-4b3f-9221-cc0d02c0f38d",
+      "createdAt": "2026-03-18T17:29:09.283Z"
+    },
+    {
+      "id": "ea3d6b07-ddf5-4080-9e13-328cfd830cb9",
+      "teacherId": "930351e6-54ed-4703-8603-b9b1ad1f5a02",
+      "classId": "29c28936-aa89-49d4-bac5-8bce1ce1fbba",
+      "subjectId": "bb2057e6-ec70-4b3f-9221-cc0d02c0f38d",
+      "createdAt": "2026-03-18T17:29:09.283Z"
+    },
+    {
+      "id": "be83ac4f-b519-48c0-8257-0ce5efcdfc1a",
+      "teacherId": "930351e6-54ed-4703-8603-b9b1ad1f5a02",
+      "classId": "b08719b9-2848-491f-9b76-a39fe450b7b5",
+      "subjectId": "bb2057e6-ec70-4b3f-9221-cc0d02c0f38d",
+      "createdAt": "2026-03-18T17:29:09.283Z"
+    },
+    {
+      "id": "38fc1ae4-c2b8-4003-8777-fefd728e6784",
+      "teacherId": "a0d5d214-51ca-41be-8506-5dfbbea11e94",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subjectId": "27c8980b-2898-4670-aa82-b3186f85d4d1",
+      "createdAt": "2026-03-19T13:23:26.091Z"
+    },
+    {
+      "id": "174d0e11-2356-4e25-8595-ea60cadd8166",
+      "teacherId": "a0d5d214-51ca-41be-8506-5dfbbea11e94",
+      "classId": "b08719b9-2848-491f-9b76-a39fe450b7b5",
+      "subjectId": "27c8980b-2898-4670-aa82-b3186f85d4d1",
+      "createdAt": "2026-03-19T13:23:26.091Z"
+    },
+    {
+      "id": "a61b8f98-ca2e-46a4-b2ba-5c4d92325f6e",
+      "teacherId": "a0d5d214-51ca-41be-8506-5dfbbea11e94",
+      "classId": "29c28936-aa89-49d4-bac5-8bce1ce1fbba",
+      "subjectId": "27c8980b-2898-4670-aa82-b3186f85d4d1",
+      "createdAt": "2026-03-19T13:23:26.092Z"
+    },
+    {
+      "id": "b386b949-d591-4ee4-9ce7-90e309abd5a9",
+      "teacherId": "a0d5d214-51ca-41be-8506-5dfbbea11e94",
+      "classId": "1ad31406-312c-4547-a05e-5555c65e7197",
+      "subjectId": "27c8980b-2898-4670-aa82-b3186f85d4d1",
+      "createdAt": "2026-03-19T13:23:26.092Z"
+    },
+    {
+      "id": "f7c3abb6-e4b1-4962-b9b7-e811840dfe9b",
+      "teacherId": "a0d5d214-51ca-41be-8506-5dfbbea11e94",
+      "classId": "6cbae387-d0ff-4f3b-803c-1010fe9f16cd",
+      "subjectId": "27c8980b-2898-4670-aa82-b3186f85d4d1",
+      "createdAt": "2026-03-19T13:23:26.092Z"
+    }
+  ]
+}

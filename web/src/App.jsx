@@ -25,6 +25,8 @@ import AdminSettings from './pages/AdminSettings'
 import UserSettings from './pages/UserSettings'
 import StaffList from './pages/StaffList'
 import CourseAllocation from './pages/CourseAllocation'
+import OnlineCampus from './pages/OnlineCampus'
+import SubjectDetails from './pages/SubjectDetails'
 import LessonPlanner from './pages/LessonPlanner'
 import Timetables from './pages/Timetables'
 import Classroom from './pages/Classroom'
@@ -32,6 +34,7 @@ import ClassDetails from './pages/ClassDetails'
 import TeacherDashboard from './pages/teacher/TeacherDashboard'
 import LogoAnimationDemo from './pages/LogoAnimationDemo'
 import StudentPortal from './pages/StudentPortal'
+import StudentOnlineCampus from './pages/StudentOnlineCampus'
 
 // SuperAdmin Pages
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard'
@@ -103,6 +106,8 @@ const App = () => {
           <Route path="attendance" element={<Attendance />} />
           <Route path="classroom" element={<Classroom />} />
           <Route path="classroom/:id" element={<ClassDetails />} />
+          <Route path="online-campus" element={<OnlineCampus />} />
+          <Route path="online-campus/:subjectId" element={<SubjectDetails />} />
           <Route path="students" element={<StudentsList />} />
           <Route path="staff" element={<StaffList />} />
           <Route path="staff/course-allocation" element={<CourseAllocation />} />
@@ -140,9 +145,9 @@ const App = () => {
         </Route>
 
         {/* Student Portal */}
-        <Route path="/portal" element={
-          <StudentRoute><StudentPortal /></StudentRoute>
-        } />
+        <Route path="/portal" element={<StudentRoute><StudentPortal /></StudentRoute>}>
+          <Route path="online-campus" element={<StudentOnlineCampus />} />
+        </Route>
       </Routes>
     </Router>
   )

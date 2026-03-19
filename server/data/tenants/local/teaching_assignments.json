@@ -1,0 +1,7 @@
+{
+  "assignments": [
+    { "id": "assign-1", "teacherId": "34b7b1be-3bde-4c9e-aa98-c072a5594991", "classId": "e08b3671-8252-4edd-9725-f8a96f6ef50f", "subjectId": "sub-1", "createdAt": "2026-03-19T00:00:00.000Z" },
+    { "id": "assign-2", "teacherId": "34b7b1be-3bde-4c9e-aa98-c072a5594991", "classId": "e08b3671-8252-4edd-9725-f8a96f6ef50f", "subjectId": "sub-2", "createdAt": "2026-03-19T00:00:00.000Z" },
+    { "id": "assign-3", "teacherId": "34b7b1be-3bde-4c9e-aa98-c072a5594991", "classId": "e08b3671-8252-4edd-9725-f8a96f6ef50f", "subjectId": "sub-3", "createdAt": "2026-03-19T00:00:00.000Z" }
+  ]
+}

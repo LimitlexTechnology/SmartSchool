@@ -1,0 +1,8 @@
+{
+  "subjects": [
+    { "id": "sub-1", "name": "Career Tech", "category": "Technical", "createdAt": "2026-03-19T00:00:00.000Z" },
+    { "id": "sub-2", "name": "Computing", "category": "Technical", "createdAt": "2026-03-19T00:00:00.000Z" },
+    { "id": "sub-3", "name": "Creative Arts & Design", "category": "Arts", "createdAt": "2026-03-19T00:00:00.000Z" },
+    { "id": "sub-4", "name": "French", "category": "Languages", "createdAt": "2026-03-19T00:00:00.000Z" }
+  ]
+}

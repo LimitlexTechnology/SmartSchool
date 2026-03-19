@@ -10,8 +10,8 @@
       "address": "Afrancho-Bronkong",
       "admin": "Blankson Kwarteng",
       "phone": "3333333333",
-      "adminPassSalt": "278a2d5ab0b18cafc6ff211b10716bb8",
-      "adminPassHash": "8fce5a42dd07ca45069149f561886b1c66248bc3028af5327407dfc03d0892c30352191188237c3a12dc8ec8ec8b4dae249e9e8a55f5a27567936df7b4b49746",
+      "adminPassSalt": "4369afad2d30bc707cb9814cbaae9b6c",
+      "adminPassHash": "8b5f20571c48ab9f0f607cf8a32e2c8d7d70c50b7e652e2567a0b3943f127a0c43b6ada623c5ef8baa7273f84aa4a2c8a9f5156dbf5f69b2d0ffa114524eba91",
       "createdAt": "2026-03-18T12:58:23.908Z"
     }
   ]

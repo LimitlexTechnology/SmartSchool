@@ -126,7 +126,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
         { label: 'Course Allocation', to: '/dashboard/staff/course-allocation', key: 'course_allocation' },
         { label: 'Lesson Planner', to: '/dashboard/staff/lesson-planner', key: 'lesson_planner' },
         { label: 'Timetables', to: '/dashboard/staff/timetables', key: 'timetables' },
-        { label: 'Classroom', to: '/dashboard/staff/classroom', key: 'classroom' },
+        { label: 'Online Campus', to: '/dashboard/online-campus', key: 'online_campus' },
     ];
 
     useEffect(() => {

@@ -1,3 +1,39 @@
 {
-  "teachers": []
+  "teachers": [
+    {
+      "id": "a0d5d214-51ca-41be-8506-5dfbbea11e94",
+      "name": "Prosper Yesuli",
+      "email": "prosperyesulig@gmail.com",
+      "subject": "",
+      "createdAt": "2026-03-19T13:22:10.031Z"
+    },
+    {
+      "id": "930351e6-54ed-4703-8603-b9b1ad1f5a02",
+      "name": "Akimey Isabella",
+      "email": "belarose@gmail.com",
+      "subject": "",
+      "createdAt": "2026-03-18T17:19:44.254Z"
+    },
+    {
+      "id": "85a72c23-e946-4a91-a5f7-a885308e4c13",
+      "name": "Rachael Odei",
+      "email": "r@gmail.com",
+      "subject": "",
+      "createdAt": "2026-03-18T17:18:33.348Z"
+    },
+    {
+      "id": "37d81451-d1ad-441b-941f-a66c30322256",
+      "name": "Emmanuel Asante",
+      "email": "easante@gmail.com",
+      "subject": "",
+      "createdAt": "2026-03-18T17:17:56.419Z"
+    },
+    {
+      "id": "4b02ef49-2ffc-4b60-bf64-5b84826094a2",
+      "name": "Blankson Kwarteng",
+      "email": "blankson.kwarteng@mirekuaics.com",
+      "subject": "",
+      "createdAt": "2026-03-18T17:17:21.735Z"
+    }
+  ]
 }
