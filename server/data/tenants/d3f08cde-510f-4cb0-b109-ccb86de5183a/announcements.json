@@ -9,6 +9,16 @@
       "authorRole": "admin",
       "attachments": [],
       "createdAt": "2026-03-19T14:56:14.036Z"
+    },
+    {
+      "id": "8610dd77-25ed-4c2a-b2d1-cfa153d87228",
+      "content": "Your Computing Midterm Test has been submitted",
+      "subjectId": "a1126873-5531-4018-8622-35e6a948d135",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "authorName": "Teacher",
+      "authorRole": "admin",
+      "attachments": [],
+      "createdAt": "2026-03-20T13:49:25.503Z"
     }
   ]
 }

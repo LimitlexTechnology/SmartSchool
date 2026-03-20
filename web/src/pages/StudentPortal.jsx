@@ -5,13 +5,14 @@ import {
     MessageSquare, Settings, Users, FileText, TrendingUp, TrendingDown, X,
     Menu, LayoutDashboard, CreditCard, ClipboardList, Filter, Search, Plus, Minus
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import SkullarLogo from '../assets/Skullar Logo.png'
 
 const StudentPortal = () => {
     const [student, setStudent] = useState(null)
     const [siblings, setSiblings] = useState([])
     const [behaviorHistory, setBehaviorHistory] = useState([])
+    const [upcomingAssignments, setUpcomingAssignments] = useState([])
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState('Dashboard')
     const [saving, setSaving] = useState(false)
@@ -19,6 +20,7 @@ const StudentPortal = () => {
     const [showProfileSwitcher, setShowProfileSwitcher] = useState(false)
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const navigate = useNavigate()
+    const location = useLocation()
 
     useEffect(() => {
         const studentId = localStorage.getItem('studentTableId')
@@ -42,6 +44,32 @@ const StudentPortal = () => {
                 const behRes = await fetch(`/api/students/${studentId}/behavior/history`)
                 if (behRes.ok) setBehaviorHistory(await behRes.json())
 
+                // Fetch all assignments across subjects for "Upcoming" section
+                const subRes = await fetch('/api/student/subjects')
+                if (subRes.ok) {
+                    const { subjects } = await subRes.json()
+                    const allAssignmentsPromises = subjects.map(sub => 
+                        fetch(`/api/class-assignments?subjectId=${sub.id}`).then(r => r.json())
+                    )
+                    const assignmentsResults = await Promise.all(allAssignmentsPromises)
+                    
+                    // Flatten and filter for upcoming/overdue
+                    const flattened = assignmentsResults.flatMap((res, idx) => 
+                        (res.assignments || []).map(a => ({ ...a, subjectName: subjects[idx].subjectName }))
+                    )
+                    
+                    // Filter: Not submitted and due date is in the future or recently past
+                    const subr = await fetch(`/api/submissions?studentId=${studentId}`)
+                    const submissions = subr.ok ? await subr.json() : []
+                    const submittedIds = submissions.map(s => s.assignmentId)
+                    
+                    const upcoming = flattened
+                        .filter(a => !submittedIds.includes(a.id))
+                        .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+                    
+                    setUpcomingAssignments(upcoming.slice(0, 5))
+                }
+
             } catch (err) {
                 console.error(err)
             } finally {
@@ -51,6 +79,15 @@ const StudentPortal = () => {
 
         fetchData()
     }, [navigate])
+
+    // Update activeTab based on current location
+    useEffect(() => {
+        if (location.pathname.includes('/portal/online-campus')) {
+            setActiveTab('Online Campus')
+        } else if (location.pathname === '/portal') {
+            setActiveTab('Dashboard')
+        }
+    }, [location.pathname])
 
     const switchProfile = (sibId) => {
         localStorage.setItem('studentTableId', sibId)
@@ -187,7 +224,14 @@ const StudentPortal = () => {
                     {['Dashboard', 'Online Campus', 'Classroom', 'Accounts', 'Messages', 'Exams', 'Student Records', 'Parent Settings'].map((tab) => (
                         <button
                             key={tab}
-                            onClick={() => setActiveTab(tab)}
+                            onClick={() => {
+                                setActiveTab(tab)
+                                if (tab === 'Online Campus') {
+                                    navigate('/portal/online-campus')
+                                } else if (tab === 'Dashboard') {
+                                    navigate('/portal')
+                                }
+                            }}
                             className={`text-xs font-bold whitespace-nowrap py-4 border-b-2 transition-all ${activeTab === tab ? 'text-[#5E9E9E] border-[#5E9E9E]' : 'text-gray-400 border-transparent hover:text-gray-600'}`}
                         >
                             {tab}
@@ -198,9 +242,8 @@ const StudentPortal = () => {
 
             <main className="max-w-[1200px] mx-auto p-6 space-y-6 animate-fade-in">
 
-                {activeTab === 'Dashboard' && (
+                {location.pathname === '/portal' ? (
                     <>
-
                         {/* Profile Hero Section */}
                         <section className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 flex flex-col md:flex-row items-center md:items-start justify-between shadow-sm gap-8 transition-all">
                             <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
@@ -249,7 +292,13 @@ const StudentPortal = () => {
 
                         {/* 8-Grid Quick Actions */}
                         <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <QuickAction icon={BookOpen} label="Classroom" color="#F4ECFF" textColor="#A855F7" />
+                            <QuickAction 
+                                icon={BookOpen} 
+                                label="Online Campus" 
+                                color="#F4ECFF" 
+                                textColor="#A855F7" 
+                                onClick={() => navigate('/portal/online-campus')}
+                            />
                             <QuickAction icon={CreditCard} label="Accounts" color="#F0FDF4" textColor="#22C55E" />
                             <QuickAction icon={MessageSquare} label="Messages" color="#EFF6FF" textColor="#3B82F6" />
                             <QuickAction icon={GraduationCap} label="Exams" color="#FFF7ED" textColor="#F97316" />
@@ -336,12 +385,69 @@ const StudentPortal = () => {
 
                             {/* Pending Assignments */}
                             <div className="space-y-4">
-                                <h3 className="text-xs font-bold text-gray-800 uppercase tracking-widest">Pending Assignments</h3>
-                                <div className="bg-white rounded-2xl border border-gray-100 p-2 shadow-sm space-y-1">
-                                    <AssignmentItem title="Chapter 1 Exercises - Fractions" subject="Mathematics" due="Mar 16, 2026 (1 day left)" priority="high" />
-                                    <AssignmentItem title="Essay: My Best Friend" subject="English" due="Mar 18, 2026 (3 days left)" priority="medium" />
-                                    <AssignmentItem title="Plant Life Cycle Report" subject="Science" due="Mar 20, 2026 (5 days left)" priority="low" />
-                                    <AssignmentItem title="Ghana Map Drawing" subject="Social Studies" due="Mar 17, 2026 (2 days left)" priority="high" />
+                                <h3 className="text-xs font-bold text-gray-800 uppercase tracking-widest flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-primary-teal" /> Upcoming
+                                </h3>
+                                <div className="bg-white rounded-[2rem] border border-gray-100 p-2 shadow-soft-sm space-y-1 relative overflow-hidden min-h-[300px] flex flex-col">
+                                    {upcomingAssignments.length > 0 ? (
+                                        <>
+                                            <div className="flex-1 space-y-1">
+                                                {upcomingAssignments.map((assignment) => {
+                                                    const isOverdue = new Date(assignment.dueDate) < new Date();
+                                                    return (
+                                                        <div 
+                                                            key={assignment.id} 
+                                                            onClick={() => navigate(`/portal/subject/${assignment.subjectId}`)}
+                                                            className={`p-4 rounded-2xl flex items-center justify-between transition-all cursor-pointer group ${
+                                                                isOverdue ? 'bg-rose-50/50 border border-rose-100 hover:bg-rose-100/50' : 'hover:bg-light-bg'
+                                                            }`}
+                                                        >
+                                                            <div className="flex items-center gap-4">
+                                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                                                                    isOverdue ? 'bg-rose-100 text-rose-500' : 'bg-primary-teal/5 text-primary-teal'
+                                                                }`}>
+                                                                    <ClipboardList className="w-5 h-5" />
+                                                                </div>
+                                                                <div>
+                                                                    {isOverdue && (
+                                                                        <p className="text-[8px] font-black text-rose-500 uppercase tracking-widest mb-1">Overdue</p>
+                                                                    )}
+                                                                    <p className="text-sm font-black text-dark-text group-hover:text-primary-teal transition-colors line-clamp-1 uppercase tracking-tight">
+                                                                        {assignment.title}
+                                                                    </p>
+                                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                                        <Calendar className="w-3 h-3 text-muted-text" />
+                                                                        <p className="text-[10px] font-bold text-muted-text uppercase tracking-widest">
+                                                                            {isOverdue ? 'Overdue' : `Due ${new Date(assignment.dueDate).toLocaleDateString()}`}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-primary-teal group-hover:translate-x-1 transition-all" />
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                            <div className="p-4 border-t border-gray-50 flex items-center justify-center">
+                                                <button 
+                                                    onClick={() => navigate('/portal/online-campus')}
+                                                    className="text-[10px] font-black text-primary-teal uppercase tracking-widest hover:text-secondary-teal transition"
+                                                >
+                                                    View All
+                                                </button>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+                                            <p className="text-sm font-bold text-muted-text italic">No other work due soon</p>
+                                            <button 
+                                                onClick={() => navigate('/portal/online-campus')}
+                                                className="mt-6 text-[10px] font-black text-primary-teal uppercase tracking-widest hover:text-secondary-teal transition"
+                                            >
+                                                View All
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -398,9 +504,9 @@ const StudentPortal = () => {
                         </div>
 
                     </>
+                ) : (
+                    <Outlet />
                 )}
-
-                {activeTab === 'Online Campus' && <StudentOnlineCampus />}
 
                 {activeTab === 'Parent Settings' && (
                     <div className="space-y-6">
@@ -566,6 +672,11 @@ const StudentPortal = () => {
                                     onClick={() => {
                                         setActiveTab(item.id)
                                         setIsSidebarOpen(false)
+                                        if (item.id === 'Online Campus') {
+                                            navigate('/portal/online-campus')
+                                        } else if (item.id === 'Dashboard') {
+                                            navigate('/portal')
+                                        }
                                     }}
                                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === item.id
                                         ? 'bg-primary-teal text-white shadow-lg shadow-primary-teal/20'
@@ -595,8 +706,11 @@ const StudentPortal = () => {
     )
 }
 
-const QuickAction = ({ icon: Icon, label, color, textColor }) => (
-    <button className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100 flex flex-col items-center gap-3 sm:gap-4 shadow-sm hover:shadow-md transition-all group active:scale-95 w-full">
+const QuickAction = ({ icon: Icon, label, color, textColor, onClick }) => (
+    <button 
+        onClick={onClick}
+        className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100 flex flex-col items-center gap-3 sm:gap-4 shadow-sm hover:shadow-md transition-all group active:scale-95 w-full"
+    >
         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center transform group-hover:-translate-y-1 transition-transform" style={{ backgroundColor: color }}>
             <Icon className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: textColor }} />
         </div>

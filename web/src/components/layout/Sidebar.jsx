@@ -127,6 +127,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
         { label: 'Lesson Planner', to: '/dashboard/staff/lesson-planner', key: 'lesson_planner' },
         { label: 'Timetables', to: '/dashboard/staff/timetables', key: 'timetables' },
         { label: 'Online Campus', to: '/dashboard/online-campus', key: 'online_campus' },
+        { label: 'Question Bank', to: '/dashboard/question-bank', key: 'question_bank' },
     ];
 
     useEffect(() => {
@@ -262,7 +263,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
                             );
                         }
                         if (item.label === 'Staff') {
-                            const isActive = location.pathname.startsWith('/dashboard/staff');
+                            const isActive = location.pathname.startsWith('/dashboard/staff') || location.pathname.startsWith('/dashboard/question-bank');
                             return (
                                 <div key={index} className="relative w-full" ref={staffRef}>
                                     <SidebarItem

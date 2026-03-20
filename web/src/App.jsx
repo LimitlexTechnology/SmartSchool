@@ -35,6 +35,11 @@ import TeacherDashboard from './pages/teacher/TeacherDashboard'
 import LogoAnimationDemo from './pages/LogoAnimationDemo'
 import StudentPortal from './pages/StudentPortal'
 import StudentOnlineCampus from './pages/StudentOnlineCampus'
+import StudentSubjectDetails from './pages/StudentSubjectDetails'
+import TakeTest from './pages/TakeTest'
+import CreateAssignment from './pages/CreateAssignment'
+import QuestionPaperDashboard from './pages/QuestionPaperDashboard'
+import QuestionPaperEditor from './pages/QuestionPaperEditor'
 
 // SuperAdmin Pages
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard'
@@ -108,6 +113,9 @@ const App = () => {
           <Route path="classroom/:id" element={<ClassDetails />} />
           <Route path="online-campus" element={<OnlineCampus />} />
           <Route path="online-campus/:subjectId" element={<SubjectDetails />} />
+          <Route path="online-campus/create-assignment" element={<CreateAssignment />} />
+          <Route path="question-bank" element={<QuestionPaperDashboard />} />
+          <Route path="question-bank/:paperId" element={<QuestionPaperEditor />} />
           <Route path="students" element={<StudentsList />} />
           <Route path="staff" element={<StaffList />} />
           <Route path="staff/course-allocation" element={<CourseAllocation />} />
@@ -147,6 +155,8 @@ const App = () => {
         {/* Student Portal */}
         <Route path="/portal" element={<StudentRoute><StudentPortal /></StudentRoute>}>
           <Route path="online-campus" element={<StudentOnlineCampus />} />
+          <Route path="subject/:subjectId" element={<StudentSubjectDetails />} />
+          <Route path="subject/:subjectId/take-test" element={<TakeTest />} />
         </Route>
       </Routes>
     </Router>

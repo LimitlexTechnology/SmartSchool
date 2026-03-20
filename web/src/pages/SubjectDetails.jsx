@@ -10,7 +10,19 @@ import {
   User,
   FileText, 
   Trophy,
-  Plus
+  Plus,
+  ClipboardList,
+  Link as LinkIcon,
+  Trash2,
+  ExternalLink,
+  UserCheck,
+  GraduationCap,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  Clock,
+  ChevronRight,
+  Circle
 } from 'lucide-react'
 
 const SubjectDetails = () => {
@@ -20,9 +32,26 @@ const SubjectDetails = () => {
   const [loading, setLoading] = useState(true)
   const [subjectData, setSubjectData] = useState(null)
   const [announcements, setAnnouncements] = useState([])
+  const [assignments, setAssignments] = useState([])
+  const [materials, setMaterials] = useState([])
+  const [students, setStudents] = useState([])
+  const [submissions, setSubmissions] = useState([])
   const [showAnnounceModal, setShowAnnounceModal] = useState(false)
+  const [showAssignModal, setShowAssignModal] = useState(false)
+  const [showMaterialModal, setShowMaterialModal] = useState(false)
   const [newAnnouncement, setNewAnnouncement] = useState('')
+  const [newAssignment, setNewAssignment] = useState({ title: '', description: '', dueDate: '' })
+  const [newMaterial, setNewMaterial] = useState({ title: '', type: 'link', url: '', description: '' })
   const [isPosting, setIsPosting] = useState(false)
+  const [selectedSubmission, setSelectedSubmission] = useState(null)
+  const [gradeData, setGradeData] = useState({ score: '', feedback: '' })
+  const [isGrading, setIsGrading] = useState(false)
+  const [viewingSubmissionsFor, setViewingSubmissionsFor] = useState(null)
+  const [reviewPaper, setReviewPaper] = useState(null)
+  const [isFetchingReview, setIsFetchingReview] = useState(false)
+
+  const selectedAssignment = selectedSubmission ? assignments.find(a => a.id === selectedSubmission.assignmentId) : null
+  const currentMaxScore = selectedAssignment?.maxScore || 100
   
   const tabs = ['Announcements', 'Assignments', 'Course Materials', 'People', 'Grades']
 
@@ -35,11 +64,35 @@ const SubjectDetails = () => {
         const assignment = j.assignments.find(a => a.id === subjectId)
         if (assignment) {
           setSubjectData(assignment)
-          // Load announcements for this subject
-          const ar = await fetch(`/api/announcements?subjectId=${subjectId}`)
-          const aj = await ar.json()
+          
+          // Load all details in parallel
+          const [ar, asr, mr, sr, subr] = await Promise.all([
+            fetch(`/api/announcements?subjectId=${subjectId}`),
+            fetch(`/api/class-assignments?subjectId=${subjectId}`),
+            fetch(`/api/course-materials?subjectId=${subjectId}`),
+            fetch(`/api/students?classId=${assignment.classId}&pageSize=100`),
+            fetch(`/api/submissions?subjectId=${subjectId}`)
+          ])
+          
           if (ar.ok) {
+            const aj = await ar.json()
             setAnnouncements(aj.announcements || [])
+          }
+          if (asr.ok) {
+            const asj = await asr.json()
+            setAssignments(asj.assignments || [])
+          }
+          if (mr.ok) {
+            const mj = await mr.json()
+            setMaterials(mj || [])
+          }
+          if (sr.ok) {
+            const sj = await sr.json()
+            setStudents(sj.data || [])
+          }
+          if (subr.ok) {
+            const subj = await subr.json()
+            setSubmissions(subj || [])
           }
         }
       }
@@ -53,6 +106,43 @@ const SubjectDetails = () => {
   useEffect(() => {
     loadData()
   }, [subjectId])
+
+  const handlePostMaterial = async (e) => {
+    e.preventDefault()
+    if (!newMaterial.title.trim() || !newMaterial.url.trim()) return
+
+    setIsPosting(true)
+    try {
+      const r = await fetch('/api/course-materials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...newMaterial,
+          subjectId
+        })
+      })
+
+      if (r.ok) {
+        setNewMaterial({ title: '', type: 'link', url: '', description: '' })
+        setShowMaterialModal(false)
+        loadData()
+      }
+    } catch (e) {
+      console.error('Failed to post material:', e)
+    } finally {
+      setIsPosting(false)
+    }
+  }
+
+  const handleDeleteMaterial = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this material?')) return
+    try {
+      const r = await fetch(`/api/course-materials/${id}`, { method: 'DELETE' })
+      if (r.ok) loadData()
+    } catch (e) {
+      console.error('Failed to delete material:', e)
+    }
+  }
 
   const handlePostAnnouncement = async (e) => {
     e.preventDefault()
@@ -80,15 +170,84 @@ const SubjectDetails = () => {
       if (r.ok) {
         setNewAnnouncement('')
         setShowAnnounceModal(false)
-        // Reload announcements
-        const ar = await fetch(`/api/announcements?subjectId=${subjectId}`)
-        const aj = await ar.json()
-        if (ar.ok) {
-          setAnnouncements(aj.announcements || [])
-        }
+        loadData()
       }
     } catch (e) {
       console.error('Failed to post announcement:', e)
+    } finally {
+      setIsPosting(false)
+    }
+  }
+
+  const handleUpdateGrade = async (e) => {
+    e.preventDefault()
+    if (!selectedSubmission) return
+    setIsGrading(true)
+    try {
+      const r = await fetch(`/api/submissions/${selectedSubmission.id}/grade`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(gradeData)
+      })
+      if (r.ok) {
+        setSelectedSubmission(null)
+        setGradeData({ score: '', feedback: '' })
+        loadData()
+      }
+    } catch (e) {
+      console.error('Failed to update grade:', e)
+    } finally {
+      setIsGrading(false)
+    }
+  }
+
+  const handleReviewAnswers = async (submission) => {
+    if (!submission.fileName?.startsWith('Digital Exam:')) return
+    
+    // Find assignment to get paperId
+    const assignment = assignments.find(a => a.id === submission.assignmentId)
+    const paperAttachment = assignment?.attachments?.find(a => a.type === 'question-paper' || a.type === 'question_paper')
+    const paperId = paperAttachment?.id || paperAttachment?.paperId
+    
+    if (!paperId) return
+
+    setIsFetchingReview(true)
+    try {
+      const r = await fetch(`/api/question-papers/${paperId}`)
+      if (r.ok) {
+        const paperData = await r.json()
+        setReviewPaper(paperData)
+      }
+    } catch (e) {
+      console.error('Failed to fetch paper for review:', e)
+    } finally {
+      setIsFetchingReview(false)
+    }
+  }
+
+  const handlePostAssignment = async (e) => {
+    e.preventDefault()
+    if (!newAssignment.title.trim()) return
+
+    setIsPosting(true)
+    try {
+      const r = await fetch('/api/class-assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...newAssignment,
+          subjectId,
+          classId: subjectData?.classId
+        })
+      })
+
+      if (r.ok) {
+        setNewAssignment({ title: '', description: '', dueDate: '' })
+        setShowAssignModal(false)
+        loadData()
+      }
+    } catch (e) {
+      console.error('Failed to post assignment:', e)
     } finally {
       setIsPosting(false)
     }
@@ -172,6 +331,91 @@ const SubjectDetails = () => {
                       <MessageSquare size={16} />
                     )}
                     Post Now
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Course Material Modal */}
+      {showMaterialModal && (
+        <div className="fixed inset-0 bg-dark-text/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-8">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-black text-dark-text">Add Course Material</h3>
+                <button 
+                  onClick={() => setShowMaterialModal(false)}
+                  className="p-2 hover:bg-light-bg rounded-xl text-muted-text transition"
+                >
+                  <Plus size={24} className="rotate-45" />
+                </button>
+              </div>
+              <form onSubmit={handlePostMaterial} className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-black text-muted-text uppercase tracking-widest mb-1 block">Title</label>
+                  <input
+                    type="text"
+                    value={newMaterial.title}
+                    onChange={(e) => setNewMaterial({ ...newMaterial, title: e.target.value })}
+                    placeholder="Material Title"
+                    className="w-full px-4 py-3 bg-light-bg border-2 border-transparent focus:border-primary-teal/20 rounded-xl outline-none text-sm font-bold text-dark-text transition"
+                    autoFocus
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-muted-text uppercase tracking-widest mb-1 block">Type</label>
+                  <select
+                    value={newMaterial.type}
+                    onChange={(e) => setNewMaterial({ ...newMaterial, type: e.target.value })}
+                    className="w-full px-4 py-3 bg-light-bg border-2 border-transparent focus:border-primary-teal/20 rounded-xl outline-none text-sm font-bold text-dark-text transition"
+                  >
+                    <option value="link">Link / URL</option>
+                    <option value="file">File (External URL)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-muted-text uppercase tracking-widest mb-1 block">URL</label>
+                  <input
+                    type="url"
+                    value={newMaterial.url}
+                    onChange={(e) => setNewMaterial({ ...newMaterial, url: e.target.value })}
+                    placeholder="https://..."
+                    className="w-full px-4 py-3 bg-light-bg border-2 border-transparent focus:border-primary-teal/20 rounded-xl outline-none text-sm font-bold text-dark-text transition"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-muted-text uppercase tracking-widest mb-1 block">Description</label>
+                  <textarea
+                    value={newMaterial.description}
+                    onChange={(e) => setNewMaterial({ ...newMaterial, description: e.target.value })}
+                    placeholder="Optional description..."
+                    className="w-full h-24 p-4 bg-light-bg border-2 border-transparent focus:border-primary-teal/20 rounded-xl resize-none outline-none text-sm font-bold text-dark-text transition"
+                  />
+                </div>
+                <div className="flex items-center justify-end gap-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowMaterialModal(false)}
+                    className="px-6 py-3 text-xs font-black text-muted-text uppercase tracking-widest hover:text-dark-text transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isPosting || !newMaterial.title.trim() || !newMaterial.url.trim()}
+                    className="px-8 py-3 bg-primary-teal text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-secondary-teal transition shadow-lg shadow-primary-teal/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {isPosting ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Plus size={16} />
+                    )}
+                    Add Material
                   </button>
                 </div>
               </form>
@@ -332,58 +576,659 @@ const SubjectDetails = () => {
           )}
 
           {activeTab === 'Assignments' && (
-            <div className="bg-white rounded-[2rem] border border-gray-100 p-8 md:p-16 shadow-soft-sm text-center">
-              <div className="w-20 h-20 md:w-32 md:h-32 bg-light-bg rounded-[1.5rem] md:rounded-[2.5rem] flex items-center justify-center text-muted-text mx-auto mb-6 border border-gray-50 shadow-inner">
-                <FileText size={32} className="md:hidden" />
-                <FileText size={48} className="hidden md:block" />
+            <div className="space-y-6">
+              {/* Create Button */}
+              <div className="flex justify-start">
+                <button 
+                  onClick={() => navigate('/dashboard/online-campus/create-assignment', { state: { subjectId, classId: subjectData?.classId } })}
+                  className="px-6 py-2.5 bg-primary-teal text-white rounded-full text-xs font-black uppercase tracking-widest hover:bg-secondary-teal transition shadow-lg shadow-primary-teal/20 flex items-center gap-2"
+                >
+                  <Plus size={18} />
+                  Create
+                </button>
               </div>
-              <h3 className="text-xl md:text-2xl font-black text-dark-text mb-2">No assignments yet.</h3>
-              <p className="text-xs md:text-sm font-bold text-muted-text max-w-md mx-auto">
-                Once assignments are posted, they will appear here for students to complete.
-              </p>
+
+              {assignments.length > 0 ? (
+                <div className="space-y-6">
+                  {assignments.map((assignment) => (
+                    <div key={assignment.id} className="bg-white rounded-2xl border border-gray-100 shadow-soft-sm overflow-hidden">
+                      <div className="p-6">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6">
+                          <div className="flex items-center gap-3 mb-3 sm:mb-0">
+                            <div className="w-10 h-10 rounded-xl bg-primary-teal/5 flex items-center justify-center text-primary-teal shrink-0">
+                              <ClipboardList size={20} />
+                            </div>
+                            <h3 className="text-sm font-black text-dark-text uppercase tracking-wider leading-tight">{assignment.title}</h3>
+                          </div>
+                          <div className="text-[10px] font-bold text-muted-text self-end sm:self-auto">
+                            Posted {new Date(assignment.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          {assignment.dueDate && (
+                            <div className="text-[10px] font-black text-rose-500 uppercase tracking-widest">
+                              Due {new Date(assignment.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </div>
+                          )}
+                          <p className="text-sm font-bold text-muted-text leading-relaxed whitespace-pre-wrap">
+                            {assignment.description}
+                          </p>
+
+                          {assignment.attachments && assignment.attachments.length > 0 && (
+                            <div className="mt-4">
+                              {assignment.attachments.map((file, idx) => (
+                                <div key={idx} className="flex items-center gap-3 p-3 border border-gray-100 rounded-xl max-w-md group cursor-pointer hover:border-primary-teal/20 transition">
+                                  <div className="w-10 h-10 rounded-lg bg-primary-teal/5 flex items-center justify-center text-primary-teal">
+                                    <FileText size={20} />
+                                  </div>
+                                  <div className="flex-1">
+                                    <h4 className="text-xs font-black text-dark-text">{file.name}</h4>
+                                    <p className="text-[10px] font-bold text-muted-text uppercase tracking-widest">{file.type || 'document'}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="px-6 py-3 bg-gray-50/50 border-t border-gray-50 flex items-center justify-between">
+                        <button 
+                          onClick={() => setViewingSubmissionsFor(assignment)}
+                          className="text-[10px] font-black text-primary-teal uppercase tracking-widest hover:text-secondary-teal transition flex items-center gap-1 group/btn"
+                        >
+                          VIEW DETAILS
+                          <ChevronRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                        </button>
+                        <div className="flex items-center gap-4 text-[10px] font-bold text-muted-text uppercase tracking-widest">
+                          <span>{submissions.filter(s => s.assignmentId === assignment.id).length} turned in</span>
+                          <span>{submissions.filter(s => s.assignmentId === assignment.id && s.score !== null).length} graded</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-white rounded-[2rem] border border-gray-100 p-16 shadow-soft-sm text-center">
+                  <div className="w-32 h-32 bg-light-bg rounded-[2.5rem] flex items-center justify-center text-muted-text mx-auto mb-6 border border-gray-50 shadow-inner">
+                    <FileText size={48} />
+                  </div>
+                  <h3 className="text-2xl font-black text-dark-text mb-2">No assignments yet.</h3>
+                  <p className="text-sm font-bold text-muted-text max-w-md mx-auto">
+                    Once assignments are posted, they will appear here for students to complete.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
           {activeTab === 'Course Materials' && (
-            <div className="bg-white rounded-[2rem] border border-gray-100 p-8 md:p-16 shadow-soft-sm text-center">
-              <div className="w-20 h-20 md:w-32 md:h-32 bg-light-bg rounded-[1.5rem] md:rounded-[2.5rem] flex items-center justify-center text-muted-text mx-auto mb-6 border border-gray-50 shadow-inner">
-                <BookOpen size={32} className="md:hidden" />
-                <BookOpen size={48} className="hidden md:block" />
+            <div className="space-y-6">
+              {/* Add Material Button */}
+              <div className="flex justify-start">
+                <button 
+                  onClick={() => setShowMaterialModal(true)}
+                  className="px-6 py-2.5 bg-primary-teal text-white rounded-full text-xs font-black uppercase tracking-widest hover:bg-secondary-teal transition shadow-lg shadow-primary-teal/20 flex items-center gap-2"
+                >
+                  <Plus size={18} />
+                  Add Material
+                </button>
               </div>
-              <h3 className="text-xl md:text-2xl font-black text-dark-text mb-2">Materials will appear here.</h3>
-              <p className="text-xs md:text-sm font-bold text-muted-text max-w-md mx-auto">
-                Upload PDFs, videos, and links to help your students learn.
-              </p>
+
+              {materials.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {materials.map((material) => (
+                    <div key={material.id} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-soft-sm hover:shadow-md transition group">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-xl bg-primary-teal/5 flex items-center justify-center text-primary-teal border border-primary-teal/10">
+                            {material.type === 'file' ? <FileText size={24} /> : <LinkIcon size={24} />}
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-black text-dark-text group-hover:text-primary-teal transition-colors">{material.title}</h4>
+                            <p className="text-[10px] font-bold text-muted-text uppercase tracking-widest">{material.type}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <a 
+                            href={material.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="p-2 hover:bg-light-bg text-muted-text hover:text-primary-teal rounded-lg transition"
+                          >
+                            <ExternalLink size={18} />
+                          </a>
+                          <button 
+                            onClick={() => handleDeleteMaterial(material.id)}
+                            className="p-2 hover:bg-rose-50 text-muted-text hover:text-rose-500 rounded-lg transition"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </div>
+                      {material.description && (
+                        <p className="mt-4 text-xs font-bold text-muted-text leading-relaxed line-clamp-2">
+                          {material.description}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-white rounded-[2rem] border border-gray-100 p-16 shadow-soft-sm text-center">
+                  <div className="w-32 h-32 bg-light-bg rounded-[2.5rem] flex items-center justify-center text-muted-text mx-auto mb-6 border border-gray-50 shadow-inner">
+                    <BookOpen size={48} />
+                  </div>
+                  <h3 className="text-2xl font-black text-dark-text mb-2">Materials will appear here.</h3>
+                  <p className="text-sm font-bold text-muted-text max-w-md mx-auto">
+                    Upload PDFs, videos, and links to help your students learn.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
           {activeTab === 'People' && (
-            <div className="bg-white rounded-[2rem] border border-gray-100 p-8 md:p-16 shadow-soft-sm text-center">
-              <div className="w-20 h-20 md:w-32 md:h-32 bg-light-bg rounded-[1.5rem] md:rounded-[2.5rem] flex items-center justify-center text-muted-text mx-auto mb-6 border border-gray-50 shadow-inner">
-                <Users size={32} className="md:hidden" />
-                <Users size={48} className="hidden md:block" />
-              </div>
-              <h3 className="text-xl md:text-2xl font-black text-dark-text mb-2">Class Roster</h3>
-              <p className="text-xs md:text-sm font-bold text-muted-text max-w-md mx-auto">
-                View all teachers and students enrolled in this subject.
-              </p>
+            <div className="space-y-8">
+              {/* Teacher Section */}
+              <section>
+                <h3 className="text-xs font-black text-muted-text uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                  <UserCheck size={16} className="text-primary-teal" /> Teachers
+                </h3>
+                <div className="bg-white rounded-[2rem] border border-gray-100 overflow-hidden shadow-soft-sm">
+                  <div className="p-6 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-primary-teal/10 flex items-center justify-center text-primary-teal">
+                      <User size={24} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-dark-text">{subjectData?.teacherName || 'Assigned Teacher'}</h4>
+                      <p className="text-[10px] font-bold text-muted-text uppercase tracking-widest">Subject Lead</p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Students Section */}
+              <section>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xs font-black text-muted-text uppercase tracking-[0.2em] flex items-center gap-2">
+                    <GraduationCap size={16} className="text-primary-teal" /> Students
+                  </h3>
+                  <span className="text-[10px] font-black text-primary-teal bg-primary-teal/5 px-3 py-1 rounded-full uppercase tracking-widest">
+                    {students.length} Enrolled
+                  </span>
+                </div>
+                <div className="bg-white rounded-[2rem] border border-gray-100 overflow-hidden shadow-soft-sm divide-y divide-gray-50">
+                  {students.length > 0 ? students.map((student) => (
+                    <div key={student.id} className="p-6 flex items-center justify-between hover:bg-light-bg/50 transition">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-light-bg flex items-center justify-center text-muted-text overflow-hidden border border-gray-100">
+                          {student.profilePhoto ? (
+                            <img src={student.profilePhoto} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <User size={20} />
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-black text-dark-text">{student.firstName} {student.lastName}</h4>
+                          <p className="text-[10px] font-bold text-muted-text uppercase tracking-widest">{student.wristbandId || 'No ID'}</p>
+                        </div>
+                      </div>
+                      <button className="p-2 hover:bg-white rounded-xl text-muted-text hover:text-primary-teal transition shadow-sm border border-transparent hover:border-gray-100">
+                        <MessageSquare size={18} />
+                      </button>
+                    </div>
+                  )) : (
+                    <div className="p-12 text-center">
+                      <p className="text-sm font-bold text-muted-text">No students enrolled in this class yet.</p>
+                    </div>
+                  )}
+                </div>
+              </section>
             </div>
           )}
 
           {activeTab === 'Grades' && (
-            <div className="bg-white rounded-[2rem] border border-gray-100 p-8 md:p-16 shadow-soft-sm text-center">
-              <div className="w-20 h-20 md:w-32 md:h-32 bg-light-bg rounded-[1.5rem] md:rounded-[2.5rem] flex items-center justify-center text-muted-text mx-auto mb-6 border border-gray-50 shadow-inner">
-                <Trophy size={32} className="md:hidden" />
-                <Trophy size={48} className="hidden md:block" />
+            <div className="bg-white rounded-[2rem] border border-gray-100 overflow-hidden shadow-soft-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-light-bg/50 border-b border-gray-100">
+                      <th className="p-6 text-[10px] font-black text-muted-text uppercase tracking-widest w-64">Student</th>
+                      {assignments.length > 0 ? assignments.map(assignment => (
+                        <th key={assignment.id} className="p-6 text-[10px] font-black text-muted-text uppercase tracking-widest min-w-[120px] text-center">
+                          <div className="truncate max-w-[100px] mx-auto" title={assignment.title}>
+                            {assignment.title}
+                          </div>
+                          <div className="text-[8px] mt-1 text-primary-teal/60 font-bold">
+                            Max: {assignment.maxScore || 100}
+                          </div>
+                        </th>
+                      )) : (
+                        <th className="p-6 text-[10px] font-black text-muted-text uppercase tracking-widest text-center">No Assignments</th>
+                      )}
+                      <th className="p-6 text-[10px] font-black text-primary-teal uppercase tracking-widest text-center w-32">Average</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {students.length > 0 ? students.map((student) => {
+                      const studentSubmissions = submissions.filter(s => s.studentId === student.id)
+                      const gradedSubmissions = studentSubmissions.filter(s => s.score !== null)
+                      const average = gradedSubmissions.length > 0 
+                        ? Math.round(gradedSubmissions.reduce((acc, s) => {
+                            const assignment = assignments.find(a => a.id === s.assignmentId)
+                            const max = assignment?.maxScore || 100
+                            return acc + (s.score / max) * 100
+                          }, 0) / gradedSubmissions.length)
+                        : null
+
+                      return (
+                        <tr key={student.id} className="hover:bg-light-bg/30 transition">
+                          <td className="p-6">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-light-bg flex items-center justify-center text-muted-text text-[10px] font-bold border border-gray-100 overflow-hidden">
+                                {student.profilePhoto ? (
+                                  <img src={student.profilePhoto} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <User size={14} />
+                                )}
+                              </div>
+                              <div>
+                                <div className="text-sm font-black text-dark-text leading-none mb-1">{student.firstName} {student.lastName}</div>
+                                <div className="text-[10px] font-bold text-muted-text uppercase tracking-widest">{student.wristbandId || 'No ID'}</div>
+                              </div>
+                            </div>
+                          </td>
+                          {assignments.length > 0 ? assignments.map(assignment => {
+                            const sub = studentSubmissions.find(s => s.assignmentId === assignment.id)
+                            return (
+                              <td key={assignment.id} className="p-6 text-center">
+                                <div 
+                                  onClick={() => {
+                                    if (sub) {
+                                      setSelectedSubmission(sub)
+                                      setGradeData({ 
+                                        score: sub.score !== null ? sub.score : '', 
+                                        feedback: sub.feedback || '' 
+                                      })
+                                    }
+                                  }}
+                                  className={`inline-flex items-center justify-center w-12 h-10 rounded-xl border text-sm font-bold transition-all cursor-pointer hover:scale-105 ${
+                                  sub?.score !== null && sub?.score !== undefined
+                                    ? 'bg-emerald-50 border-emerald-100 text-emerald-600'
+                                    : sub 
+                                      ? 'bg-amber-50 border-amber-100 text-amber-600'
+                                      : 'bg-gray-50 border-gray-100 text-muted-text hover:border-primary-teal/20'
+                                }`}>
+                                  {sub?.score !== null && sub?.score !== undefined ? sub.score : sub ? '—' : '—'}
+                                </div>
+                              </td>
+                            )
+                          }) : (
+                            <td className="p-6 text-center text-xs font-bold text-muted-text italic">
+                              Waiting for assignments...
+                            </td>
+                          )}
+                          <td className="p-6 text-center">
+                            <div className={`text-sm font-black px-3 py-1.5 rounded-lg inline-block ${
+                              average !== null 
+                                ? 'text-primary-teal bg-primary-teal/5' 
+                                : 'text-muted-text bg-gray-50'
+                            }`}>
+                              {average !== null ? `${average}%` : '—'}
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    }) : (
+                      <tr>
+                        <td colSpan={assignments.length + 2} className="p-20 text-center">
+                          <div className="w-20 h-20 bg-light-bg rounded-[1.5rem] flex items-center justify-center text-muted-text mx-auto mb-4 border border-gray-50">
+                            <Trophy size={32} />
+                          </div>
+                          <h4 className="text-lg font-black text-dark-text mb-1">No data available</h4>
+                          <p className="text-xs font-bold text-muted-text max-w-xs mx-auto">
+                            The gradebook will populate once students are enrolled and assignments are posted.
+                          </p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
-              <h3 className="text-xl md:text-2xl font-black text-dark-text mb-2">Gradebook</h3>
-              <p className="text-xs md:text-sm font-bold text-muted-text max-w-md mx-auto">
-                Track student progress and performance in this subject.
-              </p>
             </div>
           )}
         </div>
       </div>
+
+      {/* Submissions Modal */}
+      {viewingSubmissionsFor && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+          <div className="absolute inset-0 bg-dark-text/60 backdrop-blur-sm" onClick={() => setViewingSubmissionsFor(null)}></div>
+          <div className="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
+            <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-primary-teal/10 flex items-center justify-center text-primary-teal">
+                  <ClipboardList size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-dark-text tracking-tight uppercase leading-none mb-1">Submissions</h3>
+                  <p className="text-[10px] font-bold text-muted-text uppercase tracking-widest">{viewingSubmissionsFor.title}</p>
+                </div>
+              </div>
+              <button onClick={() => setViewingSubmissionsFor(null)} className="p-2 hover:bg-light-bg rounded-xl transition-colors text-muted-text">
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8">
+              <div className="grid grid-cols-1 gap-4">
+                {students.map(student => {
+                  const sub = submissions.find(s => s.studentId === student.id && s.assignmentId === viewingSubmissionsFor.id);
+                  return (
+                    <div key={student.id} className="bg-light-bg/50 rounded-2xl p-4 flex items-center justify-between hover:bg-light-bg transition border border-transparent hover:border-primary-teal/10">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-muted-text overflow-hidden border border-gray-100">
+                          {student.profilePhoto ? (
+                            <img src={student.profilePhoto} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <User size={20} />
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-black text-dark-text">{student.firstName} {student.lastName}</h4>
+                          <div className="flex items-center gap-2 mt-1">
+                            {sub ? (
+                              <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${
+                                sub.score !== null ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'
+                              }`}>
+                                {sub.score !== null ? 'Graded' : 'Turned In'}
+                              </span>
+                            ) : (
+                              <span className="text-[8px] font-black px-2 py-0.5 rounded-full bg-gray-200 text-gray-500 uppercase tracking-widest">
+                                Missing
+                              </span>
+                            )}
+                            {sub && (
+                              <span className="text-[8px] font-bold text-muted-text uppercase tracking-widest flex items-center gap-1">
+                                <Clock size={10} /> {new Date(sub.submittedAt).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                              {sub ? (
+                                <>
+                                  {typeof sub.score === 'number' && (
+                                    <div className="text-right mr-4">
+                                      <div className="text-xs font-black text-primary-teal">{sub.score} / {viewingSubmissionsFor.maxScore || 100}</div>
+                                      <div className="text-[8px] font-bold text-muted-text uppercase tracking-widest">Score</div>
+                                    </div>
+                                  )}
+                            <button 
+                              onClick={() => {
+                                setSelectedSubmission(sub);
+                                setGradeData({ 
+                                  score: sub.score !== null ? sub.score : '', 
+                                  feedback: sub.feedback || '' 
+                                });
+                              }}
+                              className="px-4 py-2 bg-white text-primary-teal border border-primary-teal/20 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary-teal hover:text-white transition shadow-sm"
+                            >
+                              {sub.score !== null ? 'Update Grade' : 'Grade Now'}
+                            </button>
+                          </>
+                        ) : (
+                          <div className="text-[10px] font-bold text-muted-text italic pr-4">Waiting for submission...</div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Review Answers Modal */}
+      {reviewPaper && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6">
+          <div className="absolute inset-0 bg-dark-text/60 backdrop-blur-sm" onClick={() => setReviewPaper(null)}></div>
+          <div className="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
+            <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-primary-teal/10 flex items-center justify-center text-primary-teal">
+                  <FileText size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-dark-text tracking-tight uppercase leading-none mb-1">Review Answers</h3>
+                  <p className="text-[10px] font-bold text-muted-text uppercase tracking-widest">{reviewPaper.title}</p>
+                </div>
+              </div>
+              <button onClick={() => setReviewPaper(null)} className="p-2 hover:bg-light-bg rounded-xl transition-colors text-muted-text">
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 space-y-12">
+              {reviewPaper.sections.sort((a, b) => a.order - b.order).map((section, sIdx) => {
+                const sectionQuestions = reviewPaper.questions.filter(q => q.sectionId === section.id).sort((a, b) => a.order - b.order);
+                if (sectionQuestions.length === 0) return null;
+
+                return (
+                  <div key={section.id} className="space-y-8">
+                    <div className="border-l-4 border-primary-teal pl-6">
+                      <h4 className="text-lg font-black text-dark-text uppercase tracking-tight">{section.title}</h4>
+                      {section.description && <p className="text-xs font-bold text-muted-text mt-1">{section.description}</p>}
+                    </div>
+
+                    <div className="space-y-10">
+                      {sectionQuestions.map((q, qIdx) => {
+                        const studentAnswer = selectedSubmission?.answers?.[q.id];
+                        const isMCQ = q.type === 'Multiple Choice' || q.type === 'MCQ';
+
+                        return (
+                          <div key={q.id} className="space-y-4">
+                            <div className="flex items-start gap-4">
+                              <span className="text-xs font-black text-primary-teal bg-primary-teal/5 w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+                                {qIdx + 1}
+                              </span>
+                              <div className="flex-1 space-y-4">
+                                <h5 className="text-sm font-bold text-dark-text leading-relaxed">{q.text}</h5>
+                                
+                                {isMCQ ? (
+                                  <div className="grid grid-cols-1 gap-2">
+                                    {q.options?.map((option, oIdx) => {
+                                      const isSelected = studentAnswer === oIdx;
+                                      const isCorrect = q.correctAnswer === option;
+                                      
+                                      return (
+                                        <div 
+                                          key={oIdx}
+                                          className={`p-3 rounded-xl border flex items-center justify-between ${
+                                            isSelected 
+                                              ? isCorrect 
+                                                ? 'bg-emerald-50 border-emerald-200 text-emerald-700' 
+                                                : 'bg-rose-50 border-rose-200 text-rose-700'
+                                              : isCorrect
+                                                ? 'bg-emerald-50/30 border-emerald-100 text-emerald-600 border-dashed'
+                                                : 'bg-gray-50 border-gray-100 text-muted-text'
+                                          }`}
+                                        >
+                                          <div className="flex items-center gap-3">
+                                            {isSelected ? <CheckCircle2 size={16} /> : <Circle size={16} className="opacity-20" />}
+                                            <span className="text-xs font-bold">{option}</span>
+                                          </div>
+                                          {isSelected && (
+                                            <span className="text-[8px] font-black uppercase tracking-widest">
+                                              Student's Choice
+                                            </span>
+                                          )}
+                                          {!isSelected && isCorrect && (
+                                            <span className="text-[8px] font-black uppercase tracking-widest opacity-60">
+                                              Correct Answer
+                                            </span>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                ) : (
+                                  <div className="p-4 bg-light-bg rounded-xl border border-gray-100">
+                                    <p className="text-[8px] font-black text-muted-text uppercase tracking-widest mb-2">Student's Answer</p>
+                                    <p className="text-xs font-bold text-dark-text whitespace-pre-wrap">
+                                      {studentAnswer || <span className="italic opacity-50">No answer provided</span>}
+                                    </p>
+                                  </div>
+                                )}
+                                
+                                <div className="flex items-center justify-between">
+                                  <div className="text-[10px] font-black text-muted-text uppercase tracking-widest flex items-center gap-2">
+                                    <AlertCircle size={12} /> {q.marks} Marks
+                                  </div>
+                                  {isMCQ && (
+                                    <div className={`text-[10px] font-black uppercase tracking-widest ${
+                                      (studentAnswer !== undefined && q.options[studentAnswer] === q.correctAnswer)
+                                        ? 'text-emerald-500'
+                                        : 'text-rose-500'
+                                    }`}>
+                                      {(studentAnswer !== undefined && q.options[studentAnswer] === q.correctAnswer) ? '✓ Correct' : '✕ Incorrect'}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div className="p-8 border-t border-gray-100 bg-gray-50 flex justify-end">
+              <button 
+                onClick={() => setReviewPaper(null)}
+                className="px-8 py-3 bg-primary-teal text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-secondary-teal transition shadow-lg shadow-primary-teal/20"
+              >
+                Close Review
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Grading Modal */}
+      {selectedSubmission && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6">
+          <div className="absolute inset-0 bg-dark-text/60 backdrop-blur-sm" onClick={() => setSelectedSubmission(null)}></div>
+          <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl relative overflow-hidden animate-slide-up">
+            <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-primary-teal/10 flex items-center justify-center text-primary-teal">
+                  <UserCheck size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-dark-text tracking-tight uppercase leading-none mb-1">Grade Submission</h3>
+                  <p className="text-[10px] font-bold text-muted-text uppercase tracking-widest">
+                    {students.find(s => s.id === selectedSubmission.studentId)?.firstName} {students.find(s => s.id === selectedSubmission.studentId)?.lastName}
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedSubmission(null)} className="p-2 hover:bg-light-bg rounded-xl transition-colors text-muted-text">
+                <X size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateGrade} className="p-8 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <label className="text-[10px] font-black text-muted-text uppercase tracking-widest ml-1">Submitted File</label>
+                  <div className="p-4 bg-light-bg rounded-2xl border border-gray-100 flex items-center justify-between group">
+                    <div className="flex items-center gap-3">
+                      <FileText size={20} className="text-primary-teal" />
+                      <span className="text-sm font-bold text-dark-text truncate max-w-[150px]">{selectedSubmission.fileName}</span>
+                    </div>
+                    {selectedSubmission.fileName?.startsWith('Digital Exam:') && (
+                      <button 
+                        type="button" 
+                        onClick={() => handleReviewAnswers(selectedSubmission)}
+                        disabled={isFetchingReview}
+                        className="p-2 hover:bg-white rounded-lg text-primary-teal transition shadow-sm flex items-center gap-2"
+                      >
+                        {isFetchingReview ? (
+                          <div className="w-4 h-4 border-2 border-primary-teal/30 border-t-primary-teal rounded-full animate-spin" />
+                        ) : (
+                          <ExternalLink size={16} />
+                        )}
+                        <span className="text-[10px] font-black uppercase tracking-widest">Review Answers</span>
+                      </button>
+                    )}
+                  </div>
+                  <div className="text-[10px] font-bold text-muted-text uppercase tracking-widest flex items-center gap-2 ml-1">
+                    <Clock size={12} /> Submitted {new Date(selectedSubmission.submittedAt).toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <label className="text-[10px] font-black text-muted-text uppercase tracking-widest ml-1">Enter Mark</label>
+                  <div className="relative">
+                    <input 
+                      type="number"
+                      required
+                      placeholder="0"
+                      value={gradeData.score}
+                      onChange={(e) => setGradeData({ ...gradeData, score: e.target.value })}
+                      className="w-full px-6 py-4 bg-light-bg border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-primary-teal transition-all"
+                    />
+                    <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-muted-text uppercase">
+                      / {currentMaxScore}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <label className="text-[10px] font-black text-muted-text uppercase tracking-widest ml-1">Teacher Feedback</label>
+                <textarea 
+                  placeholder="Great work! Keep it up..."
+                  value={gradeData.feedback}
+                  onChange={(e) => setGradeData({ ...gradeData, feedback: e.target.value })}
+                  className="w-full px-6 py-4 bg-light-bg border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-primary-teal transition-all min-h-[120px]"
+                ></textarea>
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <button 
+                  type="button"
+                  onClick={() => setSelectedSubmission(null)}
+                  className="flex-1 py-4 bg-light-bg text-dark-text rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-gray-100 transition"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  disabled={isGrading}
+                  className="flex-1 py-4 bg-primary-teal text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-secondary-teal transition shadow-lg shadow-primary-teal/20 flex items-center justify-center gap-2"
+                >
+                  {isGrading ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <CheckCircle2 size={16} />
+                      Save Grade
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

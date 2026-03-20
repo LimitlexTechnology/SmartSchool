@@ -50,7 +50,13 @@ const Login = () => {
           localStorage.setItem('studentId', j.studentId);
           localStorage.setItem('studentTableId', j.id);
           localStorage.setItem('studentName', j.name);
-          if (j.schoolId) localStorage.setItem('schoolId', j.schoolId);
+          if (j.schoolId) {
+            localStorage.setItem('schoolId', j.schoolId);
+            document.cookie = `schoolId=${encodeURIComponent(j.schoolId)}; Path=/; Max-Age=${60 * 60 * 24 * 7}`
+          }
+          if (j.id) {
+            document.cookie = `studentId=${encodeURIComponent(j.id)}; Path=/; Max-Age=${60 * 60 * 24 * 7}`
+          }
           navigate('/portal');
           return
         }

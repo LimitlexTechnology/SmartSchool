@@ -1,0 +1,41 @@
+{
+  "submissions": [
+    {
+      "id": "5d9900d0-d2c0-4ac8-8bf3-5ccac307d046",
+      "assignmentId": "63dd3fc3-8888-4e42-92f1-4dbcf0a4c5f2",
+      "studentId": "df94d02a-4655-4a3a-af86-476687e3051d",
+      "fileName": "Digital Exam: Midterm-Computing-Term 1",
+      "submittedAt": "2026-03-20T14:05:37.831Z",
+      "status": "Graded",
+      "score": 0,
+      "gradedAt": "2026-03-20T14:11:06.609Z",
+      "feedback": "You didn't answer question"
+    },
+    {
+      "id": "4231559d-7705-4207-bd98-8333a2bea339",
+      "assignmentId": "e25c7987-7c10-4552-bb27-908e9ce4413c",
+      "studentId": "df94d02a-4655-4a3a-af86-476687e3051d",
+      "fileName": "Digital Exam: French",
+      "submittedAt": "2026-03-20T17:09:18.006Z",
+      "status": "Graded",
+      "score": 100,
+      "gradedAt": "2026-03-20T17:11:14.739Z",
+      "feedback": "Great Keep it up"
+    },
+    {
+      "id": "f3d0a0c9-6d8c-400b-8f82-428281f9aa39",
+      "assignmentId": "655ba244-494c-4437-9382-c77f00f923cc",
+      "studentId": "df94d02a-4655-4a3a-af86-476687e3051d",
+      "fileName": "Digital Exam: Science Test",
+      "submittedAt": "2026-03-20T17:32:03.569Z",
+      "status": "Graded",
+      "answers": {
+        "f0bf3798-c544-4df3-b233-aef290f12d53": 1,
+        "938d10de-80a4-4050-91c0-e6d31ad2fecf": 1
+      },
+      "score": 100,
+      "gradedAt": "2026-03-20T17:38:43.048Z",
+      "feedback": "Good Job"
+    }
+  ]
+}
