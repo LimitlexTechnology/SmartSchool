@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { X, Paperclip, Upload, Calendar, Users, ToggleLeft, ToggleRight, FileText, CheckCircle2 } from 'lucide-react';
+import { X, Paperclip, Upload, Calendar, Users, ToggleLeft, ToggleRight, FileText, CheckCircle2, User } from 'lucide-react';
 
 const CreateAssignment = () => {
   const navigate = useNavigate();
