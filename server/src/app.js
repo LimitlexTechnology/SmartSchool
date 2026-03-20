@@ -234,6 +234,57 @@ function writeTenantSubjects(schoolId, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2))
 }
 
+function ensureTenantClassAssignmentsFile(schoolId) {
+  if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
+  const dir = path.join(TENANT_DIR, schoolId)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'class_assignments.json')
+  if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify({ assignments: [] }, null, 2))
+  return file
+}
+function readTenantClassAssignments(schoolId) {
+  const file = ensureTenantClassAssignmentsFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { assignments: [] } }
+}
+function writeTenantClassAssignments(schoolId, data) {
+  const file = ensureTenantClassAssignmentsFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
+function ensureTenantQuestionPapersFile(schoolId) {
+  if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
+  const dir = path.join(TENANT_DIR, schoolId)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'question_papers.json')
+  if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify({ papers: [], sections: [], questions: [] }, null, 2))
+  return file
+}
+function readTenantQuestionPapers(schoolId) {
+  const file = ensureTenantQuestionPapersFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { papers: [], sections: [], questions: [] } }
+}
+function writeTenantQuestionPapers(schoolId, data) {
+  const file = ensureTenantQuestionPapersFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
+function ensureTenantCourseMaterialsFile(schoolId) {
+  if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
+  const dir = path.join(TENANT_DIR, schoolId)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'course_materials.json')
+  if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify({ materials: [] }, null, 2))
+  return file
+}
+function readTenantCourseMaterials(schoolId) {
+  const file = ensureTenantCourseMaterialsFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { materials: [] } }
+}
+function writeTenantCourseMaterials(schoolId, data) {
+  const file = ensureTenantCourseMaterialsFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
 function ensureTenantTeachingAssignmentsFile(schoolId) {
   if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
   const dir = path.join(TENANT_DIR, schoolId)
@@ -248,6 +299,23 @@ function readTenantTeachingAssignments(schoolId) {
 }
 function writeTenantTeachingAssignments(schoolId, data) {
   const file = ensureTenantTeachingAssignmentsFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
+function ensureTenantSubmissionsFile(schoolId) {
+  if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
+  const dir = path.join(TENANT_DIR, schoolId)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'submissions.json')
+  if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify({ submissions: [] }, null, 2))
+  return file
+}
+function readTenantSubmissions(schoolId) {
+  const file = ensureTenantSubmissionsFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { submissions: [] } }
+}
+function writeTenantSubmissions(schoolId, data) {
+  const file = ensureTenantSubmissionsFile(schoolId)
   fs.writeFileSync(file, JSON.stringify(data, null, 2))
 }
 
@@ -2919,6 +2987,376 @@ app.post('/api/announcements', auth, async (req, res) => {
     res.status(501).json({ error: 'Not implemented' })
   } catch (e) {
     res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+// ============== Class Assignments APIs ==============
+app.get('/api/class-assignments', auth, async (req, res) => {
+  try {
+    const { subjectId, classId } = req.query
+    if (req.schoolId && req.schoolId !== 'local') {
+      const store = readTenantClassAssignments(req.schoolId)
+      let data = store.assignments
+      if (subjectId) data = data.filter(a => a.subjectId === subjectId)
+      if (classId) data = data.filter(a => a.classId === classId)
+      data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      return res.json({ assignments: data })
+    }
+    return res.json({ assignments: [] })
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.post('/api/class-assignments', auth, async (req, res) => {
+  try {
+    const {
+      title, description, dueDate, subjectId, classId, attachments,
+      exam, assessmentType, maxScore, startTime, assignTo, options
+    } = req.body
+    if (!title || !subjectId) return res.status(400).json({ error: 'title and subjectId are required' })
+
+    if (req.schoolId && req.schoolId !== 'local') {
+      const store = readTenantClassAssignments(req.schoolId)
+      const newAssignment = {
+        id: randomUUID(),
+        title,
+        description: description || '',
+        dueDate: dueDate || null,
+        subjectId,
+        classId: classId || '',
+        attachments: attachments || [],
+        exam: exam || '',
+        assessmentType: assessmentType || '',
+        maxScore: maxScore || null,
+        startTime: startTime || null,
+        assignTo: assignTo || 'all',
+        options: options || { recordMarks: true, allowLate: true, allowMultiple: true, autoGrade: false },
+        createdAt: new Date().toISOString()
+      }
+      store.assignments.push(newAssignment)
+      writeTenantClassAssignments(req.schoolId, store)
+      return res.status(201).json(newAssignment)
+    }
+    res.status(501).json({ error: 'Not implemented' })
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+// ============== Submissions APIs ==============
+app.get('/api/submissions', auth, async (req, res) => {
+  try {
+    const { subjectId, studentId, assignmentId } = req.query
+    if (req.schoolId && req.schoolId !== 'local') {
+      const store = readTenantSubmissions(req.schoolId)
+      let data = store.submissions
+      
+      if (studentId) data = data.filter(s => s.studentId === studentId)
+      if (assignmentId) data = data.filter(s => s.assignmentId === assignmentId)
+      
+      // If filtering by subjectId, we need to join with assignments
+      if (subjectId) {
+        const assignmentsStore = readTenantClassAssignments(req.schoolId)
+        const subjectAssignments = assignmentsStore.assignments.filter(a => a.subjectId === subjectId).map(a => a.id)
+        data = data.filter(s => subjectAssignments.includes(s.assignmentId))
+      }
+      
+      return res.json(data)
+    }
+    res.json([])
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.post('/api/submissions', auth, async (req, res) => {
+  try {
+    const { assignmentId, studentId, fileName, submittedAt } = req.body
+    if (!assignmentId || !studentId) return res.status(400).json({ error: 'assignmentId and studentId are required' })
+
+    if (req.schoolId && req.schoolId !== 'local') {
+      const store = readTenantSubmissions(req.schoolId)
+      
+      // Check if already exists (for "Unsubmit" / "Resubmit" logic later, but for now just push)
+      const newSubmission = {
+        id: randomUUID(),
+        assignmentId,
+        studentId,
+        fileName: fileName || '',
+        submittedAt: submittedAt || new Date().toISOString(),
+        status: 'Submitted',
+        score: null,
+        gradedAt: null,
+        feedback: ''
+      }
+      
+      store.submissions.push(newSubmission)
+      writeTenantSubmissions(req.schoolId, store)
+      return res.status(201).json(newSubmission)
+    }
+    res.status(501).json({ error: 'Not implemented' })
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.put('/api/submissions/:id/grade', auth, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { score, feedback } = req.body
+
+    if (req.schoolId && req.schoolId !== 'local') {
+      const store = readTenantSubmissions(req.schoolId)
+      const index = store.submissions.findIndex(s => s.id === id)
+      if (index === -1) return res.status(404).json({ error: 'Submission not found' })
+
+      store.submissions[index] = {
+        ...store.submissions[index],
+        score: score !== '' ? parseFloat(score) : null,
+        feedback: feedback || '',
+        gradedAt: new Date().toISOString(),
+        status: 'Graded'
+      }
+
+      writeTenantSubmissions(req.schoolId, store)
+      return res.json(store.submissions[index])
+    }
+    res.status(501).json({ error: 'Not implemented' })
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+// ============== Question Paper APIs ==============
+app.get('/api/question-papers', auth, (req, res) => {
+  try {
+    const store = readTenantQuestionPapers(req.schoolId)
+    res.json(store.papers)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.post('/api/question-papers', auth, (req, res) => {
+  try {
+    const { title } = req.body
+    if (!title) return res.status(400).json({ error: 'Title is required' })
+    const store = readTenantQuestionPapers(req.schoolId)
+    const newPaper = {
+      id: randomUUID(),
+      title,
+      createdAt: new Date().toISOString(),
+      status: 'Draft',
+    }
+    store.papers.push(newPaper)
+    writeTenantQuestionPapers(req.schoolId, store)
+    res.status(201).json(newPaper)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.get('/api/question-papers/:id', auth, (req, res) => {
+  try {
+    const store = readTenantQuestionPapers(req.schoolId)
+    const paper = store.papers.find(p => p.id === req.params.id)
+    if (!paper) return res.status(404).json({ error: 'Paper not found' })
+    const sections = store.sections.filter(s => s.paperId === req.params.id)
+    const sectionIds = sections.map(s => s.id)
+    const questions = store.questions.filter(q => sectionIds.includes(q.sectionId))
+    res.json({ ...paper, sections, questions })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.put('/api/question-papers/:id', auth, (req, res) => {
+  try {
+    const { title, status } = req.body
+    const store = readTenantQuestionPapers(req.schoolId)
+    const paper = store.papers.find(p => p.id === req.params.id)
+    if (!paper) return res.status(404).json({ error: 'Paper not found' })
+    if (title !== undefined) paper.title = title
+    if (status !== undefined) paper.status = status
+    writeTenantQuestionPapers(req.schoolId, store)
+    res.json(paper)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.delete('/api/question-papers/:id', auth, (req, res) => {
+  try {
+    const store = readTenantQuestionPapers(req.schoolId)
+    const paperIndex = store.papers.findIndex(p => p.id === req.params.id)
+    if (paperIndex === -1) return res.status(404).json({ error: 'Paper not found' })
+    store.papers.splice(paperIndex, 1)
+    const sections = store.sections.filter(s => s.paperId === req.params.id)
+    const sectionIds = sections.map(s => s.id)
+    store.sections = store.sections.filter(s => s.paperId !== req.params.id)
+    store.questions = store.questions.filter(q => !sectionIds.includes(q.sectionId))
+    writeTenantQuestionPapers(req.schoolId, store)
+    res.status(204).send()
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ============== Section & Question APIs ==============
+app.post('/api/sections', auth, (req, res) => {
+  try {
+    const { paperId, title, description } = req.body
+    const store = readTenantQuestionPapers(req.schoolId)
+    const paper = store.papers.find(p => p.id === paperId)
+    if (!paper) return res.status(404).json({ error: 'Paper not found' })
+    const newSection = {
+      id: randomUUID(),
+      paperId,
+      title: title || 'Untitled Section',
+      description: description || '',
+      order: store.sections.filter(s => s.paperId === paperId).length
+    }
+    store.sections.push(newSection)
+    writeTenantQuestionPapers(req.schoolId, store)
+    res.status(201).json(newSection)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.put('/api/sections/:id', auth, (req, res) => {
+  try {
+    const { title, description, order } = req.body
+    const store = readTenantQuestionPapers(req.schoolId)
+    const section = store.sections.find(s => s.id === req.params.id)
+    if (!section) return res.status(404).json({ error: 'Section not found' })
+    if (title !== undefined) section.title = title
+    if (description !== undefined) section.description = description
+    if (order !== undefined) section.order = order
+    writeTenantQuestionPapers(req.schoolId, store)
+    res.json(section)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.delete('/api/sections/:id', auth, (req, res) => {
+  try {
+    const store = readTenantQuestionPapers(req.schoolId)
+    const index = store.sections.findIndex(s => s.id === req.params.id)
+    if (index === -1) return res.status(404).json({ error: 'Section not found' })
+    store.sections.splice(index, 1)
+    store.questions = store.questions.filter(q => q.sectionId !== req.params.id)
+    writeTenantQuestionPapers(req.schoolId, store)
+    res.status(204).send()
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.post('/api/questions', auth, (req, res) => {
+  try {
+    const { sectionId, text, type, marks, options, correctAnswer } = req.body
+    const store = readTenantQuestionPapers(req.schoolId)
+    const section = store.sections.find(s => s.id === sectionId)
+    if (!section) return res.status(404).json({ error: 'Section not found' })
+    const newQuestion = {
+      id: randomUUID(),
+      sectionId,
+      text: text || '',
+      type: type || 'Short Answer',
+      marks: marks || 0,
+      options: options || [],
+      correctAnswer: correctAnswer || null,
+      order: store.questions.filter(q => q.sectionId === sectionId).length
+    }
+    store.questions.push(newQuestion)
+    writeTenantQuestionPapers(req.schoolId, store)
+    res.status(201).json(newQuestion)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.put('/api/questions/:id', auth, (req, res) => {
+  try {
+    const { text, type, marks, options, correctAnswer, order } = req.body
+    const store = readTenantQuestionPapers(req.schoolId)
+    const question = store.questions.find(q => q.id === req.params.id)
+    if (!question) return res.status(404).json({ error: 'Question not found' })
+    if (text !== undefined) question.text = text
+    if (type !== undefined) question.type = type
+    if (marks !== undefined) question.marks = marks
+    if (options !== undefined) question.options = options
+    if (correctAnswer !== undefined) question.correctAnswer = correctAnswer
+    if (order !== undefined) question.order = order
+    writeTenantQuestionPapers(req.schoolId, store)
+    res.json(question)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.delete('/api/questions/:id', auth, (req, res) => {
+  try {
+    const store = readTenantQuestionPapers(req.schoolId)
+    const index = store.questions.findIndex(q => q.id === req.params.id)
+    if (index === -1) return res.status(404).json({ error: 'Question not found' })
+    store.questions.splice(index, 1)
+    writeTenantQuestionPapers(req.schoolId, store)
+    res.status(204).send()
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ============== Course Materials APIs ==============
+app.get('/api/course-materials', auth, (req, res) => {
+  try {
+    const { subjectId } = req.query
+    const store = readTenantCourseMaterials(req.schoolId)
+    let data = store.materials
+    if (subjectId) data = data.filter(m => m.subjectId === subjectId)
+    data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    res.json(data)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.post('/api/course-materials', auth, (req, res) => {
+  try {
+    const { title, type, url, subjectId, description } = req.body
+    if (!title || !type || !subjectId) return res.status(400).json({ error: 'title, type, and subjectId are required' })
+    const store = readTenantCourseMaterials(req.schoolId)
+    const newMaterial = {
+      id: randomUUID(),
+      title,
+      type, // 'file' or 'link'
+      url: url || '',
+      subjectId,
+      description: description || '',
+      createdAt: new Date().toISOString(),
+    }
+    store.materials.push(newMaterial)
+    writeTenantCourseMaterials(req.schoolId, store)
+    res.status(201).json(newMaterial)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.delete('/api/course-materials/:id', auth, (req, res) => {
+  try {
+    const store = readTenantCourseMaterials(req.schoolId)
+    const index = store.materials.findIndex(m => m.id === req.params.id)
+    if (index === -1) return res.status(404).json({ error: 'Material not found' })
+    store.materials.splice(index, 1)
+    writeTenantCourseMaterials(req.schoolId, store)
+    res.status(204).send()
+  } catch (e) {
+    res.status(500).json({ error: e.message })
   }
 })
 

@@ -5,7 +5,7 @@ import {
     MessageSquare, Settings, Users, FileText, TrendingUp, TrendingDown, X,
     Menu, LayoutDashboard, CreditCard, ClipboardList, Filter, Search, Plus, Minus
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import SkullarLogo from '../assets/Skullar Logo.png'
 
 const StudentPortal = () => {
@@ -19,6 +19,7 @@ const StudentPortal = () => {
     const [showProfileSwitcher, setShowProfileSwitcher] = useState(false)
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const navigate = useNavigate()
+    const location = useLocation()
 
     useEffect(() => {
         const studentId = localStorage.getItem('studentTableId')
@@ -51,6 +52,15 @@ const StudentPortal = () => {
 
         fetchData()
     }, [navigate])
+
+    // Update activeTab based on current location
+    useEffect(() => {
+        if (location.pathname.includes('/portal/online-campus')) {
+            setActiveTab('Online Campus')
+        } else if (location.pathname === '/portal') {
+            setActiveTab('Dashboard')
+        }
+    }, [location.pathname])
 
     const switchProfile = (sibId) => {
         localStorage.setItem('studentTableId', sibId)
@@ -187,7 +197,14 @@ const StudentPortal = () => {
                     {['Dashboard', 'Online Campus', 'Classroom', 'Accounts', 'Messages', 'Exams', 'Student Records', 'Parent Settings'].map((tab) => (
                         <button
                             key={tab}
-                            onClick={() => setActiveTab(tab)}
+                            onClick={() => {
+                                setActiveTab(tab)
+                                if (tab === 'Online Campus') {
+                                    navigate('/portal/online-campus')
+                                } else if (tab === 'Dashboard') {
+                                    navigate('/portal')
+                                }
+                            }}
                             className={`text-xs font-bold whitespace-nowrap py-4 border-b-2 transition-all ${activeTab === tab ? 'text-[#5E9E9E] border-[#5E9E9E]' : 'text-gray-400 border-transparent hover:text-gray-600'}`}
                         >
                             {tab}
@@ -198,9 +215,8 @@ const StudentPortal = () => {
 
             <main className="max-w-[1200px] mx-auto p-6 space-y-6 animate-fade-in">
 
-                {activeTab === 'Dashboard' && (
+                {location.pathname === '/portal' ? (
                     <>
-
                         {/* Profile Hero Section */}
                         <section className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 flex flex-col md:flex-row items-center md:items-start justify-between shadow-sm gap-8 transition-all">
                             <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
@@ -249,7 +265,13 @@ const StudentPortal = () => {
 
                         {/* 8-Grid Quick Actions */}
                         <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <QuickAction icon={BookOpen} label="Classroom" color="#F4ECFF" textColor="#A855F7" />
+                            <QuickAction 
+                                icon={BookOpen} 
+                                label="Online Campus" 
+                                color="#F4ECFF" 
+                                textColor="#A855F7" 
+                                onClick={() => navigate('/portal/online-campus')}
+                            />
                             <QuickAction icon={CreditCard} label="Accounts" color="#F0FDF4" textColor="#22C55E" />
                             <QuickAction icon={MessageSquare} label="Messages" color="#EFF6FF" textColor="#3B82F6" />
                             <QuickAction icon={GraduationCap} label="Exams" color="#FFF7ED" textColor="#F97316" />
@@ -398,9 +420,9 @@ const StudentPortal = () => {
                         </div>
 
                     </>
+                ) : (
+                    <Outlet />
                 )}
-
-                {activeTab === 'Online Campus' && <StudentOnlineCampus />}
 
                 {activeTab === 'Parent Settings' && (
                     <div className="space-y-6">
@@ -566,6 +588,11 @@ const StudentPortal = () => {
                                     onClick={() => {
                                         setActiveTab(item.id)
                                         setIsSidebarOpen(false)
+                                        if (item.id === 'Online Campus') {
+                                            navigate('/portal/online-campus')
+                                        } else if (item.id === 'Dashboard') {
+                                            navigate('/portal')
+                                        }
                                     }}
                                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === item.id
                                         ? 'bg-primary-teal text-white shadow-lg shadow-primary-teal/20'
@@ -595,8 +622,11 @@ const StudentPortal = () => {
     )
 }
 
-const QuickAction = ({ icon: Icon, label, color, textColor }) => (
-    <button className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100 flex flex-col items-center gap-3 sm:gap-4 shadow-sm hover:shadow-md transition-all group active:scale-95 w-full">
+const QuickAction = ({ icon: Icon, label, color, textColor, onClick }) => (
+    <button 
+        onClick={onClick}
+        className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100 flex flex-col items-center gap-3 sm:gap-4 shadow-sm hover:shadow-md transition-all group active:scale-95 w-full"
+    >
         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center transform group-hover:-translate-y-1 transition-transform" style={{ backgroundColor: color }}>
             <Icon className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: textColor }} />
         </div>

@@ -1,6 +1,32 @@
 {
   "students": [
     {
+      "id": "df94d02a-4655-4a3a-af86-476687e3051d",
+      "firstName": "Alpha",
+      "lastName": "Doudu",
+      "email": "alphad@gmail.com",
+      "grade": " 7",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "wristbandId": null,
+      "gender": "Male",
+      "birthday": null,
+      "admittedAt": "2026-03-20T12:15:58.936Z",
+      "religion": null,
+      "nationality": null,
+      "hometown": null,
+      "address": null,
+      "guardianName": null,
+      "guardianRelationship": null,
+      "guardianContact": null,
+      "profilePicture": null,
+      "profilePhoto": null,
+      "guardianPhoto": null,
+      "password": null,
+      "status": "active",
+      "createdAt": "2026-03-20T12:15:58.936Z",
+      "updatedAt": "2026-03-20T12:15:58.936Z"
+    },
+    {
       "id": "b0baa93b-bfb8-4b7e-aee6-4495e318f3c4",
       "firstName": "Blankson",
       "lastName": "Kwarteng",
