@@ -46,6 +46,87 @@
         "autoGrade": true
       },
       "createdAt": "2026-03-20T09:21:27.693Z"
+    },
+    {
+      "id": "63dd3fc3-8888-4e42-92f1-4dbcf0a4c5f2",
+      "title": "Computing Test",
+      "description": "",
+      "dueDate": null,
+      "subjectId": "a1126873-5531-4018-8622-35e6a948d135",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "attachments": [
+        {
+          "name": "Midterm-Computing-Term 1",
+          "id": "c430d867-8428-409c-a4bf-3763cb73653c",
+          "type": "question_paper"
+        }
+      ],
+      "exam": "",
+      "assessmentType": "",
+      "maxScore": null,
+      "startTime": null,
+      "assignTo": "all",
+      "options": {
+        "recordMarks": true,
+        "allowLate": true,
+        "allowMultiple": true,
+        "autoGrade": true
+      },
+      "createdAt": "2026-03-20T13:51:39.819Z"
+    },
+    {
+      "id": "e25c7987-7c10-4552-bb27-908e9ce4413c",
+      "title": "Devoir",
+      "description": "",
+      "dueDate": null,
+      "subjectId": "10b3e13c-a22a-4b47-aca4-991c125de3f7",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "attachments": [
+        {
+          "name": "French",
+          "id": "f9eeb9b2-a57b-485b-a280-ce68524613c8",
+          "type": "question_paper"
+        }
+      ],
+      "exam": "",
+      "assessmentType": "",
+      "maxScore": null,
+      "startTime": null,
+      "assignTo": "all",
+      "options": {
+        "recordMarks": true,
+        "allowLate": true,
+        "allowMultiple": true,
+        "autoGrade": false
+      },
+      "createdAt": "2026-03-20T17:01:54.284Z"
+    },
+    {
+      "id": "655ba244-494c-4437-9382-c77f00f923cc",
+      "title": "ASSIGNMENT",
+      "description": "",
+      "dueDate": null,
+      "subjectId": "38fc1ae4-c2b8-4003-8777-fefd728e6784",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "attachments": [
+        {
+          "name": "Science Test",
+          "id": "62398158-e514-4e1a-93b5-e2f5c483603d",
+          "type": "question_paper"
+        }
+      ],
+      "exam": "",
+      "assessmentType": "",
+      "maxScore": null,
+      "startTime": null,
+      "assignTo": "all",
+      "options": {
+        "recordMarks": true,
+        "allowLate": true,
+        "allowMultiple": true,
+        "autoGrade": true
+      },
+      "createdAt": "2026-03-20T17:31:35.073Z"
     }
   ]
 }

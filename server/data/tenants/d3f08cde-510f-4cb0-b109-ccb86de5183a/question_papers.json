@@ -5,6 +5,24 @@
       "title": "SPREADSHEET",
       "createdAt": "2026-03-20T09:09:31.203Z",
       "status": "Published"
+    },
+    {
+      "id": "c430d867-8428-409c-a4bf-3763cb73653c",
+      "title": "Midterm-Computing-Term 1",
+      "createdAt": "2026-03-20T13:40:01.708Z",
+      "status": "Published"
+    },
+    {
+      "id": "f9eeb9b2-a57b-485b-a280-ce68524613c8",
+      "title": "French",
+      "createdAt": "2026-03-20T16:52:22.704Z",
+      "status": "Published"
+    },
+    {
+      "id": "62398158-e514-4e1a-93b5-e2f5c483603d",
+      "title": "Science Test",
+      "createdAt": "2026-03-20T17:24:17.392Z",
+      "status": "Published"
     }
   ],
   "sections": [
@@ -13,6 +31,27 @@
       "paperId": "44d4e09b-5598-4421-9a24-1668e9f1092e",
       "title": "INTRODUCTION TOEXCEL",
       "description": "Answer all questions carefully",
+      "order": 0
+    },
+    {
+      "id": "a2edb99f-024b-4d0f-9d2e-d9fed63f928a",
+      "paperId": "c430d867-8428-409c-a4bf-3763cb73653c",
+      "title": "Untitled Section",
+      "description": "Answer All questions from the following",
+      "order": 0
+    },
+    {
+      "id": "a76b01f2-c6bf-447d-b2d8-b906c057196a",
+      "paperId": "f9eeb9b2-a57b-485b-a280-ce68524613c8",
+      "title": "Untitled Section",
+      "description": "",
+      "order": 0
+    },
+    {
+      "id": "6fb109f6-df3f-403f-a52a-5acbfb124fec",
+      "paperId": "62398158-e514-4e1a-93b5-e2f5c483603d",
+      "title": "OBJECTIVE TEST",
+      "description": "",
       "order": 0
     }
   ],
@@ -29,6 +68,133 @@
       ],
       "correctAnswer": "Typing letters",
       "order": 0
+    },
+    {
+      "id": "43173bf2-8dca-47e4-ad89-1f292bf73cc4",
+      "sectionId": "a2edb99f-024b-4d0f-9d2e-d9fed63f928a",
+      "text": "1. What does CPU stand for?",
+      "type": "Multiple Choice",
+      "marks": 0,
+      "options": [
+        " Central Process Unit",
+        "Central Processing Unit "
+      ],
+      "correctAnswer": "Central Processing Unit ",
+      "order": 0
+    },
+    {
+      "id": "81ba2f7e-dbee-4361-99d6-d2c8e914f88c",
+      "sectionId": "a2edb99f-024b-4d0f-9d2e-d9fed63f928a",
+      "text": "Which of the following is an input device?",
+      "type": "Multiple Choice",
+      "marks": 0,
+      "options": [
+        "Printer",
+        "Scanne"
+      ],
+      "correctAnswer": "Scanner",
+      "order": 1
+    },
+    {
+      "id": "e1e609e4-d1ce-4d45-980d-390c69870c0b",
+      "sectionId": "a2edb99f-024b-4d0f-9d2e-d9fed63f928a",
+      "text": "What are peripheral",
+      "type": "Short Answer",
+      "marks": 0,
+      "options": [],
+      "correctAnswer": null,
+      "order": 2
+    },
+    {
+      "id": "f2dbd072-8eb0-4b61-a13e-1737cc7ecaf1",
+      "sectionId": "a76b01f2-c6bf-447d-b2d8-b906c057196a",
+      "text": "Je m'appelle Blankson Kwarteng. Mon prenom est ......",
+      "type": "Multiple Choice",
+      "marks": 1,
+      "options": [
+        "Kwarteng",
+        "Blankson"
+      ],
+      "correctAnswer": "Blankson",
+      "order": 0
+    },
+    {
+      "id": "b40b719c-8b86-4456-8ed6-a58f1366d969",
+      "sectionId": "a76b01f2-c6bf-447d-b2d8-b906c057196a",
+      "text": "J' ........ dix ans.",
+      "type": "Multiple Choice",
+      "marks": 1,
+      "options": [
+        "ai",
+        "a"
+      ],
+      "correctAnswer": "ai",
+      "order": 1
+    },
+    {
+      "id": "86925b31-efc0-48b1-a663-823bd103af21",
+      "sectionId": "a76b01f2-c6bf-447d-b2d8-b906c057196a",
+      "text": "...... stylo est sous la table.",
+      "type": "Multiple Choice",
+      "marks": 1,
+      "options": [
+        "le",
+        "la"
+      ],
+      "correctAnswer": "le",
+      "order": 2
+    },
+    {
+      "id": "39ea4a80-84e4-4387-a229-a5545c87b499",
+      "sectionId": "a76b01f2-c6bf-447d-b2d8-b906c057196a",
+      "text": "...... pere est docteur.",
+      "type": "Multiple Choice",
+      "marks": 1,
+      "options": [
+        "Ma",
+        "Mon"
+      ],
+      "correctAnswer": "Mon",
+      "order": 3
+    },
+    {
+      "id": "6259b623-dcde-4a0e-807b-cde3fadbec4a",
+      "sectionId": "a76b01f2-c6bf-447d-b2d8-b906c057196a",
+      "text": "........ soeur est Alice.",
+      "type": "Multiple Choice",
+      "marks": 1,
+      "options": [
+        "Ton",
+        "Ta"
+      ],
+      "correctAnswer": "Ta",
+      "order": 4
+    },
+    {
+      "id": "f0bf3798-c544-4df3-b233-aef290f12d53",
+      "sectionId": "6fb109f6-df3f-403f-a52a-5acbfb124fec",
+      "text": " What is the boiling point of water at sea level?",
+      "type": "Multiple Choice",
+      "marks": 1,
+      "options": [
+        "90°C",
+        "100°C"
+      ],
+      "correctAnswer": "100°C",
+      "order": 0
+    },
+    {
+      "id": "938d10de-80a4-4050-91c0-e6d31ad2fecf",
+      "sectionId": "6fb109f6-df3f-403f-a52a-5acbfb124fec",
+      "text": "Which gas do plants use for photosynthesis?",
+      "type": "Multiple Choice",
+      "marks": 1,
+      "options": [
+        "Oxygen",
+        "Carbon dioxide"
+      ],
+      "correctAnswer": "Carbon dioxide",
+      "order": 1
     }
   ]
 }

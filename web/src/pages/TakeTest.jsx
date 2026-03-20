@@ -92,8 +92,13 @@ const TakeTest = () => {
       
       paper.questions.forEach(q => {
         possibleScore += q.marks || 0;
-        if (q.type === 'MCQ' && answers[q.id] === q.correctAnswer) {
-          totalScore += q.marks || 0;
+        const isMCQ = q.type === 'MCQ' || q.type === 'Multiple Choice';
+        if (isMCQ) {
+          const selectedOptionIndex = answers[q.id];
+          const selectedOptionValue = q.options[selectedOptionIndex];
+          if (selectedOptionValue === q.correctAnswer) {
+            totalScore += q.marks || 0;
+          }
         }
       });
 
@@ -211,7 +216,7 @@ const TakeTest = () => {
                 <div className="space-y-6 flex-1">
                   <h3 className="text-lg font-bold text-dark-text leading-relaxed">{q.text}</h3>
                   
-                  {q.type === 'MCQ' ? (
+                  { (q.type === 'MCQ' || q.type === 'Multiple Choice') ? (
                     <div className="grid grid-cols-1 gap-3">
                       {q.options.map((option, oIdx) => (
                         <button

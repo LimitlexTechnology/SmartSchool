@@ -12,6 +12,7 @@ const StudentPortal = () => {
     const [student, setStudent] = useState(null)
     const [siblings, setSiblings] = useState([])
     const [behaviorHistory, setBehaviorHistory] = useState([])
+    const [upcomingAssignments, setUpcomingAssignments] = useState([])
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState('Dashboard')
     const [saving, setSaving] = useState(false)
@@ -42,6 +43,32 @@ const StudentPortal = () => {
                 // Fetch behavior history
                 const behRes = await fetch(`/api/students/${studentId}/behavior/history`)
                 if (behRes.ok) setBehaviorHistory(await behRes.json())
+
+                // Fetch all assignments across subjects for "Upcoming" section
+                const subRes = await fetch('/api/student/subjects')
+                if (subRes.ok) {
+                    const { subjects } = await subRes.json()
+                    const allAssignmentsPromises = subjects.map(sub => 
+                        fetch(`/api/class-assignments?subjectId=${sub.id}`).then(r => r.json())
+                    )
+                    const assignmentsResults = await Promise.all(allAssignmentsPromises)
+                    
+                    // Flatten and filter for upcoming/overdue
+                    const flattened = assignmentsResults.flatMap((res, idx) => 
+                        (res.assignments || []).map(a => ({ ...a, subjectName: subjects[idx].subjectName }))
+                    )
+                    
+                    // Filter: Not submitted and due date is in the future or recently past
+                    const subr = await fetch(`/api/submissions?studentId=${studentId}`)
+                    const submissions = subr.ok ? await subr.json() : []
+                    const submittedIds = submissions.map(s => s.assignmentId)
+                    
+                    const upcoming = flattened
+                        .filter(a => !submittedIds.includes(a.id))
+                        .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+                    
+                    setUpcomingAssignments(upcoming.slice(0, 5))
+                }
 
             } catch (err) {
                 console.error(err)
@@ -358,12 +385,69 @@ const StudentPortal = () => {
 
                             {/* Pending Assignments */}
                             <div className="space-y-4">
-                                <h3 className="text-xs font-bold text-gray-800 uppercase tracking-widest">Pending Assignments</h3>
-                                <div className="bg-white rounded-2xl border border-gray-100 p-2 shadow-sm space-y-1">
-                                    <AssignmentItem title="Chapter 1 Exercises - Fractions" subject="Mathematics" due="Mar 16, 2026 (1 day left)" priority="high" />
-                                    <AssignmentItem title="Essay: My Best Friend" subject="English" due="Mar 18, 2026 (3 days left)" priority="medium" />
-                                    <AssignmentItem title="Plant Life Cycle Report" subject="Science" due="Mar 20, 2026 (5 days left)" priority="low" />
-                                    <AssignmentItem title="Ghana Map Drawing" subject="Social Studies" due="Mar 17, 2026 (2 days left)" priority="high" />
+                                <h3 className="text-xs font-bold text-gray-800 uppercase tracking-widest flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-primary-teal" /> Upcoming
+                                </h3>
+                                <div className="bg-white rounded-[2rem] border border-gray-100 p-2 shadow-soft-sm space-y-1 relative overflow-hidden min-h-[300px] flex flex-col">
+                                    {upcomingAssignments.length > 0 ? (
+                                        <>
+                                            <div className="flex-1 space-y-1">
+                                                {upcomingAssignments.map((assignment) => {
+                                                    const isOverdue = new Date(assignment.dueDate) < new Date();
+                                                    return (
+                                                        <div 
+                                                            key={assignment.id} 
+                                                            onClick={() => navigate(`/portal/subject/${assignment.subjectId}`)}
+                                                            className={`p-4 rounded-2xl flex items-center justify-between transition-all cursor-pointer group ${
+                                                                isOverdue ? 'bg-rose-50/50 border border-rose-100 hover:bg-rose-100/50' : 'hover:bg-light-bg'
+                                                            }`}
+                                                        >
+                                                            <div className="flex items-center gap-4">
+                                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                                                                    isOverdue ? 'bg-rose-100 text-rose-500' : 'bg-primary-teal/5 text-primary-teal'
+                                                                }`}>
+                                                                    <ClipboardList className="w-5 h-5" />
+                                                                </div>
+                                                                <div>
+                                                                    {isOverdue && (
+                                                                        <p className="text-[8px] font-black text-rose-500 uppercase tracking-widest mb-1">Overdue</p>
+                                                                    )}
+                                                                    <p className="text-sm font-black text-dark-text group-hover:text-primary-teal transition-colors line-clamp-1 uppercase tracking-tight">
+                                                                        {assignment.title}
+                                                                    </p>
+                                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                                        <Calendar className="w-3 h-3 text-muted-text" />
+                                                                        <p className="text-[10px] font-bold text-muted-text uppercase tracking-widest">
+                                                                            {isOverdue ? 'Overdue' : `Due ${new Date(assignment.dueDate).toLocaleDateString()}`}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-primary-teal group-hover:translate-x-1 transition-all" />
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                            <div className="p-4 border-t border-gray-50 flex items-center justify-center">
+                                                <button 
+                                                    onClick={() => navigate('/portal/online-campus')}
+                                                    className="text-[10px] font-black text-primary-teal uppercase tracking-widest hover:text-secondary-teal transition"
+                                                >
+                                                    View All
+                                                </button>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+                                            <p className="text-sm font-bold text-muted-text italic">No other work due soon</p>
+                                            <button 
+                                                onClick={() => navigate('/portal/online-campus')}
+                                                className="mt-6 text-[10px] font-black text-primary-teal uppercase tracking-widest hover:text-secondary-teal transition"
+                                            >
+                                                View All
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

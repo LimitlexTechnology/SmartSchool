@@ -437,9 +437,9 @@ app.put('/api/students/:id', auth, async (req, res) => {
       profilePicture, password, profilePhoto, guardianPhoto,
     } = req.body || {}
 
-    if (req.schoolId && req.schoolId !== 'local') {
-      const store = readTenantStudents(req.schoolId)
-      const classesStore = readTenantClasses(req.schoolId)
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
+      const store = readTenantStudents(req.schoolId || 'local')
+      const classesStore = readTenantClasses(req.schoolId || 'local')
       const idx = store.students.findIndex(s => s.id === id)
       if (idx < 0) return res.status(404).json({ error: 'not found' })
       const s = store.students[idx]
@@ -890,10 +890,28 @@ app.delete('/api/teaching-assignments/:id', auth, async (req, res) => {
 app.get('/api/students/:id/behavior/history', auth, async (req, res) => {
   try {
     const id = req.params.id
-    if (req.schoolId && req.schoolId !== 'local') {
-      const { logs } = readTenantBehaviorLogs(req.schoolId)
-      const studentLogs = logs.filter(l => l.studentId === id).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      return res.json(studentLogs)
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
+      let currentSchoolId = req.schoolId || 'local'
+      let behaviorStore = readTenantBehaviorLogs(currentSchoolId)
+      let studentLogs = (behaviorStore.logs || []).filter(l => l.studentId === id)
+
+      // If no logs found, student might be in a different tenant than what the cookie suggests
+      if (studentLogs.length === 0) {
+        const schools = schoolsStore.list().filter(sc => sc.id !== currentSchoolId)
+        for (const school of schools) {
+          try {
+            const tempStore = readTenantBehaviorLogs(school.id)
+            const logsFound = (tempStore.logs || []).filter(l => l.studentId === id)
+            if (logsFound.length > 0) {
+              studentLogs = logsFound
+              currentSchoolId = school.id
+              break
+            }
+          } catch (e) { }
+        }
+      }
+
+      return res.json(studentLogs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)))
     }
     const logs = await prisma.behaviorLog.findMany({
       where: { studentId: id },
@@ -1536,14 +1554,22 @@ app.post('/api/student-auth/login', async (req, res) => {
         (s.id && s.id.slice(0, 8).toUpperCase() === sid.toUpperCase())
       )
     } else {
-      student = await prisma.student.findFirst({
-        where: {
-          OR: [
-            { wristbandId: { equals: sid, mode: 'insensitive' } },
-            { id: { startsWith: sid.toLowerCase() } }
-          ]
-        }
-      })
+      if (isDBConnected) {
+        student = await prisma.student.findFirst({
+          where: {
+            OR: [
+              { wristbandId: { equals: sid, mode: 'insensitive' } },
+              { id: { startsWith: sid.toLowerCase() } }
+            ]
+          }
+        })
+      } else {
+        const store = readTenantStudents('local')
+        student = (store.students || []).find(s =>
+          (s.wristbandId && s.wristbandId.toUpperCase() === sid.toUpperCase()) ||
+          (s.id && s.id.slice(0, 8).toUpperCase() === sid.toUpperCase())
+        )
+      }
     }
 
     // 2. Global search if not found locally
@@ -2227,12 +2253,32 @@ app.post('/api/students', auth, async (req, res) => {
 app.get('/api/students/:id', auth, async (req, res) => {
   try {
     const id = req.params.id
-    if (req.schoolId && req.schoolId !== 'local') {
-      const store = readTenantStudents(req.schoolId)
-      const classesStore = readTenantClasses(req.schoolId)
-      const s = store.students.find(x => x.id === id)
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
+      let store = readTenantStudents(req.schoolId || 'local')
+      let s = (store.students || []).find(x => x.id === id)
+      let currentSchoolId = req.schoolId || 'local'
+
+      // Global search if not found in current school tenant
+      if (!s) {
+        const schools = schoolsStore.list().filter(sc => sc.id !== req.schoolId)
+        for (const school of schools) {
+          try {
+            const tempStore = readTenantStudents(school.id)
+            const found = (tempStore.students || []).find(x => x.id === id)
+            if (found) {
+              s = found
+              store = tempStore
+              currentSchoolId = school.id
+              break
+            }
+          } catch (e) { }
+        }
+      }
+
       if (!s) return res.status(404).json({ error: 'not found' })
-      const c = classesStore.classes.find(cx => cx.id === s.classId)
+      
+      const classesStore = readTenantClasses(currentSchoolId)
+      const c = (classesStore.classes || []).find(cx => cx.id === s.classId)
       return res.json({
         ...s,
         className: c?.name || '',
@@ -2265,11 +2311,30 @@ app.get('/api/students/:id/siblings', auth, async (req, res) => {
   try {
     const { id } = req.params
     let student = null
-    let schoolId = req.schoolId || 'local'
+    let currentSchoolId = req.schoolId || 'local'
+    let store = null
 
-    if (schoolId !== 'local') {
-      const store = readTenantStudents(schoolId)
+    if (currentSchoolId !== 'local' || !isDBConnected) {
+      store = readTenantStudents(currentSchoolId)
       student = (store.students || []).find(s => s.id === id)
+
+      // Global search if not found in current school tenant
+      if (!student) {
+        const schools = schoolsStore.list().filter(sc => sc.id !== currentSchoolId)
+        for (const school of schools) {
+          try {
+            const tempStore = readTenantStudents(school.id)
+            const found = (tempStore.students || []).find(x => x.id === id)
+            if (found) {
+              student = found
+              store = tempStore
+              currentSchoolId = school.id
+              break
+            }
+          } catch (e) { }
+        }
+      }
+
       if (!student) return res.status(404).json({ error: 'Student not found' })
 
       const contact = student.guardianContact
@@ -2353,8 +2418,17 @@ app.post('/api/teacher-auth/login', async (req, res) => {
     const crypto = require('crypto')
     const hash = crypto.scryptSync(password.trim(), p.passSalt, 64).toString('hex')
     if (hash !== p.passHash) return res.status(401).json({ error: 'invalid credentials' })
-    const t = await prisma.teacher.findUnique({ where: { id: teacherId } })
-    res.json({ teacherId, name: t?.name || 'Teacher', schoolId: p.schoolId || 'local' })
+    
+    let teacherName = p.name || 'Teacher'
+    if (isDBConnected) {
+      try {
+        const t = await prisma.teacher.findUnique({ where: { id: teacherId } })
+        if (t) teacherName = t.name
+      } catch (e) {
+        console.error('Teacher DB lookup failed, falling back to profile name:', e)
+      }
+    }
+    res.json({ teacherId, name: teacherName, schoolId: p.schoolId || 'local' })
   } catch (e) {
     console.error('Teacher auth error:', e)
     res.status(500).json({ error: e?.message || 'unknown' })
@@ -2365,13 +2439,22 @@ app.get('/api/teacher-auth/profile', auth, async (req, res) => {
   try {
     const teacherId = req.teacherId
     if (!teacherId) return res.status(400).json({ error: 'not logged in as teacher' })
-    const t = await prisma.teacher.findUnique({ where: { id: teacherId } })
+    
+    let t = null
+    if (isDBConnected) {
+      try {
+        t = await prisma.teacher.findUnique({ where: { id: teacherId } })
+      } catch (e) {
+        console.error('Teacher profile DB lookup failed:', e)
+      }
+    }
+    
     const p = staffStore.get(teacherId) || {}
     res.json({
-      name: t?.name || '',
-      email: t?.email || '',
+      name: t?.name || p.name || '',
+      email: t?.email || p.email || '',
       phone: p.phone || '',
-      subject: t?.subject || '',
+      subject: t?.subject || p.subject || '',
       gender: p.gender || '',
       dob: p.dob || '',
       address: p.address || '',
@@ -2388,11 +2471,15 @@ app.put('/api/teacher-auth/profile', auth, async (req, res) => {
     if (!teacherId) return res.status(400).json({ error: 'not logged in as teacher' })
     const { name, phone, gender, dob, address, profilePicture } = req.body || {}
     
-    if (name) {
-      await prisma.teacher.update({
-        where: { id: teacherId },
-        data: { name }
-      })
+    if (name && isDBConnected) {
+      try {
+        await prisma.teacher.update({
+          where: { id: teacherId },
+          data: { name }
+        })
+      } catch (e) {
+        console.error('Teacher update in DB failed:', e)
+      }
     }
     
     const cur = staffStore.get(teacherId) || {}
@@ -3072,22 +3159,22 @@ app.get('/api/submissions', auth, async (req, res) => {
 
 app.post('/api/submissions', auth, async (req, res) => {
   try {
-    const { assignmentId, studentId, fileName, submittedAt } = req.body
+    const { assignmentId, studentId, fileName, submittedAt, answers, score, status } = req.body
     if (!assignmentId || !studentId) return res.status(400).json({ error: 'assignmentId and studentId are required' })
 
     if (req.schoolId && req.schoolId !== 'local') {
       const store = readTenantSubmissions(req.schoolId)
       
-      // Check if already exists (for "Unsubmit" / "Resubmit" logic later, but for now just push)
       const newSubmission = {
         id: randomUUID(),
         assignmentId,
         studentId,
         fileName: fileName || '',
         submittedAt: submittedAt || new Date().toISOString(),
-        status: 'Submitted',
-        score: null,
-        gradedAt: null,
+        status: status || 'Submitted',
+        answers: answers || {},
+        score: score !== undefined ? score : null,
+        gradedAt: score !== undefined ? new Date().toISOString() : null,
         feedback: ''
       }
       

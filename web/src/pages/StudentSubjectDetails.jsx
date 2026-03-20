@@ -231,7 +231,7 @@ const StudentSubjectDetails = () => {
                   <div className="space-y-6">
                     {assignments.map((assignment) => {
                       const subStatus = getSubmissionStatus(assignment.id)
-                      const isDigital = assignment.attachments && assignment.attachments.some(a => a.type === 'question-paper')
+                      const isDigital = assignment.attachments && assignment.attachments.some(a => a.type === 'question-paper' || a.type === 'question_paper')
                       
                       return (
                         <div key={assignment.id} className="bg-white rounded-2xl border border-gray-100 shadow-soft-sm overflow-hidden group">
@@ -262,9 +262,9 @@ const StudentSubjectDetails = () => {
                               {isDigital ? (
                                 <button 
                                   onClick={() => {
-                                    const paper = assignment.attachments.find(a => a.type === 'question-paper');
+                                    const paper = assignment.attachments.find(a => a.type === 'question-paper' || a.type === 'question_paper');
                                     navigate(`/portal/subject/${subjectId}/take-test`, { 
-                                      state: { assignmentId: assignment.id, paperId: paper.id } 
+                                      state: { assignmentId: assignment.id, paperId: paper.id || paper.paperId } 
                                     });
                                   }}
                                   disabled={subStatus.status === 'Turned In'}
@@ -476,10 +476,10 @@ const StudentSubjectDetails = () => {
                             <div>
                               <p className="text-[8px] font-black text-muted-text uppercase tracking-widest mb-1">Score</p>
                               <p className="text-2xl font-black text-dark-text leading-none">
-                                {sub?.score || '—'}<span className="text-xs text-muted-text ml-1">/ {assignment.maxScore || 100}</span>
+                                {typeof sub?.score === 'number' ? sub.score : '—'}<span className="text-xs text-muted-text ml-1">/ {assignment.maxScore || 100}</span>
                               </p>
                             </div>
-                            {sub?.score && (
+                            {typeof sub?.score === 'number' && (
                               <div className="text-[10px] font-black text-emerald-500 bg-emerald-50 px-2 py-1 rounded-lg">
                                 {Math.round((sub.score / (assignment.maxScore || 100)) * 100)}%
                               </div>

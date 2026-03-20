@@ -21,7 +21,8 @@ import {
   AlertCircle,
   X,
   Clock,
-  ChevronRight
+  ChevronRight,
+  Circle
 } from 'lucide-react'
 
 const SubjectDetails = () => {
@@ -46,6 +47,11 @@ const SubjectDetails = () => {
   const [gradeData, setGradeData] = useState({ score: '', feedback: '' })
   const [isGrading, setIsGrading] = useState(false)
   const [viewingSubmissionsFor, setViewingSubmissionsFor] = useState(null)
+  const [reviewPaper, setReviewPaper] = useState(null)
+  const [isFetchingReview, setIsFetchingReview] = useState(false)
+
+  const selectedAssignment = selectedSubmission ? assignments.find(a => a.id === selectedSubmission.assignmentId) : null
+  const currentMaxScore = selectedAssignment?.maxScore || 100
   
   const tabs = ['Announcements', 'Assignments', 'Course Materials', 'People', 'Grades']
 
@@ -192,6 +198,30 @@ const SubjectDetails = () => {
       console.error('Failed to update grade:', e)
     } finally {
       setIsGrading(false)
+    }
+  }
+
+  const handleReviewAnswers = async (submission) => {
+    if (!submission.fileName?.startsWith('Digital Exam:')) return
+    
+    // Find assignment to get paperId
+    const assignment = assignments.find(a => a.id === submission.assignmentId)
+    const paperAttachment = assignment?.attachments?.find(a => a.type === 'question-paper' || a.type === 'question_paper')
+    const paperId = paperAttachment?.id || paperAttachment?.paperId
+    
+    if (!paperId) return
+
+    setIsFetchingReview(true)
+    try {
+      const r = await fetch(`/api/question-papers/${paperId}`)
+      if (r.ok) {
+        const paperData = await r.json()
+        setReviewPaper(paperData)
+      }
+    } catch (e) {
+      console.error('Failed to fetch paper for review:', e)
+    } finally {
+      setIsFetchingReview(false)
     }
   }
 
@@ -929,14 +959,14 @@ const SubjectDetails = () => {
                       </div>
 
                       <div className="flex items-center gap-4">
-                        {sub ? (
-                          <>
-                            {sub.score !== null && (
-                              <div className="text-right mr-4">
-                                <div className="text-xs font-black text-primary-teal">{sub.score} / {viewingSubmissionsFor.maxScore || 100}</div>
-                                <div className="text-[8px] font-bold text-muted-text uppercase tracking-widest">Score</div>
-                              </div>
-                            )}
+                              {sub ? (
+                                <>
+                                  {typeof sub.score === 'number' && (
+                                    <div className="text-right mr-4">
+                                      <div className="text-xs font-black text-primary-teal">{sub.score} / {viewingSubmissionsFor.maxScore || 100}</div>
+                                      <div className="text-[8px] font-bold text-muted-text uppercase tracking-widest">Score</div>
+                                    </div>
+                                  )}
                             <button 
                               onClick={() => {
                                 setSelectedSubmission(sub);
@@ -958,6 +988,135 @@ const SubjectDetails = () => {
                   );
                 })}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Review Answers Modal */}
+      {reviewPaper && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6">
+          <div className="absolute inset-0 bg-dark-text/60 backdrop-blur-sm" onClick={() => setReviewPaper(null)}></div>
+          <div className="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
+            <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-primary-teal/10 flex items-center justify-center text-primary-teal">
+                  <FileText size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-dark-text tracking-tight uppercase leading-none mb-1">Review Answers</h3>
+                  <p className="text-[10px] font-bold text-muted-text uppercase tracking-widest">{reviewPaper.title}</p>
+                </div>
+              </div>
+              <button onClick={() => setReviewPaper(null)} className="p-2 hover:bg-light-bg rounded-xl transition-colors text-muted-text">
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 space-y-12">
+              {reviewPaper.sections.sort((a, b) => a.order - b.order).map((section, sIdx) => {
+                const sectionQuestions = reviewPaper.questions.filter(q => q.sectionId === section.id).sort((a, b) => a.order - b.order);
+                if (sectionQuestions.length === 0) return null;
+
+                return (
+                  <div key={section.id} className="space-y-8">
+                    <div className="border-l-4 border-primary-teal pl-6">
+                      <h4 className="text-lg font-black text-dark-text uppercase tracking-tight">{section.title}</h4>
+                      {section.description && <p className="text-xs font-bold text-muted-text mt-1">{section.description}</p>}
+                    </div>
+
+                    <div className="space-y-10">
+                      {sectionQuestions.map((q, qIdx) => {
+                        const studentAnswer = selectedSubmission?.answers?.[q.id];
+                        const isMCQ = q.type === 'Multiple Choice' || q.type === 'MCQ';
+
+                        return (
+                          <div key={q.id} className="space-y-4">
+                            <div className="flex items-start gap-4">
+                              <span className="text-xs font-black text-primary-teal bg-primary-teal/5 w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+                                {qIdx + 1}
+                              </span>
+                              <div className="flex-1 space-y-4">
+                                <h5 className="text-sm font-bold text-dark-text leading-relaxed">{q.text}</h5>
+                                
+                                {isMCQ ? (
+                                  <div className="grid grid-cols-1 gap-2">
+                                    {q.options?.map((option, oIdx) => {
+                                      const isSelected = studentAnswer === oIdx;
+                                      const isCorrect = q.correctAnswer === option;
+                                      
+                                      return (
+                                        <div 
+                                          key={oIdx}
+                                          className={`p-3 rounded-xl border flex items-center justify-between ${
+                                            isSelected 
+                                              ? isCorrect 
+                                                ? 'bg-emerald-50 border-emerald-200 text-emerald-700' 
+                                                : 'bg-rose-50 border-rose-200 text-rose-700'
+                                              : isCorrect
+                                                ? 'bg-emerald-50/30 border-emerald-100 text-emerald-600 border-dashed'
+                                                : 'bg-gray-50 border-gray-100 text-muted-text'
+                                          }`}
+                                        >
+                                          <div className="flex items-center gap-3">
+                                            {isSelected ? <CheckCircle2 size={16} /> : <Circle size={16} className="opacity-20" />}
+                                            <span className="text-xs font-bold">{option}</span>
+                                          </div>
+                                          {isSelected && (
+                                            <span className="text-[8px] font-black uppercase tracking-widest">
+                                              Student's Choice
+                                            </span>
+                                          )}
+                                          {!isSelected && isCorrect && (
+                                            <span className="text-[8px] font-black uppercase tracking-widest opacity-60">
+                                              Correct Answer
+                                            </span>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                ) : (
+                                  <div className="p-4 bg-light-bg rounded-xl border border-gray-100">
+                                    <p className="text-[8px] font-black text-muted-text uppercase tracking-widest mb-2">Student's Answer</p>
+                                    <p className="text-xs font-bold text-dark-text whitespace-pre-wrap">
+                                      {studentAnswer || <span className="italic opacity-50">No answer provided</span>}
+                                    </p>
+                                  </div>
+                                )}
+                                
+                                <div className="flex items-center justify-between">
+                                  <div className="text-[10px] font-black text-muted-text uppercase tracking-widest flex items-center gap-2">
+                                    <AlertCircle size={12} /> {q.marks} Marks
+                                  </div>
+                                  {isMCQ && (
+                                    <div className={`text-[10px] font-black uppercase tracking-widest ${
+                                      (studentAnswer !== undefined && q.options[studentAnswer] === q.correctAnswer)
+                                        ? 'text-emerald-500'
+                                        : 'text-rose-500'
+                                    }`}>
+                                      {(studentAnswer !== undefined && q.options[studentAnswer] === q.correctAnswer) ? '✓ Correct' : '✕ Incorrect'}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div className="p-8 border-t border-gray-100 bg-gray-50 flex justify-end">
+              <button 
+                onClick={() => setReviewPaper(null)}
+                className="px-8 py-3 bg-primary-teal text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-secondary-teal transition shadow-lg shadow-primary-teal/20"
+              >
+                Close Review
+              </button>
             </div>
           </div>
         </div>
@@ -994,9 +1153,21 @@ const SubjectDetails = () => {
                       <FileText size={20} className="text-primary-teal" />
                       <span className="text-sm font-bold text-dark-text truncate max-w-[150px]">{selectedSubmission.fileName}</span>
                     </div>
-                    <button type="button" className="p-2 hover:bg-white rounded-lg text-primary-teal transition shadow-sm">
-                      <ExternalLink size={16} />
-                    </button>
+                    {selectedSubmission.fileName?.startsWith('Digital Exam:') && (
+                      <button 
+                        type="button" 
+                        onClick={() => handleReviewAnswers(selectedSubmission)}
+                        disabled={isFetchingReview}
+                        className="p-2 hover:bg-white rounded-lg text-primary-teal transition shadow-sm flex items-center gap-2"
+                      >
+                        {isFetchingReview ? (
+                          <div className="w-4 h-4 border-2 border-primary-teal/30 border-t-primary-teal rounded-full animate-spin" />
+                        ) : (
+                          <ExternalLink size={16} />
+                        )}
+                        <span className="text-[10px] font-black uppercase tracking-widest">Review Answers</span>
+                      </button>
+                    )}
                   </div>
                   <div className="text-[10px] font-bold text-muted-text uppercase tracking-widest flex items-center gap-2 ml-1">
                     <Clock size={12} /> Submitted {new Date(selectedSubmission.submittedAt).toLocaleString()}
@@ -1015,7 +1186,7 @@ const SubjectDetails = () => {
                       className="w-full px-6 py-4 bg-light-bg border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-primary-teal transition-all"
                     />
                     <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-muted-text uppercase">
-                      / {assignments.find(a => a.id === selectedSubmission.assignmentId)?.maxScore || 100}
+                      / {currentMaxScore}
                     </div>
                   </div>
                 </div>
