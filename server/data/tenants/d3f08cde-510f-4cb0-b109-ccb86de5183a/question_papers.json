@@ -23,6 +23,12 @@
       "title": "Science Test",
       "createdAt": "2026-03-20T17:24:17.392Z",
       "status": "Published"
+    },
+    {
+      "id": "2de63fe5-4634-4a7e-a4c7-55aa58e11680",
+      "title": "Science -E-learning Test",
+      "createdAt": "2026-03-20T18:35:29.917Z",
+      "status": "Published"
     }
   ],
   "sections": [
@@ -52,6 +58,13 @@
       "paperId": "62398158-e514-4e1a-93b5-e2f5c483603d",
       "title": "OBJECTIVE TEST",
       "description": "",
+      "order": 0
+    },
+    {
+      "id": "68a50967-ec01-4d5c-85bc-f5ff728dc3c0",
+      "paperId": "2de63fe5-4634-4a7e-a4c7-55aa58e11680",
+      "title": "E-Learning Test",
+      "description": "Answer the following question ",
       "order": 0
     }
   ],
@@ -195,6 +208,20 @@
       ],
       "correctAnswer": "Carbon dioxide",
       "order": 1
+    },
+    {
+      "id": "a8aca342-26f1-44a0-9df3-3ee541e5ab5f",
+      "sectionId": "68a50967-ec01-4d5c-85bc-f5ff728dc3c0",
+      "text": "What is name of the second planet ",
+      "type": "Multiple Choice",
+      "marks": 1,
+      "options": [
+        "Mercury",
+        "Venus",
+        "Earth "
+      ],
+      "correctAnswer": "Venus",
+      "order": 0
     }
   ]
 }

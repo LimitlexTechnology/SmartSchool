@@ -64,8 +64,8 @@ const CreateAssignment = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e, status = 'Published') => {
+    if (e) e.preventDefault();
     if (!title.trim()) {
       alert('Title is required');
       return;
@@ -88,6 +88,7 @@ const CreateAssignment = () => {
           assignTo,
           selectedStudents: assignTo === 'specific' ? selectedStudents : [],
           options,
+          status,
           attachments: selectedPaper ? [{ name: selectedPaper.title, id: selectedPaper.id, type: 'question_paper' }] : [],
         }),
       });
@@ -223,12 +224,20 @@ const CreateAssignment = () => {
             </button>
             <h1 className="text-lg font-bold text-gray-800">Assignment</h1>
           </div>
-          <button 
-            onClick={handleSubmit}
-            className="px-6 py-2 bg-primary-teal text-white rounded-full text-sm font-bold hover:bg-secondary-teal transition"
-          >
-            Assign
-          </button>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={(e) => handleSubmit(e, 'Draft')}
+              className="px-6 py-2 bg-light-bg text-dark-text border border-gray-200 rounded-full text-sm font-bold hover:bg-gray-100 transition"
+            >
+              Save Draft
+            </button>
+            <button 
+              onClick={(e) => handleSubmit(e, 'Published')}
+              className="px-6 py-2 bg-primary-teal text-white rounded-full text-sm font-bold hover:bg-secondary-teal transition shadow-lg shadow-primary-teal/20"
+            >
+              Assign
+            </button>
+          </div>
         </div>
       </header>
 
