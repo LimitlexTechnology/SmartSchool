@@ -13,7 +13,8 @@ import {
     ChevronLeft,
     ChevronRight,
     X,
-    GraduationCap
+    GraduationCap,
+    Sparkles
 } from 'lucide-react';
 import SkullarLogo from '../../assets/Skullar Logo.png';
 
@@ -126,8 +127,8 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
         { label: 'Course Allocation', to: '/dashboard/staff/course-allocation', key: 'course_allocation' },
         { label: 'Lesson Planner', to: '/dashboard/staff/lesson-planner', key: 'lesson_planner' },
         { label: 'Timetables', to: '/dashboard/staff/timetables', key: 'timetables' },
-        { label: 'Online Campus', to: '/dashboard/online-campus', key: 'online_campus' },
-        { label: 'Question Bank', to: '/dashboard/question-bank', key: 'question_bank' },
+        { label: 'Online Campus ✨', to: '/dashboard/online-campus', key: 'online_campus' },
+        { label: 'Question Bank ✨', to: '/dashboard/question-bank', key: 'question_bank' },
     ];
 
     useEffect(() => {
@@ -165,6 +166,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
         { icon: UserSquare2, label: 'Staff', to: '/dashboard/staff', key: 'staff' },
         { icon: ClipboardList, label: 'Exams', to: '/dashboard/assessments', key: 'assessments' },
         { icon: Landmark, label: 'Accounts', to: '/dashboard/finance', key: 'finance' },
+        { icon: Sparkles, label: 'AI Assistant', to: '/dashboard/ai-assistant', key: 'ai_assistant' },
         { icon: Package, label: 'Inventory', to: '/dashboard/inventory', key: 'inventory' },
         { icon: Wrench, label: 'Services', to: '/dashboard/services', key: 'services' },
         { icon: Bus, label: 'Canteen & Transport', to: '/dashboard/canteen-transport', key: 'canteen_transport' },

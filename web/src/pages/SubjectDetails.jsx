@@ -22,7 +22,8 @@ import {
   X,
   Clock,
   ChevronRight,
-  Circle
+  Circle,
+  Sparkles
 } from 'lucide-react'
 
 const SubjectDetails = () => {
@@ -50,9 +51,49 @@ const SubjectDetails = () => {
   const [reviewPaper, setReviewPaper] = useState(null)
   const [isFetchingReview, setIsFetchingReview] = useState(false)
   const [materialToDelete, setMaterialToDelete] = useState(null)
+  const [aiEvaluations, setAIEvaluations] = useState({}) // { questionId: { score, feedback, loading } }
 
   const selectedAssignment = selectedSubmission ? assignments.find(a => a.id === selectedSubmission.assignmentId) : null
   const currentMaxScore = selectedAssignment?.maxScore || 100
+
+  const handleAIEvaluate = async (question, studentAnswer) => {
+    if (!studentAnswer) return;
+    
+    setAIEvaluations(prev => ({
+      ...prev,
+      [question.id]: { loading: true }
+    }));
+
+    try {
+      const response = await fetch('/api/ai/evaluate-answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: question.text,
+          studentAnswer,
+          maxMarks: question.marks
+        }),
+      });
+      
+      if (response.ok) {
+        const evaluation = await response.json();
+        setAIEvaluations(prev => ({
+          ...prev,
+          [question.id]: { 
+            score: evaluation.suggestedScore, 
+            feedback: evaluation.feedback, 
+            loading: false 
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('AI Evaluation failed:', error);
+      setAIEvaluations(prev => ({
+        ...prev,
+        [question.id]: { loading: false, error: true }
+      }));
+    }
+  };
   
   const tabs = ['Announcements', 'Assignments', 'Course Materials', 'People', 'Grades']
 
@@ -1120,11 +1161,55 @@ const SubjectDetails = () => {
                                     })}
                                   </div>
                                 ) : (
-                                  <div className="p-4 bg-light-bg rounded-xl border border-gray-100">
-                                    <p className="text-[8px] font-black text-muted-text uppercase tracking-widest mb-2">Student's Answer</p>
-                                    <p className="text-xs font-bold text-dark-text whitespace-pre-wrap">
-                                      {studentAnswer || <span className="italic opacity-50">No answer provided</span>}
-                                    </p>
+                                  <div className="space-y-4">
+                                    <div className="p-4 bg-light-bg rounded-xl border border-gray-100">
+                                      <p className="text-[8px] font-black text-muted-text uppercase tracking-widest mb-2">Student's Answer</p>
+                                      <p className="text-xs font-bold text-dark-text whitespace-pre-wrap">
+                                        {studentAnswer || <span className="italic opacity-50">No answer provided</span>}
+                                      </p>
+                                    </div>
+                                    
+                                    {/* AI Evaluation for Short Answer */}
+                                    {studentAnswer && (
+                                      <div className="bg-primary-teal/5 rounded-2xl p-4 border border-primary-teal/10">
+                                        <div className="flex items-center justify-between mb-3">
+                                          <div className="flex items-center gap-2">
+                                            <Sparkles size={14} className="text-primary-teal" />
+                                            <span className="text-[10px] font-black text-primary-teal uppercase tracking-widest">AI Assistance</span>
+                                          </div>
+                                          {!aiEvaluations[q.id] && (
+                                            <button 
+                                              onClick={() => handleAIEvaluate(q, studentAnswer)}
+                                              className="px-3 py-1 bg-primary-teal text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-secondary-teal transition shadow-sm flex items-center gap-1.5"
+                                            >
+                                              <Sparkles size={12} />
+                                              Analyze Answer
+                                            </button>
+                                          )}
+                                        </div>
+                                        
+                                        {aiEvaluations[q.id]?.loading && (
+                                          <div className="flex items-center gap-2 py-2">
+                                            <div className="w-3 h-3 border-2 border-primary-teal/30 border-t-primary-teal rounded-full animate-spin" />
+                                            <span className="text-[10px] font-bold text-muted-text uppercase animate-pulse">Analyzing student response...</span>
+                                          </div>
+                                        )}
+                                        
+                                        {aiEvaluations[q.id]?.score !== undefined && (
+                                          <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-[10px] font-black text-dark-text uppercase">Suggested Score:</span>
+                                              <span className="text-xs font-black text-primary-teal bg-white px-2 py-0.5 rounded-lg shadow-sm border border-primary-teal/10">
+                                                {aiEvaluations[q.id].score} / {q.marks}
+                                              </span>
+                                            </div>
+                                            <p className="text-xs font-bold text-muted-text leading-relaxed italic">
+                                              "{aiEvaluations[q.id].feedback}"
+                                            </p>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                                 

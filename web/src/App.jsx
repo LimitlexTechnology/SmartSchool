@@ -40,6 +40,7 @@ import TakeTest from './pages/TakeTest'
 import CreateAssignment from './pages/CreateAssignment'
 import QuestionPaperDashboard from './pages/QuestionPaperDashboard'
 import QuestionPaperEditor from './pages/QuestionPaperEditor'
+import AIAssistant from './pages/AIAssistant'
 
 // SuperAdmin Pages
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard'
@@ -114,6 +115,7 @@ const App = () => {
           <Route path="online-campus" element={<OnlineCampus />} />
           <Route path="online-campus/:subjectId" element={<SubjectDetails />} />
           <Route path="online-campus/create-assignment" element={<CreateAssignment />} />
+          <Route path="ai-assistant" element={<AIAssistant />} />
           <Route path="question-bank" element={<QuestionPaperDashboard />} />
           <Route path="question-bank/:paperId" element={<QuestionPaperEditor />} />
           <Route path="students" element={<StudentsList />} />
