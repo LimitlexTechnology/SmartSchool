@@ -1,0 +1,52 @@
+{
+  "grades": [
+    {
+      "id": 1,
+      "label": "A",
+      "min": 75,
+      "max": 100,
+      "remark": "Excellent"
+    },
+    {
+      "id": 2,
+      "label": "B",
+      "min": 65,
+      "max": 74,
+      "remark": "Very Good"
+    },
+    {
+      "id": 3,
+      "label": "C",
+      "min": 55,
+      "max": 64,
+      "remark": "Good"
+    },
+    {
+      "id": 4,
+      "label": "D",
+      "min": 45,
+      "max": 54,
+      "remark": "Credit"
+    },
+    {
+      "id": 5,
+      "label": "E",
+      "min": 40,
+      "max": 44,
+      "remark": "Pass"
+    },
+    {
+      "id": 6,
+      "label": "F",
+      "min": 0,
+      "max": 39,
+      "remark": "Fail"
+    }
+  ],
+  "rules": {
+    "autoCalculatePositions": true,
+    "showPositionOnReport": true,
+    "allowTeacherModifications": false,
+    "requireAdminApproval": true
+  }
+}

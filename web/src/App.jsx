@@ -41,6 +41,11 @@ import CreateAssignment from './pages/CreateAssignment'
 import QuestionPaperDashboard from './pages/QuestionPaperDashboard'
 import QuestionPaperEditor from './pages/QuestionPaperEditor'
 import AIAssistant from './pages/AIAssistant'
+import ExamReports from './pages/ExamReports'
+import ExamMarks from './pages/ExamMarks'
+import ExamAnalytics from './pages/ExamAnalytics'
+import ExamConfiguration from './pages/ExamConfiguration'
+import ExamSettings from './pages/ExamSettings'
 
 // SuperAdmin Pages
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard'
@@ -118,6 +123,11 @@ const App = () => {
           <Route path="ai-assistant" element={<AIAssistant />} />
           <Route path="question-bank" element={<QuestionPaperDashboard />} />
           <Route path="question-bank/:paperId" element={<QuestionPaperEditor />} />
+          <Route path="exams/reports" element={<ExamReports />} />
+          <Route path="exams/marks" element={<ExamMarks />} />
+          <Route path="exams/analytics" element={<ExamAnalytics />} />
+          <Route path="exams/config" element={<ExamConfiguration />} />
+          <Route path="exams/settings" element={<ExamSettings />} />
           <Route path="students" element={<StudentsList />} />
           <Route path="staff" element={<StaffList />} />
           <Route path="staff/course-allocation" element={<CourseAllocation />} />

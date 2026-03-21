@@ -321,6 +321,83 @@ function writeTenantSubmissions(schoolId, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2))
 }
 
+function ensureTenantExamsFile(schoolId) {
+  if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
+  const dir = path.join(TENANT_DIR, schoolId)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'exams.json')
+  if (!fs.existsSync(file)) {
+    const defaultExams = {
+      exams: [
+        { id: 'mid-term-1', title: 'Mid-Term 1', term: 'First Term', year: '2025/2026' },
+        { id: 'end-term-1', title: 'End of Term 1', term: 'First Term', year: '2025/2026' }
+      ]
+    }
+    fs.writeFileSync(file, JSON.stringify(defaultExams, null, 2))
+  }
+  return file
+}
+function readTenantExams(schoolId) {
+  const file = ensureTenantExamsFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { exams: [] } }
+}
+function writeTenantExams(schoolId, data) {
+  const file = ensureTenantExamsFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
+function ensureTenantExamSettingsFile(schoolId) {
+  if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
+  const dir = path.join(TENANT_DIR, schoolId)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'exam-settings.json')
+  if (!fs.existsSync(file)) {
+    const defaultSettings = {
+      grades: [
+        { id: 1, label: 'A', min: 75, max: 100, remark: 'Excellent' },
+        { id: 2, label: 'B', min: 65, max: 74, remark: 'Very Good' },
+        { id: 3, label: 'C', min: 55, max: 64, remark: 'Good' },
+        { id: 4, label: 'D', min: 45, max: 54, remark: 'Credit' },
+        { id: 5, label: 'E', min: 40, max: 44, remark: 'Pass' },
+        { id: 6, label: 'F', min: 0, max: 39, remark: 'Fail' },
+      ],
+      rules: {
+        autoCalculatePositions: true,
+        showPositionOnReport: true,
+        allowTeacherModifications: false,
+        requireAdminApproval: true,
+      }
+    }
+    fs.writeFileSync(file, JSON.stringify(defaultSettings, null, 2))
+  }
+  return file
+}
+function readTenantExamSettings(schoolId) {
+  const file = ensureTenantExamSettingsFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { grades: [], rules: {} } }
+}
+function writeTenantExamSettings(schoolId, data) {
+  const file = ensureTenantExamSettingsFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
+function ensureTenantMarksFile(schoolId) {
+  if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
+  const dir = path.join(TENANT_DIR, schoolId)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'marks.json')
+  if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify({ marks: [] }, null, 2))
+  return file
+}
+function readTenantMarks(schoolId) {
+  const file = ensureTenantMarksFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { marks: [] } }
+}
+function writeTenantMarks(schoolId, data) {
+  const file = ensureTenantMarksFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
 // Super Admin profile store (file-based)
 const SUPERADMIN_FILE = path.join(__dirname, '..', 'data', 'superadmin-profile.json')
 function ensureSuperAdminFile() {
@@ -1991,6 +2068,123 @@ app.get('/api/teachers/:id/profile', auth, async (req, res) => {
   } catch (e) {
     console.error('Teacher profile error:', e)
     res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+// ============== Exams & Marks ==============
+app.get('/api/exams', auth, async (req, res) => {
+  try {
+    const schoolId = req.schoolId || 'local'
+    const store = readTenantExams(schoolId)
+    res.json(store.exams || [])
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.post('/api/exams', auth, async (req, res) => {
+  try {
+    const { title, term, year, startDate, endDate } = req.body
+    if (!title || !term || !year) return res.status(400).json({ error: 'title, term and year are required' })
+    const schoolId = req.schoolId || 'local'
+    const store = readTenantExams(schoolId)
+    const newExam = {
+      id: randomUUID(),
+      title,
+      term,
+      year,
+      startDate: startDate || new Date().toISOString(),
+      endDate: endDate || new Date().toISOString(),
+      status: 'Draft',
+      createdAt: new Date().toISOString()
+    }
+    store.exams = Array.isArray(store.exams) ? store.exams : []
+    store.exams.unshift(newExam)
+    writeTenantExams(schoolId, store)
+    res.status(201).json(newExam)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.delete('/api/exams/:id', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    const schoolId = req.schoolId || 'local'
+    const store = readTenantExams(schoolId)
+    store.exams = (store.exams || []).filter(e => e.id !== id)
+    writeTenantExams(schoolId, store)
+    res.json({ status: 'deleted' })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.get('/api/exam-settings', auth, async (req, res) => {
+  try {
+    const schoolId = req.schoolId || 'local'
+    const store = readTenantExamSettings(schoolId)
+    res.json(store)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.post('/api/exam-settings', auth, async (req, res) => {
+  try {
+    const { grades, rules } = req.body
+    const schoolId = req.schoolId || 'local'
+    writeTenantExamSettings(schoolId, { grades, rules })
+    res.json({ status: 'saved' })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.get('/api/marks', auth, async (req, res) => {
+  try {
+    const { examId, classId, subject } = req.query
+    if (!examId) return res.status(400).json({ error: 'examId is required' })
+    const schoolId = req.schoolId || 'local'
+    const store = readTenantMarks(schoolId)
+    let filtered = (store.marks || []).filter(m => m.examId === examId)
+    if (classId) filtered = filtered.filter(m => m.classId === classId)
+    if (subject) filtered = filtered.filter(m => m.subject === subject)
+    res.json(filtered)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.post('/api/marks', auth, async (req, res) => {
+  try {
+    const { examId, classId, subject, entries } = req.body
+    if (!examId || !classId || !subject || !Array.isArray(entries)) {
+      return res.status(400).json({ error: 'examId, classId, subject and entries are required' })
+    }
+    const schoolId = req.schoolId || 'local'
+    const store = readTenantMarks(schoolId)
+    store.marks = Array.isArray(store.marks) ? store.marks : []
+    
+    // Remove existing marks for this context
+    store.marks = store.marks.filter(m => !(m.examId === examId && m.classId === classId && m.subject === subject))
+    
+    // Add new marks
+    const now = new Date().toISOString()
+    const newEntries = entries.map(e => ({
+      examId,
+      classId,
+      subject,
+      studentId: e.studentId,
+      score: parseFloat(e.score) || 0,
+      updatedAt: now
+    }))
+    
+    store.marks.push(...newEntries)
+    writeTenantMarks(schoolId, store)
+    res.json({ status: 'saved', count: newEntries.length })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
   }
 })
 

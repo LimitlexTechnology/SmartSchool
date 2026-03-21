@@ -73,12 +73,16 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
     const [collapsed, setCollapsed] = useState(false);
     const [showStudents, setShowStudents] = useState(false);
     const [showStaff, setShowStaff] = useState(false);
+    const [showExams, setShowExams] = useState(false);
     const studentsRef = useRef(null);
     const staffRef = useRef(null);
+    const examsRef = useRef(null);
     const submenuRef = useRef(null);
     const staffMenuRef = useRef(null);
+    const examsMenuRef = useRef(null);
     const [submenuPos, setSubmenuPos] = useState({ top: 0, left: 0 });
     const [staffMenuPos, setStaffMenuPos] = useState({ top: 0, left: 0 });
+    const [examsMenuPos, setExamsMenuPos] = useState({ top: 0, left: 0 });
     const [schoolLogo, setSchoolLogo] = useState(null);
     const [userAvatar, setUserAvatar] = useState(null);
     const location = useLocation();
@@ -130,18 +134,28 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
         { label: 'Online Campus ✨', to: '/dashboard/online-campus', key: 'online_campus' },
         { label: 'Question Bank ✨', to: '/dashboard/question-bank', key: 'question_bank' },
     ];
+    const examLinks = [
+        { label: 'Reports', to: '/dashboard/exams/reports', key: 'exam_reports' },
+        { label: 'Marks', to: '/dashboard/exams/marks', key: 'exam_marks' },
+        { label: 'Analytics', to: '/dashboard/exams/analytics', key: 'exam_analytics' },
+        { label: 'Exam Configuration', to: '/dashboard/exams/config', key: 'exam_config' },
+        { label: 'Exam Settings', to: '/dashboard/exams/settings', key: 'exam_settings' },
+    ];
 
     useEffect(() => {
         const onDocClick = (e) => {
             const el = studentsRef.current;
             const st = staffRef.current;
+            const ex = examsRef.current;
             const menu = submenuRef.current;
             const smenu = staffMenuRef.current;
+            const emenu = examsMenuRef.current;
             if (!el) return;
-            if (el.contains(e.target) || (st && st.contains(e.target))) return;
-            if ((menu && menu.contains(e.target)) || (smenu && smenu.contains(e.target))) return;
+            if (el.contains(e.target) || (st && st.contains(e.target)) || (ex && ex.contains(e.target))) return;
+            if ((menu && menu.contains(e.target)) || (smenu && smenu.contains(e.target)) || (emenu && emenu.contains(e.target))) return;
             setShowStudents(false);
             setShowStaff(false);
+            setShowExams(false);
         };
         document.addEventListener('mousedown', onDocClick);
         return () => document.removeEventListener('mousedown', onDocClick);
@@ -164,7 +178,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
         { icon: Home, label: 'School', to: '/dashboard', key: 'school' },
         { icon: Users, label: 'Students', to: '#', key: 'students' },
         { icon: UserSquare2, label: 'Staff', to: '/dashboard/staff', key: 'staff' },
-        { icon: ClipboardList, label: 'Exams', to: '/dashboard/assessments', key: 'assessments' },
+        { icon: ClipboardList, label: 'Exams', to: '#', key: 'assessments' },
         { icon: Landmark, label: 'Accounts', to: '/dashboard/finance', key: 'finance' },
         { icon: Sparkles, label: 'AI Assistant', to: '/dashboard/ai-assistant', key: 'ai_assistant' },
         { icon: Package, label: 'Inventory', to: '/dashboard/inventory', key: 'inventory' },
@@ -179,6 +193,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
         setSubmenuPos({ top: rect.top, left: rect.right + 8 });
         setShowStudents((v) => !v);
         setShowStaff(false);
+        setShowExams(false);
     };
     const toggleStaff = () => {
         const el = staffRef.current;
@@ -187,6 +202,16 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
         setStaffMenuPos({ top: rect.top, left: rect.right + 8 });
         setShowStaff((v) => !v);
         setShowStudents(false);
+        setShowExams(false);
+    };
+    const toggleExams = () => {
+        const el = examsRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        setExamsMenuPos({ top: rect.top, left: rect.right + 8 });
+        setShowExams((v) => !v);
+        setShowStudents(false);
+        setShowStaff(false);
     };
 
     return (
@@ -294,6 +319,51 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
                                                         onClick={() => {
                                                             setIsMobileMenuOpen(false);
                                                             setShowStaff(false);
+                                                        }}
+                                                    >
+                                                        {l.label}
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        </div>,
+                                        document.body
+                                    )}
+                                </div>
+                            );
+                        }
+                        if (item.label === 'Exams') {
+                            const isActive = location.pathname.startsWith('/dashboard/exams') || location.pathname === '/dashboard/assessments';
+                            return (
+                                <div key={index} className="relative w-full" ref={examsRef}>
+                                    <SidebarItem
+                                        icon={item.icon}
+                                        to="#"
+                                        label={item.label}
+                                        active={isActive}
+                                        collapsed={collapsed}
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            toggleExams();
+                                        }}
+                                    />
+                                    {showExams && createPortal(
+                                        <div
+                                            ref={examsMenuRef}
+                                            style={{ position: 'fixed', top: examsMenuPos.top, left: examsMenuPos.left }}
+                                            className="bg-white border border-gray-100 rounded-xl shadow-soft-sm p-2 z-[9999]"
+                                        >
+                                            <div className="min-w-[200px] flex flex-col">
+                                                <div className="px-3 py-2 text-[10px] font-black text-muted-text uppercase tracking-[0.2em] border-b border-gray-50 mb-1 text-center">
+                                                    Exams
+                                                </div>
+                                                {examLinks.filter(l => isAllowed(l.key)).map((l, i) => (
+                                                    <Link
+                                                        key={i}
+                                                        to={l.to}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-bold no-underline ${location.pathname === l.to ? 'bg-primary-teal text-white' : 'text-dark-text hover:bg-light-bg'}`}
+                                                        onClick={() => {
+                                                            setIsMobileMenuOpen(false);
+                                                            setShowExams(false);
                                                         }}
                                                     >
                                                         {l.label}
