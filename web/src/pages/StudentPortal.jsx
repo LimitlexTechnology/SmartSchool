@@ -3,16 +3,19 @@ import {
     Bell, User, Star, Calendar, Clock,
     BookOpen, ChevronRight, LogOut, GraduationCap,
     MessageSquare, Settings, Users, FileText, TrendingUp, TrendingDown, X,
-    Menu, LayoutDashboard, CreditCard, ClipboardList, Filter, Search, Plus, Minus
+    Menu, LayoutDashboard, CreditCard, ClipboardList, Filter, Search, Plus, Minus,
+    Activity
 } from 'lucide-react'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import SkullarLogo from '../assets/Skullar Logo.png'
+import { fetchCurrentTermContext } from '../utils/termContext'
 
 const StudentPortal = () => {
     const [student, setStudent] = useState(null)
     const [siblings, setSiblings] = useState([])
     const [behaviorHistory, setBehaviorHistory] = useState([])
     const [upcomingAssignments, setUpcomingAssignments] = useState([])
+    const [activeTerm, setActiveTerm] = useState(null)
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState('Dashboard')
     const [saving, setSaving] = useState(false)
@@ -43,6 +46,10 @@ const StudentPortal = () => {
                 // Fetch behavior history
                 const behRes = await fetch(`/api/students/${studentId}/behavior/history`)
                 if (behRes.ok) setBehaviorHistory(await behRes.json())
+
+                // Fetch current term context
+                const term = await fetchCurrentTermContext()
+                setActiveTerm(term)
 
                 // Fetch all assignments across subjects for "Upcoming" section
                 const subRes = await fetch('/api/student/subjects')
@@ -260,7 +267,15 @@ const StudentPortal = () => {
                                 </div>
                                 <div className="text-center md:text-left pt-2">
                                     <h2 className="text-2xl font-bold text-[#1F2937] leading-tight">{student.firstName} {student.lastName}</h2>
-                                    <p className="text-sm font-medium text-gray-500 mt-1">{student.className || student.grade} | {student.wristbandId || student.id.slice(0, 8).toUpperCase()}</p>
+                                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-1">
+                                        <p className="text-sm font-medium text-gray-500">{student.className || student.grade} | {student.wristbandId || student.id.slice(0, 8).toUpperCase()}</p>
+                                        {activeTerm && (
+                                            <div className="flex items-center gap-1.5 px-3 py-1 bg-[#5E9E9E]/10 rounded-full border border-[#5E9E9E]/20">
+                                                <Activity className="w-3 h-3 text-[#5E9E9E]" />
+                                                <span className="text-[10px] font-bold text-[#5E9E9E] uppercase tracking-wider">{activeTerm.year} {activeTerm.term_name}</span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
