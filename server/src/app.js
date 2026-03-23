@@ -125,6 +125,58 @@ const auth = (req, res, next) => {
   next();
 };
 
+app.get('/api/marks', auth, async (req, res) => {
+  try {
+    const { examId, classId, subject, assessmentType, elementName } = req.query
+    console.log('GET /api/marks query received:', req.query);
+    
+    const schoolId = req.schoolId || 'local'
+    const store = readTenantMarks(schoolId)
+    let filtered = store.marks || []
+    
+    // Determine the target exam identifier
+    const isCa = (assessmentType || '').toLowerCase().includes('ca') || (assessmentType || '').toLowerCase().includes('continuous');
+    const targetExamId = examId || (isCa ? 'ca-marks' : null);
+    
+    if (targetExamId) filtered = filtered.filter(m => m.examId === targetExamId)
+    
+    if (classId) {
+      // Find canonical class ID
+      const classesStore = readTenantClasses(schoolId)
+      const targetClass = classesStore.classes.find(c => 
+        c.id === classId || 
+        (c.name || '').toLowerCase().trim() === classId.toLowerCase().trim() ||
+        (c.grade || '').toLowerCase().trim() === classId.toLowerCase().trim()
+      )
+      const canonId = targetClass ? targetClass.id : classId
+      filtered = filtered.filter(m => m.classId === canonId || (targetClass && (m.classId === targetClass.name || m.classId === targetClass.grade)))
+    }
+    
+    if (subject) {
+      filtered = filtered.filter(m => (m.subject || '').toLowerCase().trim() === subject.toLowerCase().trim())
+    }
+    
+    if (assessmentType) {
+      filtered = filtered.filter(m => (m.assessmentType || '').toLowerCase().trim() === assessmentType.toLowerCase().trim())
+    }
+    
+    if (elementName) {
+      filtered = filtered.filter(m => (m.elementName || '').toLowerCase().trim() === elementName.toLowerCase().trim())
+    }
+    
+    return res.json(filtered)
+  } catch (e) {
+    console.error('GET /api/marks error:', e);
+    return res.status(500).json({ error: e.message })
+  }
+});
+
+// DEBUG: Catch-all for /api/marks to see if it's hitting another method
+app.all('/api/marks', (req, res) => {
+  console.log(`DEBUG: ${req.method} /api/marks hit`, req.query, req.body);
+  res.status(405).send('Method Not Allowed or caught by debug');
+});
+
 const TENANT_DIR = path.join(__dirname, '..', 'data', 'tenants')
 function ensureTenantStudentsFile(schoolId) {
   if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
@@ -710,7 +762,18 @@ app.get('/api/students', auth, async (req, res) => {
           (s.email || '').toLowerCase().includes(q))
       }
       if (classIdFilter) {
-        filtered = filtered.filter(s => s.classId === classIdFilter)
+        // Find the class by ID or Name/Grade to handle mismatches
+        const targetClass = classesStore.classes.find(c => 
+          c.id === classIdFilter || 
+          (c.name || '').toLowerCase().trim() === classIdFilter.toLowerCase().trim() ||
+          (c.grade || '').toLowerCase().trim() === classIdFilter.toLowerCase().trim()
+        )
+        
+        if (targetClass) {
+          filtered = filtered.filter(s => s.classId === targetClass.id || s.classId === targetClass.name || s.classId === targetClass.grade)
+        } else {
+          filtered = filtered.filter(s => s.classId === classIdFilter)
+        }
       }
       const total = filtered.length
       const items = filtered.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize)
@@ -893,14 +956,39 @@ app.delete('/api/classes/:id', auth, async (req, res) => {
 // ============== Subjects & Teaching Assignments ==============
 app.get('/api/subjects', auth, async (req, res) => {
   try {
-    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
-      const { subjects } = readTenantSubjects(req.schoolId)
-      return res.json(subjects)
+    const schoolId = req.schoolId || 'local'
+    const grade = (req.query.grade || '').toString().toLowerCase()
+    
+    // 1. Load tenant-specific subjects
+    let tenantSubjects = []
+    try {
+      const store = readTenantSubjects(schoolId)
+      tenantSubjects = (store.subjects || []).map(s => typeof s === 'string' ? s : s.name)
+    } catch (e) {
+      console.error('Error reading tenant subjects:', e)
     }
-    // Prisma fallback if implemented
-    res.json([])
+    
+    // 2. Load grade-specific common subjects as fallback
+    const common = ['Mathematics', 'English', 'Science', 'Social Studies', 'Religious Moral Education', 'Computing', 'Creative Arts']
+    const early = ['Computing', 'Numeracy', 'Language and Literacy', 'Phonics', 'Pre-writing', 'Geography', 'Creative Arts']
+    const upper = ['Mathematics', 'English', 'Science', 'Computing', 'History', 'Geography', 'Religious Moral Education', 'Social Studies', 'Creative Arts']
+    
+    let defaultList = common
+    if (grade.includes('nursery') || grade.includes('kg') || grade.includes('creche')) defaultList = early
+    else if (grade.includes('grade') || grade.includes('primary')) defaultList = upper
+    
+    // 3. Merge and deduplicate (case-insensitive)
+    const merged = [...tenantSubjects]
+    defaultList.forEach(s => {
+      if (!merged.some(m => m.toLowerCase().trim() === s.toLowerCase().trim())) {
+        merged.push(s)
+      }
+    })
+    
+    // Return both formats for backward compatibility
+    res.json({ subjects: merged, data: merged })
   } catch (e) {
-    res.status(500).json({ error: e?.message || 'unknown' })
+    res.status(500).json({ error: e?.message || 'unknown', subjects: [] })
   }
 })
 
@@ -1291,21 +1379,6 @@ app.post('/api/allocations/bulk', auth, async (req, res) => {
   } catch (e) {
     console.error('Allocation bulk error:', e)
     res.status(500).json({ error: e?.message || 'unknown' })
-  }
-})
-
-app.get('/api/subjects', auth, async (req, res) => {
-  try {
-    const grade = (req.query.grade || '').toString().toLowerCase()
-    const common = ['Mathematics', 'English', 'Science', 'Social Studies', 'Religious Moral Education', 'Computing', 'Creative Arts']
-    const early = ['Computing', 'Numeracy', 'Language and Literacy', 'Phonics', 'Pre-writing', 'Geography', 'Creative Arts']
-    const upper = ['Mathematics', 'English', 'Science', 'Computing', 'History', 'Geography', 'Religious Moral Education', 'Social Studies', 'Creative Arts']
-    let list = common
-    if (grade.includes('nursery') || grade.includes('kg') || grade.includes('creche')) list = early
-    else if (grade.includes('grade') || grade.includes('primary')) list = upper
-    res.json({ subjects: list })
-  } catch (e) {
-    res.status(200).json({ subjects: [] })
   }
 })
 
@@ -2191,16 +2264,68 @@ app.post('/api/exam-settings', auth, async (req, res) => {
   }
 })
 
-app.get('/api/marks', auth, async (req, res) => {
+app.get('/api/ca-status', auth, async (req, res) => {
   try {
-    const { examId, classId, subject } = req.query
-    if (!examId) return res.status(400).json({ error: 'examId is required' })
+    const { classId, subject } = req.query
+    if (!classId || !subject) return res.status(400).json({ error: 'classId and subject are required' })
+    
     const schoolId = req.schoolId || 'local'
-    const store = readTenantMarks(schoolId)
-    let filtered = (store.marks || []).filter(m => m.examId === examId)
-    if (classId) filtered = filtered.filter(m => m.classId === classId)
-    if (subject) filtered = filtered.filter(m => m.subject === subject)
-    res.json(filtered)
+    const settings = readTenantExamSettings(schoolId)
+    const marks = readTenantMarks(schoolId)
+    const classesStore = readTenantClasses(schoolId)
+    
+    // Find the canonical class ID to handle mismatches
+    const targetClass = classesStore.classes.find(c => 
+      c.id === classId || 
+      (c.name || '').toLowerCase().trim() === classId.toLowerCase().trim() ||
+      (c.grade || '').toLowerCase().trim() === classId.toLowerCase().trim()
+    )
+    
+    const canonicalClassId = targetClass ? targetClass.id : classId
+    
+    // Get the active assessment type for this class/subject
+    const activeAssessment = settings.assessments.find(a => 
+      (a.assignedClasses || []).some(cls => 
+        cls === canonicalClassId || 
+        (targetClass && (cls === targetClass.name || cls === targetClass.grade))
+      ) && a.status === 'active'
+    )
+    
+    if (!activeAssessment) {
+      return res.json({ 
+        totalElements: 0, 
+        completedElements: 0, 
+        isComplete: false,
+        elements: []
+      })
+    }
+    
+    // Check completion status for each CA element
+    const elements = activeAssessment.items.map(item => {
+      const existingMarks = marks.marks.filter(m => 
+        (m.classId === canonicalClassId || (targetClass && (m.classId === targetClass.name || m.classId === targetClass.grade))) && 
+        m.subject === subject && 
+        m.assessmentType === 'ca' && 
+        m.elementName === item.name
+      )
+      
+      return {
+        name: item.name,
+        totalMarks: item.total,
+        completed: existingMarks.length > 0,
+        studentCount: existingMarks.length
+      }
+    })
+    
+    const totalElements = elements.length
+    const completedElements = elements.filter(e => e.completed).length
+    
+    res.json({
+      totalElements,
+      completedElements,
+      isComplete: completedElements === totalElements,
+      elements
+    })
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
@@ -2208,25 +2333,99 @@ app.get('/api/marks', auth, async (req, res) => {
 
 app.post('/api/marks', auth, async (req, res) => {
   try {
-    const { examId, classId, subject, entries } = req.body
-    if (!examId || !classId || !subject || !Array.isArray(entries)) {
-      return res.status(400).json({ error: 'examId, classId, subject and entries are required' })
+    const { examId, classId, subject, entries, assessmentType, elementName } = req.body
+    
+    const isCa = (assessmentType || '').toLowerCase().includes('ca') || (assessmentType || '').toLowerCase().includes('continuous');
+    const effectiveExamId = examId || (isCa ? 'ca-marks' : null);
+    
+    if (!effectiveExamId || !classId || !subject || !Array.isArray(entries)) {
+      return res.status(400).json({ error: 'examId (or CA context), classId, subject and entries are required' })
     }
+    
+    // Validate pedagogical lock for exam entries
+    if (assessmentType === 'exam' || !assessmentType) {
+      const schoolId = req.schoolId || 'local'
+      const settings = readTenantExamSettings(schoolId)
+      const marks = readTenantMarks(schoolId)
+      const classesStore = readTenantClasses(schoolId)
+      
+      // Find the canonical class ID to handle mismatches
+      const targetClass = classesStore.classes.find(c => 
+        c.id === classId || 
+        (c.name || '').toLowerCase().trim() === classId.toLowerCase().trim() ||
+        (c.grade || '').toLowerCase().trim() === classId.toLowerCase().trim()
+      )
+      
+      const canonicalClassId = targetClass ? targetClass.id : classId
+      
+      // Get the active assessment type for this class/subject
+      const activeAssessment = settings.assessments.find(a => 
+        (a.assignedClasses || []).some(cls => 
+          cls === canonicalClassId || 
+          (targetClass && (cls === targetClass.name || cls === targetClass.grade))
+        ) && a.status === 'active'
+      )
+      
+      if (activeAssessment) {
+        // Check if all CA elements are completed
+        const incompleteElements = activeAssessment.items.filter(item => {
+          const existingMarks = marks.marks.filter(m => 
+            (m.classId === canonicalClassId || (targetClass && (m.classId === targetClass.name || m.classId === targetClass.grade))) && 
+            m.subject === subject && 
+            m.assessmentType === 'ca' && 
+            m.elementName === item.name
+          )
+          return existingMarks.length === 0
+        })
+        
+        if (incompleteElements.length > 0) {
+          return res.status(403).json({ 
+            error: 'Pedagogical Lock: Cannot enter exam marks until all CA elements are recorded',
+            incompleteElements: incompleteElements.map(e => e.name),
+            message: `Please complete these CA elements first: ${incompleteElements.map(e => e.name).join(', ')}`
+          })
+        }
+      }
+    }
+    
     const schoolId = req.schoolId || 'local'
     const store = readTenantMarks(schoolId)
     store.marks = Array.isArray(store.marks) ? store.marks : []
     
     // Remove existing marks for this context
-    store.marks = store.marks.filter(m => !(m.examId === examId && m.classId === classId && m.subject === subject))
+    const filter = { examId, classId, subject }
+    if (assessmentType) filter.assessmentType = assessmentType
+    if (elementName) filter.elementName = elementName
+    
+    // Use targetClass for robust filtering if available
+    const schoolClasses = readTenantClasses(schoolId).classes
+    const tClass = schoolClasses.find(c => 
+      c.id === classId || 
+      (c.name || '').toLowerCase().trim() === classId.toLowerCase().trim() ||
+      (c.grade || '').toLowerCase().trim() === classId.toLowerCase().trim()
+    )
+    const canonId = tClass ? tClass.id : classId
+
+    store.marks = store.marks.filter(m => {
+      const classMatch = m.classId === canonId || (tClass && (m.classId === tClass.name || m.classId === tClass.grade))
+      const targetExamId = assessmentType === 'ca' ? 'ca-marks' : examId
+      return !(m.examId === targetExamId && classMatch && m.subject === subject &&
+              (!assessmentType || m.assessmentType === assessmentType) &&
+              (!elementName || m.elementName === elementName))
+    })
     
     // Add new marks
     const now = new Date().toISOString()
     const newEntries = entries.map(e => ({
-      examId,
-      classId,
+      examId: assessmentType === 'ca' ? 'ca-marks' : examId, // Force correct ID for CA
+      classId: canonId, // Save with canonical ID
       subject,
       studentId: e.studentId,
       score: parseFloat(e.score) || 0,
+      comment: e.comment || '',
+      synopsis: e.synopsis || '',
+      assessmentType: assessmentType || 'exam',
+      elementName: elementName || null,
       updatedAt: now
     }))
     
