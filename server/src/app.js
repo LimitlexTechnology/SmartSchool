@@ -353,20 +353,70 @@ function ensureTenantExamSettingsFile(schoolId) {
   const file = path.join(dir, 'exam-settings.json')
   if (!fs.existsSync(file)) {
     const defaultSettings = {
-      grades: [
-        { id: 1, label: 'A', min: 75, max: 100, remark: 'Excellent' },
-        { id: 2, label: 'B', min: 65, max: 74, remark: 'Very Good' },
-        { id: 3, label: 'C', min: 55, max: 64, remark: 'Good' },
-        { id: 4, label: 'D', min: 45, max: 54, remark: 'Credit' },
-        { id: 5, label: 'E', min: 40, max: 44, remark: 'Pass' },
-        { id: 6, label: 'F', min: 0, max: 39, remark: 'Fail' },
+      systems: [
+        {
+          id: randomUUID(),
+          name: 'END OF TERM EXAMS',
+          grades: [
+            { id: 1, lower: 90, upper: 100, grade: '1', remarks: 'HIGHEST', descriptor: 'EXCELLENT PERFORMANCE' },
+            { id: 2, lower: 80, upper: 89, grade: '2', remarks: 'HIGHER', descriptor: 'VERY GOOD' },
+            { id: 3, lower: 70, upper: 79, grade: '3', remarks: 'HIGH', descriptor: 'GOOD' },
+            { id: 4, lower: 60, upper: 69, grade: '4', remarks: 'HIGH AVERAGE', descriptor: 'ABOVE AVERAGE' },
+            { id: 5, lower: 55, upper: 59, grade: '5', remarks: 'AVERAGE', descriptor: 'SATISFACTORY' },
+            { id: 6, lower: 52, upper: 54, grade: '6', remarks: 'LOW AVERAGE', descriptor: 'FAIR' },
+            { id: 7, lower: 49, upper: 51, grade: '7', remarks: 'LOW', descriptor: 'BELOW' },
+            { id: 8, lower: 30, upper: 48, grade: '8', remarks: 'LOWER', descriptor: 'POOR' },
+            { id: 9, lower: 0, upper: 29, grade: '9', remarks: 'LOWEST', descriptor: 'NEEDS IMPROVEMENT' },
+          ],
+          assignedClasses: []
+        }
+      ],
+      scales: [
+        {
+          id: randomUUID(),
+          name: 'PRIMARY END OF TERM EXAMS SCALE',
+          overallScore: 100,
+          from: 60,
+          to: 40,
+          assignedClasses: [],
+          status: 'active'
+        }
+      ],
+      assessments: [
+        {
+          id: randomUUID(),
+          name: 'End of Term',
+          items: [
+            { id: 1, name: 'MID TERM', total: 20 },
+            { id: 2, name: 'CLASS TEST', total: 10 },
+            { id: 3, name: 'GROUP WORK', total: 10 },
+            { id: 4, name: 'PROJECT WORK', total: 10 },
+            { id: 5, name: 'CLASS WORK', total: 5 },
+            { id: 6, name: 'HOMEWORK', total: 5 }
+          ],
+          assignedClasses: [],
+          status: 'active'
+        }
+      ],
+      examConfigs: [
+        {
+          id: randomUUID(),
+          name: 'End of Year Science Exam',
+          gradingSystem: '',
+          scale: '',
+          assessmentType: '',
+          classes: [],
+          terms: ['Term 1', 'Term 2', 'Term 3'],
+          status: 'active'
+        }
       ],
       rules: {
         autoCalculatePositions: true,
         showPositionOnReport: true,
         allowTeacherModifications: false,
         requireAdminApproval: true,
-      }
+      },
+      repeatingStudents: []
     }
     fs.writeFileSync(file, JSON.stringify(defaultSettings, null, 2))
   }
@@ -374,7 +424,7 @@ function ensureTenantExamSettingsFile(schoolId) {
 }
 function readTenantExamSettings(schoolId) {
   const file = ensureTenantExamSettingsFile(schoolId)
-  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { grades: [], rules: {} } }
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { systems: [], rules: {} } }
 }
 function writeTenantExamSettings(schoolId, data) {
   const file = ensureTenantExamSettingsFile(schoolId)
@@ -2132,9 +2182,9 @@ app.get('/api/exam-settings', auth, async (req, res) => {
 
 app.post('/api/exam-settings', auth, async (req, res) => {
   try {
-    const { grades, rules } = req.body
+    const { systems, scales, assessments, examConfigs, rules, repeatingStudents } = req.body
     const schoolId = req.schoolId || 'local'
-    writeTenantExamSettings(schoolId, { grades, rules })
+    writeTenantExamSettings(schoolId, { systems, scales, assessments, examConfigs, rules, repeatingStudents })
     res.json({ status: 'saved' })
   } catch (e) {
     res.status(500).json({ error: e.message })

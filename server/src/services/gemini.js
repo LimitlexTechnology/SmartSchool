@@ -53,9 +53,9 @@ async function generateQuestions(topic, instructions = "", count = 5) {
       throw new Error("AI returned invalid data format. Please try again.");
     }
   } catch (error) {
-    console.error("Gemini Question Generation Error Details:", error);
-    if (error.message?.includes("API_KEY_INVALID")) {
-      throw new Error("Invalid Gemini API Key. Please check your .env file.");
+    console.error("Gemini Question Generation Error Details:", error.message, error);
+    if (error.message?.includes("API_KEY_INVALID") || error.message?.includes("403")) {
+      throw new Error(`Invalid Gemini API Key. Please check your .env file. Error: ${error.message}`);
     }
     throw error;
   }

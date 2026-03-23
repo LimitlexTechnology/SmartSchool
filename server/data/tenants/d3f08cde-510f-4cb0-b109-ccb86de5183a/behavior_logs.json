@@ -1,3 +1,14 @@
 {
-  "logs": []
+  "logs": [
+    {
+      "id": "7f33523c-843a-41df-977e-c960c22eedc5",
+      "studentId": "df94d02a-4655-4a3a-af86-476687e3051d",
+      "type": "deduction",
+      "category": "Fighting",
+      "score": 10,
+      "reason": "",
+      "authorName": "Teacher",
+      "createdAt": "2026-03-22T18:44:04.995Z"
+    }
+  ]
 }
