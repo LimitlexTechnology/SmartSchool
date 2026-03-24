@@ -1,0 +1,40 @@
+{
+  "events": [
+    {
+      "id": "rq66o8ul3",
+      "title": "REOPENING DATE",
+      "date": "2026-01-05T10:42",
+      "endDate": "2026-04-17T10:43",
+      "location": "SCHOOL PREMISES",
+      "tag": "Everyone",
+      "notes": "",
+      "type": "Activity",
+      "academicYear": "2025/2026",
+      "term": "First Term"
+    },
+    {
+      "id": "oz7swkx67",
+      "title": "HOLIDAY",
+      "date": "2026-01-07T10:44",
+      "endDate": "",
+      "location": "SCHOOL PREMISES",
+      "tag": "Everyone",
+      "notes": "",
+      "type": "Holiday",
+      "academicYear": "2025/2026",
+      "term": "Second Term"
+    },
+    {
+      "id": "huum6iqn0",
+      "title": "FIRST CLASSTEST",
+      "date": "2026-02-05T10:46",
+      "endDate": "",
+      "location": "SCHOOL PREMISES",
+      "tag": "Staff Only",
+      "notes": "",
+      "type": "Activity",
+      "academicYear": "2025/2026",
+      "term": "Second Term"
+    }
+  ]
+}

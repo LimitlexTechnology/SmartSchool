@@ -22,7 +22,8 @@ import {
   X,
   Clock,
   ChevronRight,
-  Circle
+  Circle,
+  Sparkles
 } from 'lucide-react'
 
 const SubjectDetails = () => {
@@ -49,9 +50,50 @@ const SubjectDetails = () => {
   const [viewingSubmissionsFor, setViewingSubmissionsFor] = useState(null)
   const [reviewPaper, setReviewPaper] = useState(null)
   const [isFetchingReview, setIsFetchingReview] = useState(false)
+  const [materialToDelete, setMaterialToDelete] = useState(null)
+  const [aiEvaluations, setAIEvaluations] = useState({}) // { questionId: { score, feedback, loading } }
 
   const selectedAssignment = selectedSubmission ? assignments.find(a => a.id === selectedSubmission.assignmentId) : null
   const currentMaxScore = selectedAssignment?.maxScore || 100
+
+  const handleAIEvaluate = async (question, studentAnswer) => {
+    if (!studentAnswer) return;
+    
+    setAIEvaluations(prev => ({
+      ...prev,
+      [question.id]: { loading: true }
+    }));
+
+    try {
+      const response = await fetch('/api/ai/evaluate-answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: question.text,
+          studentAnswer,
+          maxMarks: question.marks
+        }),
+      });
+      
+      if (response.ok) {
+        const evaluation = await response.json();
+        setAIEvaluations(prev => ({
+          ...prev,
+          [question.id]: { 
+            score: evaluation.suggestedScore, 
+            feedback: evaluation.feedback, 
+            loading: false 
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('AI Evaluation failed:', error);
+      setAIEvaluations(prev => ({
+        ...prev,
+        [question.id]: { loading: false, error: true }
+      }));
+    }
+  };
   
   const tabs = ['Announcements', 'Assignments', 'Course Materials', 'People', 'Grades']
 
@@ -134,13 +176,15 @@ const SubjectDetails = () => {
     }
   }
 
-  const handleDeleteMaterial = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this material?')) return
+  const confirmDeleteMaterial = async () => {
+    if (!materialToDelete) return
     try {
-      const r = await fetch(`/api/course-materials/${id}`, { method: 'DELETE' })
+      const r = await fetch(`/api/course-materials/${materialToDelete.id}`, { method: 'DELETE' })
       if (r.ok) loadData()
     } catch (e) {
       console.error('Failed to delete material:', e)
+    } finally {
+      setMaterialToDelete(null)
     }
   }
 
@@ -216,7 +260,7 @@ const SubjectDetails = () => {
       const r = await fetch(`/api/question-papers/${paperId}`)
       if (r.ok) {
         const paperData = await r.json()
-        setReviewPaper(paperData)
+        setReviewPaper({ ...paperData, integrityViolations: submission.integrityViolations || 0 })
       }
     } catch (e) {
       console.error('Failed to fetch paper for review:', e)
@@ -290,6 +334,34 @@ const SubjectDetails = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-3 md:p-6">
+      {/* Delete Material Confirmation Modal */}
+      {materialToDelete && (
+        <div className="fixed inset-0 z-[5000] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMaterialToDelete(null)} />
+          <div className="relative bg-white rounded-3xl border border-gray-100 shadow-2xl w-full max-w-sm p-6 text-center">
+            <div className="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-500 mx-auto mb-4">
+              <Trash2 size={32} />
+            </div>
+            <h3 className="text-lg font-black text-dark-text uppercase tracking-tight mb-2">Delete Material?</h3>
+            <p className="text-sm font-bold text-muted-text mb-6">Are you sure you want to delete "{materialToDelete.title}"? This action cannot be undone.</p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setMaterialToDelete(null)}
+                className="flex-1 py-3 bg-light-bg text-muted-text rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-gray-100 transition"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmDeleteMaterial}
+                className="flex-1 py-3 bg-rose-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-rose-600 transition shadow-lg shadow-rose-500/20"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Announcement Modal */}
       {showAnnounceModal && (
         <div className="fixed inset-0 bg-dark-text/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
@@ -598,7 +670,12 @@ const SubjectDetails = () => {
                             <div className="w-10 h-10 rounded-xl bg-primary-teal/5 flex items-center justify-center text-primary-teal shrink-0">
                               <ClipboardList size={20} />
                             </div>
-                            <h3 className="text-sm font-black text-dark-text uppercase tracking-wider leading-tight">{assignment.title}</h3>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-sm font-black text-dark-text uppercase tracking-wider leading-tight">{assignment.title}</h3>
+                              {assignment.status === 'Draft' && (
+                                <span className="px-2 py-0.5 bg-gray-100 text-muted-text text-[8px] font-black uppercase rounded-full tracking-widest border border-gray-200">Draft</span>
+                              )}
+                            </div>
                           </div>
                           <div className="text-[10px] font-bold text-muted-text self-end sm:self-auto">
                             Posted {new Date(assignment.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -699,7 +776,7 @@ const SubjectDetails = () => {
                             <ExternalLink size={18} />
                           </a>
                           <button 
-                            onClick={() => handleDeleteMaterial(material.id)}
+                            onClick={() => setMaterialToDelete(material)}
                             className="p-2 hover:bg-rose-50 text-muted-text hover:text-rose-500 rounded-lg transition"
                           >
                             <Trash2 size={18} />
@@ -1005,7 +1082,14 @@ const SubjectDetails = () => {
                 </div>
                 <div>
                   <h3 className="text-xl font-black text-dark-text tracking-tight uppercase leading-none mb-1">Review Answers</h3>
-                  <p className="text-[10px] font-bold text-muted-text uppercase tracking-widest">{reviewPaper.title}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[10px] font-bold text-muted-text uppercase tracking-widest">{reviewPaper.title}</p>
+                    {reviewPaper.integrityViolations > 0 && (
+                      <span className="text-[8px] font-black text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-1 border border-rose-100 animate-pulse">
+                        <AlertCircle size={10} /> {reviewPaper.integrityViolations} Focus Violations
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <button onClick={() => setReviewPaper(null)} className="p-2 hover:bg-light-bg rounded-xl transition-colors text-muted-text">
@@ -1077,11 +1161,55 @@ const SubjectDetails = () => {
                                     })}
                                   </div>
                                 ) : (
-                                  <div className="p-4 bg-light-bg rounded-xl border border-gray-100">
-                                    <p className="text-[8px] font-black text-muted-text uppercase tracking-widest mb-2">Student's Answer</p>
-                                    <p className="text-xs font-bold text-dark-text whitespace-pre-wrap">
-                                      {studentAnswer || <span className="italic opacity-50">No answer provided</span>}
-                                    </p>
+                                  <div className="space-y-4">
+                                    <div className="p-4 bg-light-bg rounded-xl border border-gray-100">
+                                      <p className="text-[8px] font-black text-muted-text uppercase tracking-widest mb-2">Student's Answer</p>
+                                      <p className="text-xs font-bold text-dark-text whitespace-pre-wrap">
+                                        {studentAnswer || <span className="italic opacity-50">No answer provided</span>}
+                                      </p>
+                                    </div>
+                                    
+                                    {/* AI Evaluation for Short Answer */}
+                                    {studentAnswer && (
+                                      <div className="bg-primary-teal/5 rounded-2xl p-4 border border-primary-teal/10">
+                                        <div className="flex items-center justify-between mb-3">
+                                          <div className="flex items-center gap-2">
+                                            <Sparkles size={14} className="text-primary-teal" />
+                                            <span className="text-[10px] font-black text-primary-teal uppercase tracking-widest">AI Assistance</span>
+                                          </div>
+                                          {!aiEvaluations[q.id] && (
+                                            <button 
+                                              onClick={() => handleAIEvaluate(q, studentAnswer)}
+                                              className="px-3 py-1 bg-primary-teal text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-secondary-teal transition shadow-sm flex items-center gap-1.5"
+                                            >
+                                              <Sparkles size={12} />
+                                              Analyze Answer
+                                            </button>
+                                          )}
+                                        </div>
+                                        
+                                        {aiEvaluations[q.id]?.loading && (
+                                          <div className="flex items-center gap-2 py-2">
+                                            <div className="w-3 h-3 border-2 border-primary-teal/30 border-t-primary-teal rounded-full animate-spin" />
+                                            <span className="text-[10px] font-bold text-muted-text uppercase animate-pulse">Analyzing student response...</span>
+                                          </div>
+                                        )}
+                                        
+                                        {aiEvaluations[q.id]?.score !== undefined && (
+                                          <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-[10px] font-black text-dark-text uppercase">Suggested Score:</span>
+                                              <span className="text-xs font-black text-primary-teal bg-white px-2 py-0.5 rounded-lg shadow-sm border border-primary-teal/10">
+                                                {aiEvaluations[q.id].score} / {q.marks}
+                                              </span>
+                                            </div>
+                                            <p className="text-xs font-bold text-muted-text leading-relaxed italic">
+                                              "{aiEvaluations[q.id].feedback}"
+                                            </p>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                                 

@@ -162,6 +162,21 @@ const Dashboard = () => {
         revenue: null,
         status: null
     });
+
+    const [academicYear, setAcademicYear] = useState(() => localStorage.getItem('academicYearLabel') || '2025/2026');
+    const [academicTerm, setAcademicTerm] = useState(() => localStorage.getItem('academicTermLabel') || 'Second Term');
+
+    useEffect(() => {
+        const handlePeriodChange = (e) => {
+            if (e.detail) {
+                setAcademicYear(e.detail.year);
+                setAcademicTerm(e.detail.term);
+            }
+        };
+        window.addEventListener('academicPeriod:change', handlePeriodChange);
+        return () => window.removeEventListener('academicPeriod:change', handlePeriodChange);
+    }, []);
+
     useEffect(() => {
         const load = async () => {
             try {
@@ -230,7 +245,7 @@ const Dashboard = () => {
 
                 <div className="flex-1">
                     <h2 className="text-xl font-extrabold text-dark-text">{schoolName}</h2>
-                    <p className="text-sm text-muted-text font-medium">3rd Term, 2025/2026</p>
+                    <p className="text-sm text-muted-text font-medium">{academicTerm}, {academicYear}</p>
                     <div className="flex flex-wrap gap-3 mt-3">
                         <span className="text-[11px] font-bold bg-primary-teal/10 text-primary-teal px-3 py-1 rounded-full">Active Academic Year</span>
                         <span className="text-[11px] font-bold bg-success/10 text-success px-3 py-1 rounded-full">All Systems Online</span>

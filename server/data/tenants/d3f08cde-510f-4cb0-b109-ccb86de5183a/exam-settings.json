@@ -1,0 +1,187 @@
+{
+  "systems": [
+    {
+      "id": "5624d6ee-a6ea-4afc-a50e-fff48b279075",
+      "name": "END OF TERMS EXAMS",
+      "grades": [
+        {
+          "id": 1,
+          "lower": "90",
+          "upper": "100",
+          "grade": "1",
+          "remarks": "HIGHEST",
+          "descriptor": "EXCELLENT PERFORMANCE"
+        },
+        {
+          "id": 2,
+          "lower": "80",
+          "upper": "89",
+          "grade": "2",
+          "remarks": "HIGHER",
+          "descriptor": "VERY GOOD"
+        },
+        {
+          "id": 3,
+          "lower": "70",
+          "upper": "79",
+          "grade": "3",
+          "remarks": "HIGH",
+          "descriptor": "GOOD"
+        },
+        {
+          "id": 4,
+          "lower": "60",
+          "upper": "69",
+          "grade": "4",
+          "remarks": "HIGH AVERAGE",
+          "descriptor": "ABOVE AVERAGE"
+        },
+        {
+          "id": 5,
+          "lower": "55",
+          "upper": "59",
+          "grade": "5",
+          "remarks": "AVERAGE",
+          "descriptor": "SATISFACTORY"
+        },
+        {
+          "id": 6,
+          "lower": "52",
+          "upper": "54",
+          "grade": "6",
+          "remarks": "LOW AVERAGE",
+          "descriptor": "FAIR"
+        },
+        {
+          "id": 7,
+          "lower": "49",
+          "upper": "51",
+          "grade": "7",
+          "remarks": "LOW",
+          "descriptor": "BELOW"
+        },
+        {
+          "id": 8,
+          "lower": "30",
+          "upper": "48",
+          "grade": "8",
+          "remarks": "LOWER",
+          "descriptor": "POOR"
+        },
+        {
+          "id": 9,
+          "lower": "0",
+          "upper": "29",
+          "grade": "9",
+          "remarks": "LOWEST",
+          "descriptor": "NEEDS IMPROVEMENT"
+        }
+      ],
+      "assignedClasses": [
+        "0cb69dca-7d9d-423b-bb38-c2562fe18357",
+        "6cbae387-d0ff-4f3b-803c-1010fe9f16cd",
+        "96f56af3-999b-4db3-97fe-0a15bea76175",
+        "1ad31406-312c-4547-a05e-5555c65e7197",
+        "29c28936-aa89-49d4-bac5-8bce1ce1fbba",
+        "b08719b9-2848-491f-9b76-a39fe450b7b5",
+        "d7b1651b-fa76-4f61-b7fd-38a4ea33b436"
+      ]
+    }
+  ],
+  "scales": [
+    {
+      "id": "2c9b7c9e-a22e-45c9-8c9d-8cc45f919837",
+      "name": "PRIMARY END OF TERM EXAMS SCALE",
+      "overallScore": 100,
+      "from": 60,
+      "to": 40,
+      "assignedClasses": [
+        "96f56af3-999b-4db3-97fe-0a15bea76175",
+        "0cb69dca-7d9d-423b-bb38-c2562fe18357",
+        "6cbae387-d0ff-4f3b-803c-1010fe9f16cd",
+        "1ad31406-312c-4547-a05e-5555c65e7197",
+        "b08719b9-2848-491f-9b76-a39fe450b7b5",
+        "29c28936-aa89-49d4-bac5-8bce1ce1fbba",
+        "d7b1651b-fa76-4f61-b7fd-38a4ea33b436"
+      ],
+      "status": "active"
+    }
+  ],
+  "assessments": [
+    {
+      "id": "44cffa39-f3a4-46f3-a168-a0f2edee8951",
+      "name": "END OF TERM",
+      "items": [
+        {
+          "id": 1,
+          "name": "MIDTERM",
+          "total": "20"
+        },
+        {
+          "id": 2,
+          "name": "CLASS TEST",
+          "total": "10"
+        },
+        {
+          "id": 3,
+          "name": "GROUP WORK",
+          "total": "10"
+        },
+        {
+          "id": 4,
+          "name": "PROJECT WORK",
+          "total": "10"
+        },
+        {
+          "id": 5,
+          "name": "CLASS WORK",
+          "total": "5"
+        },
+        {
+          "id": 6,
+          "name": "HOMEWORK",
+          "total": "5"
+        }
+      ],
+      "assignedClasses": [
+        "96f56af3-999b-4db3-97fe-0a15bea76175",
+        "0cb69dca-7d9d-423b-bb38-c2562fe18357",
+        "6cbae387-d0ff-4f3b-803c-1010fe9f16cd",
+        "1ad31406-312c-4547-a05e-5555c65e7197",
+        "29c28936-aa89-49d4-bac5-8bce1ce1fbba",
+        "b08719b9-2848-491f-9b76-a39fe450b7b5",
+        "d7b1651b-fa76-4f61-b7fd-38a4ea33b436"
+      ],
+      "status": "active"
+    }
+  ],
+  "examConfigs": [
+    {
+      "id": "bbedd848-3820-4be1-81e5-09e76ae6eb8b",
+      "name": "End of Term Exam",
+      "gradingSystem": "END OF TERMS EXAMS",
+      "scale": "PRIMARY END OF TERM EXAMS SCALE",
+      "assessmentType": "END OF TERM",
+      "classes": [
+        "96f56af3-999b-4db3-97fe-0a15bea76175",
+        "0cb69dca-7d9d-423b-bb38-c2562fe18357",
+        "6cbae387-d0ff-4f3b-803c-1010fe9f16cd",
+        "1ad31406-312c-4547-a05e-5555c65e7197",
+        "29c28936-aa89-49d4-bac5-8bce1ce1fbba",
+        "b08719b9-2848-491f-9b76-a39fe450b7b5",
+        "d7b1651b-fa76-4f61-b7fd-38a4ea33b436"
+      ],
+      "terms": [
+        "First Term"
+      ],
+      "session": "2025/2026",
+      "status": "active"
+    }
+  ],
+  "rules": {
+    "autoCalculatePositions": true,
+    "showPositionOnReport": true,
+    "allowTeacherModifications": false,
+    "requireAdminApproval": true
+  }
+}

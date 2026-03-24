@@ -18,7 +18,7 @@ import {
     Receipt,
     Check
 } from 'lucide-react';
-import SkullarLogo from '../assets/Skullar Logo.png';
+import SkullarLogo from '../assets/SkullarLogo.png';
 
 const SmartID = () => {
     const [activeTab, setActiveTab] = useState('overview');

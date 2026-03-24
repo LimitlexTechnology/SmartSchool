@@ -127,6 +127,33 @@
         "autoGrade": true
       },
       "createdAt": "2026-03-20T17:31:35.073Z"
+    },
+    {
+      "id": "f0a3b157-2bb2-47fd-b2dd-538ae73c0141",
+      "title": "SCIENCE ASSIGNMENT",
+      "description": "",
+      "dueDate": "2026-03-20T07:45",
+      "subjectId": "38fc1ae4-c2b8-4003-8777-fefd728e6784",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "attachments": [
+        {
+          "name": "Science -E-learning Test",
+          "id": "2de63fe5-4634-4a7e-a4c7-55aa58e11680",
+          "type": "question_paper"
+        }
+      ],
+      "exam": "",
+      "assessmentType": "",
+      "maxScore": "1",
+      "startTime": "2026-03-20T18:43",
+      "assignTo": "specific",
+      "options": {
+        "recordMarks": true,
+        "allowLate": true,
+        "allowMultiple": true,
+        "autoGrade": true
+      },
+      "createdAt": "2026-03-20T18:44:48.949Z"
     }
   ]
 }

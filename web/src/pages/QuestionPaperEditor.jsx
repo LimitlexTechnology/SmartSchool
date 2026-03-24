@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { X, Plus, Trash2, CheckCircle2, Circle, ChevronUp, ChevronDown, Save } from 'lucide-react';
+import { X, Plus, Trash2, CheckCircle2, Circle, ChevronUp, ChevronDown, Save, Sparkles, Wand2 } from 'lucide-react';
 
 const QuestionPaperEditor = () => {
   const { paperId } = useParams();
   const navigate = useNavigate();
   const [paper, setPaper] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [aiConfig, setAIModalConfig] = useState({ sectionId: null, topic: '', instructions: '', count: 5 });
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const fetchPaper = async () => {
     try {
@@ -172,6 +175,48 @@ const QuestionPaperEditor = () => {
     handleUpdateQuestion(question.id, { options: newOptions, correctAnswer: newCorrect });
   };
 
+  const handleAIGenerate = async () => {
+    if (!aiConfig.topic.trim()) return;
+    setIsGenerating(true);
+    try {
+      const response = await fetch('/api/ai/generate-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: aiConfig.topic,
+          instructions: aiConfig.instructions,
+          count: aiConfig.count
+        }),
+      });
+      
+      if (response.ok) {
+        const questions = await response.json();
+        // Add each generated question to the section
+        for (const q of questions) {
+          await fetch('/api/questions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sectionId: aiConfig.sectionId,
+              text: q.text,
+              type: q.type,
+              marks: q.marks,
+              options: q.options || [],
+              correctAnswer: q.correctAnswer || null
+            }),
+          });
+        }
+        fetchPaper();
+        setShowAIModal(false);
+        setAIModalConfig({ sectionId: null, topic: '', instructions: '', count: 5 });
+      }
+    } catch (error) {
+      console.error('AI Generation failed:', error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   if (loading) return (
     <div className="flex justify-center items-center min-h-screen">
       <div className="w-12 h-12 border-4 border-primary-teal border-t-transparent rounded-full animate-spin" />
@@ -182,6 +227,90 @@ const QuestionPaperEditor = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
+      {/* AI Generation Modal */}
+      {showAIModal && (
+        <div className="fixed inset-0 bg-dark-text/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-8">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-primary-teal/10 flex items-center justify-center text-primary-teal">
+                    <Sparkles size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-dark-text tracking-tight uppercase leading-none mb-1">AI Question Generator</h3>
+                    <p className="text-[10px] font-bold text-muted-text uppercase tracking-widest">Powered by Gemini AI</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowAIModal(false)}
+                  className="p-2 hover:bg-light-bg rounded-xl transition text-muted-text"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <label className="text-[10px] font-black text-muted-text uppercase tracking-widest mb-2 block ml-1">Topic / Subject Matter</label>
+                  <input
+                    type="text"
+                    value={aiConfig.topic}
+                    onChange={(e) => setAIModalConfig({...aiConfig, topic: e.target.value})}
+                    placeholder="e.g. Photosynthesis, Ancient Rome, Quadratic Equations"
+                    className="w-full p-4 bg-light-bg border-2 border-transparent focus:border-primary-teal/20 rounded-2xl outline-none text-sm font-bold text-dark-text transition"
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-muted-text uppercase tracking-widest mb-2 block ml-1">Additional Instructions (Optional)</label>
+                  <textarea
+                    value={aiConfig.instructions}
+                    onChange={(e) => setAIModalConfig({...aiConfig, instructions: e.target.value})}
+                    placeholder="e.g. Focus on light-independent reactions, make them difficult, include 2 MCQs"
+                    className="w-full p-4 bg-light-bg border-2 border-transparent focus:border-primary-teal/20 rounded-2xl outline-none text-sm font-bold text-dark-text transition resize-none h-24"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black text-muted-text uppercase tracking-widest mb-2 block ml-1">Number of Questions</label>
+                    <select
+                      value={aiConfig.count}
+                      onChange={(e) => setAIModalConfig({...aiConfig, count: parseInt(e.target.value)})}
+                      className="w-full p-4 bg-light-bg border-2 border-transparent focus:border-primary-teal/20 rounded-2xl outline-none text-sm font-bold text-dark-text transition"
+                    >
+                      {[1, 2, 3, 4, 5, 10].map(n => <option key={n} value={n}>{n} Questions</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 mt-10">
+                <button
+                  type="button"
+                  onClick={() => setShowAIModal(false)}
+                  className="px-6 py-3 text-xs font-black text-muted-text uppercase tracking-widest hover:text-dark-text transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAIGenerate}
+                  disabled={isGenerating || !aiConfig.topic.trim()}
+                  className="px-8 py-3 bg-primary-teal text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-secondary-teal transition shadow-lg shadow-primary-teal/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isGenerating ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Wand2 size={16} />
+                  )}
+                  {isGenerating ? 'Generating...' : 'Generate Now'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
         <div className="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-4">
@@ -242,6 +371,13 @@ const QuestionPaperEditor = () => {
                       </button>
                       <button onClick={() => moveSection(sIndex, 1)} disabled={sIndex === paper.sections.length - 1} className="p-2 hover:bg-light-bg text-muted-text disabled:opacity-20 rounded-xl transition" title="Move Down">
                         <ChevronDown size={20} />
+                      </button>
+                      <button onClick={() => {
+                        setAIModalConfig({...aiConfig, sectionId: section.id});
+                        setShowAIModal(true);
+                      }} className="px-3 py-2 bg-primary-teal/10 hover:bg-primary-teal/20 text-primary-teal rounded-xl transition flex items-center gap-2" title="Generate with AI">
+                        <Sparkles size={18} />
+                        <span className="text-[10px] font-black uppercase tracking-widest">AI Generate</span>
                       </button>
                       <button onClick={() => handleAddQuestion(section.id)} className="p-2 hover:bg-light-bg text-muted-text hover:text-primary-teal rounded-xl transition" title="Add Question">
                         <Plus size={20} />
@@ -384,6 +520,12 @@ const QuestionPaperEditor = () => {
                 </button>
                 <button onClick={() => moveSection(sIndex, 1)} disabled={sIndex === paper.sections.length - 1} className="p-3 hover:bg-light-bg text-muted-text disabled:opacity-20 rounded-xl transition">
                   <ChevronDown size={24} />
+                </button>
+                <button onClick={() => {
+                  setAIModalConfig({...aiConfig, sectionId: section.id});
+                  setShowAIModal(true);
+                }} className="p-3 hover:bg-light-bg text-muted-text hover:text-primary-teal rounded-xl transition">
+                  <Sparkles size={24} />
                 </button>
                 <button onClick={() => handleAddQuestion(section.id)} className="p-3 hover:bg-light-bg text-muted-text hover:text-primary-teal rounded-xl transition">
                   <Plus size={24} />

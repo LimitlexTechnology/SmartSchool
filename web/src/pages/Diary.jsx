@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import {
@@ -18,8 +19,18 @@ import {
 } from 'lucide-react';
 
 const Diary = () => {
-    const [activeTab, setActiveTab] = useState('feed'); // 'feed' or 'calendar'
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const initialTab = queryParams.get('tab') === 'calendar' ? 'calendar' : 'feed';
+    const [activeTab, setActiveTab] = useState(initialTab);
     const [selectedEvent, setSelectedEvent] = useState(null);
+
+    useEffect(() => {
+        const tab = queryParams.get('tab');
+        if (tab === 'calendar' || tab === 'feed') {
+            setActiveTab(tab);
+        }
+    }, [location.search]);
 
     const posts = [
         {

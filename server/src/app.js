@@ -12,6 +12,8 @@ const staffStore = require('./staffStore')
 const allocationsStore = require('./allocationsStore')
 const timetableStore = require('./timetableStore')
 const schoolsStore = require('./schoolsStore')
+const { generateQuestions, evaluateShortAnswer } = require('./services/gemini');
+const { generateQuestionsDS, evaluateShortAnswerDS, isDSAvailable } = require('./services/deepseek');
 
 // Global DB health flag
 let isDBConnected = false;
@@ -122,6 +124,52 @@ const auth = (req, res, next) => {
   req.studentId = studentId || ''
   next();
 };
+
+app.get('/api/marks', auth, async (req, res) => {
+  try {
+    const { examId, classId, subject, assessmentType, elementName } = req.query
+    console.log('GET /api/marks query received:', req.query);
+    
+    const schoolId = req.schoolId || 'local'
+    const store = readTenantMarks(schoolId)
+    let filtered = store.marks || []
+    
+    // Determine the target exam identifier
+    const isCa = (assessmentType || '').toLowerCase().includes('ca') || (assessmentType || '').toLowerCase().includes('continuous');
+    const targetExamId = examId || (isCa ? 'ca-marks' : null);
+    
+    if (targetExamId) filtered = filtered.filter(m => m.examId === targetExamId)
+    
+    if (classId) {
+      // Find canonical class ID
+      const classesStore = readTenantClasses(schoolId)
+      const targetClass = classesStore.classes.find(c => 
+        c.id === classId || 
+        (c.name || '').toLowerCase().trim() === classId.toLowerCase().trim() ||
+        (c.grade || '').toLowerCase().trim() === classId.toLowerCase().trim()
+      )
+      const canonId = targetClass ? targetClass.id : classId
+      filtered = filtered.filter(m => m.classId === canonId || (targetClass && (m.classId === targetClass.name || m.classId === targetClass.grade)))
+    }
+    
+    if (subject) {
+      filtered = filtered.filter(m => (m.subject || '').toLowerCase().trim() === subject.toLowerCase().trim())
+    }
+    
+    if (assessmentType) {
+      filtered = filtered.filter(m => (m.assessmentType || '').toLowerCase().trim() === assessmentType.toLowerCase().trim())
+    }
+    
+    if (elementName) {
+      filtered = filtered.filter(m => (m.elementName || '').toLowerCase().trim() === elementName.toLowerCase().trim())
+    }
+    
+    return res.json(filtered)
+  } catch (e) {
+    console.error('GET /api/marks error:', e);
+    return res.status(500).json({ error: e.message })
+  }
+});
 
 const TENANT_DIR = path.join(__dirname, '..', 'data', 'tenants')
 function ensureTenantStudentsFile(schoolId) {
@@ -316,6 +364,167 @@ function readTenantSubmissions(schoolId) {
 }
 function writeTenantSubmissions(schoolId, data) {
   const file = ensureTenantSubmissionsFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
+function ensureTenantExamsFile(schoolId) {
+  if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
+  const dir = path.join(TENANT_DIR, schoolId)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'exams.json')
+  if (!fs.existsSync(file)) {
+    const defaultExams = {
+      exams: [
+        { id: 'mid-term-1', title: 'Mid-Term 1', term: 'First Term', year: '2025/2026' },
+        { id: 'end-term-1', title: 'End of Term 1', term: 'First Term', year: '2025/2026' }
+      ]
+    }
+    fs.writeFileSync(file, JSON.stringify(defaultExams, null, 2))
+  }
+  return file
+}
+function readTenantExams(schoolId) {
+  const file = ensureTenantExamsFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { exams: [] } }
+}
+function writeTenantExams(schoolId, data) {
+  const file = ensureTenantExamsFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
+function ensureTenantExamSettingsFile(schoolId) {
+  if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
+  const dir = path.join(TENANT_DIR, schoolId)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'exam-settings.json')
+  if (!fs.existsSync(file)) {
+    const defaultSettings = {
+      systems: [
+        {
+          id: randomUUID(),
+          name: 'END OF TERM EXAMS',
+          grades: [
+            { id: 1, lower: 90, upper: 100, grade: '1', remarks: 'HIGHEST', descriptor: 'EXCELLENT PERFORMANCE' },
+            { id: 2, lower: 80, upper: 89, grade: '2', remarks: 'HIGHER', descriptor: 'VERY GOOD' },
+            { id: 3, lower: 70, upper: 79, grade: '3', remarks: 'HIGH', descriptor: 'GOOD' },
+            { id: 4, lower: 60, upper: 69, grade: '4', remarks: 'HIGH AVERAGE', descriptor: 'ABOVE AVERAGE' },
+            { id: 5, lower: 55, upper: 59, grade: '5', remarks: 'AVERAGE', descriptor: 'SATISFACTORY' },
+            { id: 6, lower: 52, upper: 54, grade: '6', remarks: 'LOW AVERAGE', descriptor: 'FAIR' },
+            { id: 7, lower: 49, upper: 51, grade: '7', remarks: 'LOW', descriptor: 'BELOW' },
+            { id: 8, lower: 30, upper: 48, grade: '8', remarks: 'LOWER', descriptor: 'POOR' },
+            { id: 9, lower: 0, upper: 29, grade: '9', remarks: 'LOWEST', descriptor: 'NEEDS IMPROVEMENT' },
+          ],
+          assignedClasses: []
+        }
+      ],
+      scales: [
+        {
+          id: randomUUID(),
+          name: 'PRIMARY END OF TERM EXAMS SCALE',
+          overallScore: 100,
+          from: 60,
+          to: 40,
+          assignedClasses: [],
+          status: 'active'
+        }
+      ],
+      assessments: [
+        {
+          id: randomUUID(),
+          name: 'End of Term',
+          items: [
+            { id: 1, name: 'MID TERM', total: 20 },
+            { id: 2, name: 'CLASS TEST', total: 10 },
+            { id: 3, name: 'GROUP WORK', total: 10 },
+            { id: 4, name: 'PROJECT WORK', total: 10 },
+            { id: 5, name: 'CLASS WORK', total: 5 },
+            { id: 6, name: 'HOMEWORK', total: 5 }
+          ],
+          assignedClasses: [],
+          status: 'active'
+        }
+      ],
+      examConfigs: [
+        {
+          id: randomUUID(),
+          name: 'End of Year Science Exam',
+          gradingSystem: '',
+          scale: '',
+          assessmentType: '',
+          classes: [],
+          terms: ['Term 1', 'Term 2', 'Term 3'],
+          status: 'active'
+        }
+      ],
+      rules: {
+        autoCalculatePositions: true,
+        showPositionOnReport: true,
+        allowTeacherModifications: false,
+        requireAdminApproval: true,
+      },
+      repeatingStudents: []
+    }
+    fs.writeFileSync(file, JSON.stringify(defaultSettings, null, 2))
+  }
+  return file
+}
+function readTenantExamSettings(schoolId) {
+  const file = ensureTenantExamSettingsFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { systems: [], rules: {} } }
+}
+function writeTenantExamSettings(schoolId, data) {
+  const file = ensureTenantExamSettingsFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
+function ensureTenantMarksFile(schoolId) {
+  if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
+  const dir = path.join(TENANT_DIR, schoolId)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'marks.json')
+  if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify({ marks: [] }, null, 2))
+  return file
+}
+function readTenantMarks(schoolId) {
+  const file = ensureTenantMarksFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { marks: [] } }
+}
+function writeTenantMarks(schoolId, data) {
+  const file = ensureTenantMarksFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
+function ensureTenantRemarksFile(schoolId) {
+  if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
+  const dir = path.join(TENANT_DIR, schoolId)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'remarks.json')
+  if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify({ remarks: [] }, null, 2))
+  return file
+}
+function readTenantRemarks(schoolId) {
+  const file = ensureTenantRemarksFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { remarks: [] } }
+}
+function writeTenantRemarks(schoolId, data) {
+  const file = ensureTenantRemarksFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
+function ensureTenantEventsFile(schoolId) {
+  if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
+  const dir = path.join(TENANT_DIR, schoolId)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'events.json')
+  if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify({ events: [] }, null, 2))
+  return file
+}
+function readTenantEvents(schoolId) {
+  const file = ensureTenantEventsFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { events: [] } }
+}
+function writeTenantEvents(schoolId, data) {
+  const file = ensureTenantEventsFile(schoolId)
   fs.writeFileSync(file, JSON.stringify(data, null, 2))
 }
 
@@ -581,7 +790,18 @@ app.get('/api/students', auth, async (req, res) => {
           (s.email || '').toLowerCase().includes(q))
       }
       if (classIdFilter) {
-        filtered = filtered.filter(s => s.classId === classIdFilter)
+        // Find the class by ID or Name/Grade to handle mismatches
+        const targetClass = classesStore.classes.find(c => 
+          c.id === classIdFilter || 
+          (c.name || '').toLowerCase().trim() === classIdFilter.toLowerCase().trim() ||
+          (c.grade || '').toLowerCase().trim() === classIdFilter.toLowerCase().trim()
+        )
+        
+        if (targetClass) {
+          filtered = filtered.filter(s => s.classId === targetClass.id || s.classId === targetClass.name || s.classId === targetClass.grade)
+        } else {
+          filtered = filtered.filter(s => s.classId === classIdFilter)
+        }
       }
       const total = filtered.length
       const items = filtered.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize)
@@ -764,14 +984,39 @@ app.delete('/api/classes/:id', auth, async (req, res) => {
 // ============== Subjects & Teaching Assignments ==============
 app.get('/api/subjects', auth, async (req, res) => {
   try {
-    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
-      const { subjects } = readTenantSubjects(req.schoolId)
-      return res.json(subjects)
+    const schoolId = req.schoolId || 'local'
+    const grade = (req.query.grade || '').toString().toLowerCase()
+    
+    // 1. Load tenant-specific subjects
+    let tenantSubjects = []
+    try {
+      const store = readTenantSubjects(schoolId)
+      tenantSubjects = (store.subjects || []).map(s => typeof s === 'string' ? s : s.name)
+    } catch (e) {
+      console.error('Error reading tenant subjects:', e)
     }
-    // Prisma fallback if implemented
-    res.json([])
+    
+    // 2. Load grade-specific common subjects as fallback
+    const common = ['Mathematics', 'English', 'Science', 'Social Studies', 'Religious Moral Education', 'Computing', 'Creative Arts']
+    const early = ['Computing', 'Numeracy', 'Language and Literacy', 'Phonics', 'Pre-writing', 'Geography', 'Creative Arts']
+    const upper = ['Mathematics', 'English', 'Science', 'Computing', 'History', 'Geography', 'Religious Moral Education', 'Social Studies', 'Creative Arts']
+    
+    let defaultList = common
+    if (grade.includes('nursery') || grade.includes('kg') || grade.includes('creche')) defaultList = early
+    else if (grade.includes('grade') || grade.includes('primary')) defaultList = upper
+    
+    // 3. Merge and deduplicate (case-insensitive)
+    const merged = [...tenantSubjects]
+    defaultList.forEach(s => {
+      if (!merged.some(m => m.toLowerCase().trim() === s.toLowerCase().trim())) {
+        merged.push(s)
+      }
+    })
+    
+    // Return both formats for backward compatibility
+    res.json({ subjects: merged, data: merged })
   } catch (e) {
-    res.status(500).json({ error: e?.message || 'unknown' })
+    res.status(500).json({ error: e?.message || 'unknown', subjects: [] })
   }
 })
 
@@ -1165,18 +1410,49 @@ app.post('/api/allocations/bulk', auth, async (req, res) => {
   }
 })
 
-app.get('/api/subjects', auth, async (req, res) => {
+// ============== Calendar Events ==============
+app.get('/api/events', auth, async (req, res) => {
   try {
-    const grade = (req.query.grade || '').toString().toLowerCase()
-    const common = ['Mathematics', 'English', 'Science', 'Social Studies', 'Religious Moral Education', 'Computing', 'Creative Arts']
-    const early = ['Computing', 'Numeracy', 'Language and Literacy', 'Phonics', 'Pre-writing', 'Geography', 'Creative Arts']
-    const upper = ['Mathematics', 'English', 'Science', 'Computing', 'History', 'Geography', 'Religious Moral Education', 'Social Studies', 'Creative Arts']
-    let list = common
-    if (grade.includes('nursery') || grade.includes('kg') || grade.includes('creche')) list = early
-    else if (grade.includes('grade') || grade.includes('primary')) list = upper
-    res.json({ subjects: list })
+    const schoolId = req.schoolId || 'local'
+    const { events } = readTenantEvents(schoolId)
+    res.json(events)
   } catch (e) {
-    res.status(200).json({ subjects: [] })
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.post('/api/events', auth, async (req, res) => {
+  try {
+    const schoolId = req.schoolId || 'local'
+    const event = req.body
+    if (!event.title || !event.date) return res.status(400).json({ error: 'Title and date are required' })
+    
+    const store = readTenantEvents(schoolId)
+    store.events = Array.isArray(store.events) ? store.events : []
+    
+    if (!event.id) event.id = Math.random().toString(36).substr(2, 9)
+    
+    // Remove if exists (for edit)
+    store.events = store.events.filter(e => e.id !== event.id)
+    store.events.push(event)
+    
+    writeTenantEvents(schoolId, store)
+    res.json(event)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.delete('/api/events/:id', auth, async (req, res) => {
+  try {
+    const schoolId = req.schoolId || 'local'
+    const id = req.params.id
+    const store = readTenantEvents(schoolId)
+    store.events = (store.events || []).filter(e => e.id !== id)
+    writeTenantEvents(schoolId, store)
+    res.json({ status: 'deleted' })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
   }
 })
 
@@ -1989,6 +2265,290 @@ app.get('/api/teachers/:id/profile', auth, async (req, res) => {
   } catch (e) {
     console.error('Teacher profile error:', e)
     res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+// ============== Exams & Marks ==============
+app.get('/api/exams', auth, async (req, res) => {
+  try {
+    const schoolId = req.schoolId || 'local'
+    const store = readTenantExams(schoolId)
+    res.json(store.exams || [])
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.post('/api/exams', auth, async (req, res) => {
+  try {
+    const { title, term, year, startDate, endDate } = req.body
+    if (!title || !term || !year) return res.status(400).json({ error: 'title, term and year are required' })
+    const schoolId = req.schoolId || 'local'
+    const store = readTenantExams(schoolId)
+    const newExam = {
+      id: randomUUID(),
+      title,
+      term,
+      year,
+      startDate: startDate || new Date().toISOString(),
+      endDate: endDate || new Date().toISOString(),
+      status: 'Draft',
+      createdAt: new Date().toISOString()
+    }
+    store.exams = Array.isArray(store.exams) ? store.exams : []
+    store.exams.unshift(newExam)
+    writeTenantExams(schoolId, store)
+    res.status(201).json(newExam)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.delete('/api/exams/:id', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    const schoolId = req.schoolId || 'local'
+    const store = readTenantExams(schoolId)
+    store.exams = (store.exams || []).filter(e => e.id !== id)
+    writeTenantExams(schoolId, store)
+    res.json({ status: 'deleted' })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.get('/api/exam-settings', auth, async (req, res) => {
+  try {
+    const schoolId = req.schoolId || 'local'
+    const store = readTenantExamSettings(schoolId)
+    res.json(store)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.post('/api/exam-settings', auth, async (req, res) => {
+  try {
+    const { systems, scales, assessments, examConfigs, rules, repeatingStudents } = req.body
+    const schoolId = req.schoolId || 'local'
+    writeTenantExamSettings(schoolId, { systems, scales, assessments, examConfigs, rules, repeatingStudents })
+    res.json({ status: 'saved' })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.get('/api/ca-status', auth, async (req, res) => {
+  try {
+    const { classId, subject } = req.query
+    if (!classId || !subject) return res.status(400).json({ error: 'classId and subject are required' })
+    
+    const schoolId = req.schoolId || 'local'
+    const settings = readTenantExamSettings(schoolId)
+    const marks = readTenantMarks(schoolId)
+    const classesStore = readTenantClasses(schoolId)
+    
+    // Find the canonical class ID to handle mismatches
+    const targetClass = classesStore.classes.find(c => 
+      c.id === classId || 
+      (c.name || '').toLowerCase().trim() === classId.toLowerCase().trim() ||
+      (c.grade || '').toLowerCase().trim() === classId.toLowerCase().trim()
+    )
+    
+    const canonicalClassId = targetClass ? targetClass.id : classId
+    
+    // Get the active assessment type for this class/subject
+    const activeAssessment = settings.assessments.find(a => 
+      (a.assignedClasses || []).some(cls => 
+        cls === canonicalClassId || 
+        (targetClass && (cls === targetClass.name || cls === targetClass.grade))
+      ) && a.status === 'active'
+    )
+    
+    if (!activeAssessment) {
+      return res.json({ 
+        totalElements: 0, 
+        completedElements: 0, 
+        isComplete: false,
+        elements: []
+      })
+    }
+    
+    // Check completion status for each CA element
+    const elements = activeAssessment.items.map(item => {
+      const existingMarks = marks.marks.filter(m => 
+        (m.classId === canonicalClassId || (targetClass && (m.classId === targetClass.name || m.classId === targetClass.grade))) && 
+        m.subject === subject && 
+        m.assessmentType === 'ca' && 
+        m.elementName === item.name
+      )
+      
+      return {
+        name: item.name,
+        totalMarks: item.total,
+        completed: existingMarks.length > 0,
+        studentCount: existingMarks.length
+      }
+    })
+    
+    const totalElements = elements.length
+    const completedElements = elements.filter(e => e.completed).length
+    
+    res.json({
+      totalElements,
+      completedElements,
+      isComplete: completedElements === totalElements,
+      elements
+    })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.post('/api/marks', auth, async (req, res) => {
+  try {
+    const { examId, classId, subject, entries, assessmentType, elementName } = req.body
+    
+    const isCa = (assessmentType || '').toLowerCase().includes('ca') || (assessmentType || '').toLowerCase().includes('continuous');
+    const effectiveExamId = examId || (isCa ? 'ca-marks' : null);
+    
+    if (!effectiveExamId || !classId || !subject || !Array.isArray(entries)) {
+      return res.status(400).json({ error: 'examId (or CA context), classId, subject and entries are required' })
+    }
+    
+    // Validate pedagogical lock for exam entries
+    if (assessmentType === 'exam' || !assessmentType) {
+      const schoolId = req.schoolId || 'local'
+      const settings = readTenantExamSettings(schoolId)
+      const marks = readTenantMarks(schoolId)
+      const classesStore = readTenantClasses(schoolId)
+      
+      // Find the canonical class ID to handle mismatches
+      const targetClass = classesStore.classes.find(c => 
+        c.id === classId || 
+        (c.name || '').toLowerCase().trim() === classId.toLowerCase().trim() ||
+        (c.grade || '').toLowerCase().trim() === classId.toLowerCase().trim()
+      )
+      
+      const canonicalClassId = targetClass ? targetClass.id : classId
+      
+      // Get the active assessment type for this class/subject
+      const activeAssessment = settings.assessments.find(a => 
+        (a.assignedClasses || []).some(cls => 
+          cls === canonicalClassId || 
+          (targetClass && (cls === targetClass.name || cls === targetClass.grade))
+        ) && a.status === 'active'
+      )
+      
+      if (activeAssessment) {
+        // Check if all CA elements are completed
+        const incompleteElements = activeAssessment.items.filter(item => {
+          const existingMarks = marks.marks.filter(m => 
+            (m.classId === canonicalClassId || (targetClass && (m.classId === targetClass.name || m.classId === targetClass.grade))) && 
+            m.subject === subject && 
+            m.assessmentType === 'ca' && 
+            m.elementName === item.name
+          )
+          return existingMarks.length === 0
+        })
+        
+        if (incompleteElements.length > 0) {
+          return res.status(403).json({ 
+            error: 'Pedagogical Lock: Cannot enter exam marks until all CA elements are recorded',
+            incompleteElements: incompleteElements.map(e => e.name),
+            message: `Please complete these CA elements first: ${incompleteElements.map(e => e.name).join(', ')}`
+          })
+        }
+      }
+    }
+    
+    const schoolId = req.schoolId || 'local'
+    const store = readTenantMarks(schoolId)
+    store.marks = Array.isArray(store.marks) ? store.marks : []
+    
+    // Remove existing marks for this context
+    const filter = { examId, classId, subject }
+    if (assessmentType) filter.assessmentType = assessmentType
+    if (elementName) filter.elementName = elementName
+    
+    // Use targetClass for robust filtering if available
+    const schoolClasses = readTenantClasses(schoolId).classes
+    const tClass = schoolClasses.find(c => 
+      c.id === classId || 
+      (c.name || '').toLowerCase().trim() === classId.toLowerCase().trim() ||
+      (c.grade || '').toLowerCase().trim() === classId.toLowerCase().trim()
+    )
+    const canonId = tClass ? tClass.id : classId
+
+    store.marks = store.marks.filter(m => {
+      const classMatch = m.classId === canonId || (tClass && (m.classId === tClass.name || m.classId === tClass.grade))
+      const targetExamId = assessmentType === 'ca' ? 'ca-marks' : examId
+      return !(m.examId === targetExamId && classMatch && m.subject === subject &&
+              (!assessmentType || m.assessmentType === assessmentType) &&
+              (!elementName || m.elementName === elementName))
+    })
+    
+    // Add new marks
+    const now = new Date().toISOString()
+    const newEntries = entries.map(e => ({
+      examId: assessmentType === 'ca' ? 'ca-marks' : examId, // Force correct ID for CA
+      classId: canonId, // Save with canonical ID
+      subject,
+      studentId: e.studentId,
+      score: parseFloat(e.score) || 0,
+      comment: e.comment || '',
+      synopsis: e.synopsis || '',
+      assessmentType: assessmentType || 'exam',
+      elementName: elementName || null,
+      updatedAt: now
+    }))
+    
+    store.marks.push(...newEntries)
+    writeTenantMarks(schoolId, store)
+    res.json({ status: 'saved', count: newEntries.length })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.get('/api/reports/remarks', auth, async (req, res) => {
+  try {
+    const schoolId = req.schoolId || 'local'
+    const { studentId, examId } = req.query
+    const store = readTenantRemarks(schoolId)
+    let filtered = store.remarks || []
+    if (studentId) filtered = filtered.filter(r => r.studentId === studentId)
+    if (examId) filtered = filtered.filter(r => r.examId === examId)
+    res.json(filtered)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.post('/api/reports/remarks', auth, async (req, res) => {
+  try {
+    const schoolId = req.schoolId || 'local'
+    const { studentId, examId, attendance, headRemarks, teacherRemarks } = req.body
+    if (!studentId || !examId) return res.status(400).json({ error: 'studentId and examId are required' })
+    const store = readTenantRemarks(schoolId)
+    store.remarks = Array.isArray(store.remarks) ? store.remarks : []
+    
+    // Remove existing
+    store.remarks = store.remarks.filter(r => !(r.studentId === studentId && r.examId === examId))
+    
+    store.remarks.push({
+      studentId,
+      examId,
+      attendance,
+      headRemarks,
+      teacherRemarks,
+      updatedAt: new Date().toISOString()
+    })
+    
+    writeTenantRemarks(schoolId, store)
+    res.json({ status: 'saved' })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
   }
 })
 
@@ -3481,6 +4041,80 @@ app.get('/api/student/subjects', auth, async (req, res) => {
   }
 });
 
+// AI Routes
+app.post('/api/ai/generate-questions', auth, async (req, res) => {
+  try {
+    const { topic, instructions, count } = req.body;
+    if (!topic) return res.status(400).json({ error: 'topic is required' });
+
+    // Try Gemini first
+    try {
+      console.log(`[AI] Attempting Gemini for topic: ${topic}`);
+      const questions = await generateQuestions(topic, instructions, count || 5);
+      return res.json(questions);
+    } catch (geminiError) {
+      console.warn('[AI] Gemini failed, checking DeepSeek fallback...', geminiError.message);
+      
+      // If Gemini has quota issues (429) and DeepSeek is configured, switch to DeepSeek
+      if ((geminiError.message.includes('429') || geminiError.message.includes('limit')) && isDSAvailable) {
+        console.log('[AI] Gemini quota exceeded. Using DeepSeek fallback.');
+        const questions = await generateQuestionsDS(topic, instructions, count || 5);
+        return res.json(questions);
+      }
+      throw geminiError; // Re-throw if DeepSeek not available or other error
+    }
+  } catch (e) {
+    console.error('[AI] Question Generation Error:', e);
+    res.status(500).json({ 
+      error: 'Failed to generate questions', 
+      details: e.message
+    });
+  }
+});
+
+app.post('/api/ai/evaluate-answer', auth, async (req, res) => {
+  try {
+    const { question, studentAnswer, maxMarks } = req.body;
+    if (!question || !studentAnswer) return res.status(400).json({ error: 'question and studentAnswer are required' });
+
+    // Try Gemini first
+    try {
+      console.log(`[AI] Attempting Gemini evaluation...`);
+      const evaluation = await evaluateShortAnswer(question, studentAnswer, maxMarks || 10);
+      return res.json(evaluation);
+    } catch (geminiError) {
+      console.warn('[AI] Gemini evaluation failed, checking DeepSeek fallback...', geminiError.message);
+      
+      if ((geminiError.message.includes('429') || geminiError.message.includes('limit')) && isDSAvailable) {
+        console.log('[AI] Gemini quota exceeded. Using DeepSeek for evaluation.');
+        const evaluation = await evaluateShortAnswerDS(question, studentAnswer, maxMarks || 10);
+        return res.json(evaluation);
+      }
+      throw geminiError;
+    }
+  } catch (e) {
+    console.error('[AI] Evaluation Error:', e);
+    res.status(500).json({ 
+      error: 'Failed to evaluate answer', 
+      details: e.message
+    });
+  }
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('[Global Error]', err);
+  res.status(500).json({ 
+    error: 'Internal Server Error', 
+    details: err.message 
+  });
+});
+
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
+  if (!process.env.GEMINI_API_KEY) {
+    console.warn('⚠️ WARNING: GEMINI_API_KEY is not set in .env. AI features will fail.');
+  } else {
+    console.log('✅ Gemini AI service initialized.');
+  }
 });

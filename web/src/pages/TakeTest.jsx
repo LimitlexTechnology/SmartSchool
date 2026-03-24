@@ -27,6 +27,22 @@ const TakeTest = () => {
   const [isFinished, setIsFinished] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [score, setScore] = useState(null);
+  const [integrityViolations, setIntegrityViolations] = useState(0);
+  const [showIntegrityWarning, setShowIntegrityWarning] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && !isFinished) {
+        setIntegrityViolations(prev => prev + 1);
+        setShowIntegrityWarning(true);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isFinished]);
 
   useEffect(() => {
     if (!paperId) {
@@ -81,6 +97,14 @@ const TakeTest = () => {
     }));
   };
 
+  const handleExit = () => {
+    setShowExitConfirm(true);
+  };
+
+  const confirmExit = () => {
+    navigate(-1);
+  };
+
   const handleSubmit = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
@@ -103,7 +127,7 @@ const TakeTest = () => {
       });
 
       const studentId = localStorage.getItem('studentTableId');
-      const response = await fetch('/api/submissions', {
+      const r = await fetch('/api/submissions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -111,9 +135,10 @@ const TakeTest = () => {
           studentId,
           fileName: `Digital Exam: ${paper.title}`,
           submittedAt: new Date().toISOString(),
-          answers, // Store full answers
+          answers,
           score: totalScore,
-          status: 'Graded'
+          status: 'Turned In',
+          integrityViolations // Send the violation count to the server
         })
       });
 
@@ -167,6 +192,101 @@ const TakeTest = () => {
 
   return (
     <div className="min-h-screen bg-light-bg flex flex-col">
+      {/* Integrity Warning Overlay */}
+      {showIntegrityWarning && !isFinished && (
+        <div className="fixed inset-0 z-[1000] bg-rose-500/90 backdrop-blur-md flex items-center justify-center p-6 text-white">
+          <div className="max-w-md w-full text-center space-y-6 animate-in zoom-in duration-300">
+            <div className="w-24 h-24 bg-white/20 rounded-3xl flex items-center justify-center mx-auto mb-8 animate-pulse">
+              <AlertCircle size={48} />
+            </div>
+            <h2 className="text-3xl font-black uppercase tracking-tighter">Focus Warning!</h2>
+            <p className="text-lg font-bold opacity-90 leading-relaxed">
+              We detected that you switched tabs or left the browser window.
+            </p>
+            <div className="bg-white/10 p-4 rounded-2xl border border-white/20">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-1 opacity-70">Violation Record</p>
+              <p className="text-2xl font-black">{integrityViolations} incidents logged</p>
+            </div>
+            <p className="text-xs font-bold opacity-70">
+              This activity has been flagged and will be reported to your teacher. Please return to the exam and stay focused.
+            </p>
+            <button 
+              onClick={() => setShowIntegrityWarning(false)}
+              className="w-full py-4 bg-white text-rose-500 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-gray-100 transition shadow-xl"
+            >
+              Return to Exam
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Exit Confirmation Modal */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-dark-text/40 backdrop-blur-sm" onClick={() => setShowExitConfirm(false)}></div>
+          <div className="bg-white rounded-[2.5rem] w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 relative z-10">
+            <div className="p-8 text-center">
+              <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-500 mx-auto mb-6">
+                <AlertCircle size={40} />
+              </div>
+              <h3 className="text-2xl font-black text-dark-text tracking-tight uppercase mb-2">Exit Exam?</h3>
+              <p className="text-sm font-bold text-muted-text leading-relaxed mb-8">
+                Are you sure you want to exit? Your current progress will not be saved.
+              </p>
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={confirmExit}
+                  className="w-full py-4 bg-rose-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-rose-600 transition shadow-lg shadow-rose-500/20"
+                >
+                  Yes, Exit Now
+                </button>
+                <button 
+                  onClick={() => setShowExitConfirm(false)}
+                  className="w-full py-4 bg-light-bg text-muted-text rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-gray-100 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Submit Confirmation Modal */}
+      {showSubmitConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-dark-text/40 backdrop-blur-sm" onClick={() => setShowSubmitConfirm(false)}></div>
+          <div className="bg-white rounded-[2.5rem] w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 relative z-10">
+            <div className="p-8 text-center">
+              <div className="w-20 h-20 bg-emerald-50 rounded-3xl flex items-center justify-center text-emerald-500 mx-auto mb-6">
+                <CheckCircle2 size={40} />
+              </div>
+              <h3 className="text-2xl font-black text-dark-text tracking-tight uppercase mb-2">Submit Exam?</h3>
+              <p className="text-sm font-bold text-muted-text leading-relaxed mb-8">
+                Are you sure you want to finish and submit your exam? You won't be able to change your answers after this.
+              </p>
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={() => {
+                    setShowSubmitConfirm(false);
+                    handleSubmit();
+                  }}
+                  className="w-full py-4 bg-emerald-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-emerald-600 transition shadow-lg shadow-emerald-500/20"
+                >
+                  Yes, Submit Now
+                </button>
+                <button 
+                  onClick={() => setShowSubmitConfirm(false)}
+                  className="w-full py-4 bg-light-bg text-muted-text rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-gray-100 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-50 px-6 py-4 shadow-soft-sm">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
@@ -264,11 +384,7 @@ const TakeTest = () => {
           
           {currentSectionIndex === paper.sections.length - 1 ? (
             <button
-              onClick={() => {
-                if (window.confirm('Are you sure you want to submit your exam?')) {
-                  handleSubmit();
-                }
-              }}
+              onClick={() => setShowSubmitConfirm(true)}
               disabled={isSubmitting}
               className="px-10 py-4 bg-emerald-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-emerald-600 transition shadow-lg shadow-emerald-500/20 flex items-center gap-2"
             >
