@@ -14,6 +14,7 @@ import {
     ChevronRight,
     X,
     GraduationCap,
+    Megaphone,
     Sparkles
 } from 'lucide-react';
 import SkullarLogo from '../../assets/SkullarLogo.png';
@@ -223,6 +224,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
         { icon: UserSquare2, label: 'Staff', to: '/dashboard/staff', key: 'staff' },
         { icon: ClipboardList, label: 'Exams', to: '#', key: 'assessments' },
         { icon: Landmark, label: 'Accounts', to: '/dashboard/finance', key: 'finance' },
+        { icon: Megaphone, label: 'Announcements', to: `/${role === 'teacher' ? 'teacher' : 'dashboard'}/announcements`, key: 'announcements' },
         { icon: Sparkles, label: 'AI Assistant', to: '/dashboard/ai-assistant', key: 'ai_assistant' },
         { icon: Package, label: 'Inventory', to: '/dashboard/inventory', key: 'inventory' },
         { icon: Wrench, label: 'Services', to: '#', key: 'services' },

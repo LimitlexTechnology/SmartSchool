@@ -3,6 +3,7 @@ import { Search, Bell, Menu, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import YearTermPicker from './YearTermPicker';
 import ProfileMenu from './ProfileMenu';
+import NotificationBell from './NotificationBell';
 
 const Navbar = ({ onOpenMobileMenu }) => {
     const navigate = useNavigate();
@@ -38,10 +39,7 @@ const Navbar = ({ onOpenMobileMenu }) => {
                 </div>
 
                 {/* Notifications */}
-                <button className="relative p-2 rounded-button bg-light-bg text-dark-text hover:text-primary-teal transition-colors">
-                    <Bell size={20} />
-                    <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border-2 border-white"></span>
-                </button>
+                <NotificationBell />
 
                 {/* Academic Period */}
                 <YearTermPicker />

@@ -1,0 +1,30 @@
+{
+  "students": [
+    {
+      "id": "ee516107-a78f-4b6a-bc9b-e625aa5f267f",
+      "firstName": "Stephen",
+      "lastName": "Amoah",
+      "email": "kobbygazi@gmail.com",
+      "grade": "9",
+      "classId": "108cd125-8374-4f65-85c9-bad44fa1bf0c",
+      "wristbandId": null,
+      "gender": "Male",
+      "birthday": null,
+      "admittedAt": "2026-03-23T00:00:00.000Z",
+      "religion": "Christian",
+      "nationality": "Ghanaian",
+      "hometown": "Kumasi",
+      "address": "Opah",
+      "guardianName": "Prosper Yesuli Gakpleazi",
+      "guardianRelationship": "Father",
+      "guardianContact": "0543131455",
+      "profilePicture": null,
+      "profilePhoto": null,
+      "guardianPhoto": null,
+      "password": "81f7c89ef09ebaf2ebe26360459e242c:75d140e8df38d424b8e559a0206ffa9adf6e3e551edf69ea9564bbd69cc62b8f8dff857bb73eedcb61f204e8e00e8b1595753672cee860352615bf1cd585c48f",
+      "status": "active",
+      "createdAt": "2026-03-23T17:13:33.062Z",
+      "updatedAt": "2026-03-23T17:51:29.474Z"
+    }
+  ]
+}
