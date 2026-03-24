@@ -1,0 +1,19 @@
+{
+  "teachers": [
+    {
+      "id": "9382bc4f-13b5-4328-ae72-bc3790308c1d",
+      "name": "Blankson Kwarteng",
+      "email": "gakpleaziprosperyesuli",
+      "subject": "Computing",
+      "createdAt": "2026-03-23T17:10:59.257Z"
+    },
+    {
+      "id": "c95d4fb1-c980-4d3d-9641-b5134d41871c",
+      "name": "Prosper Yesuli Gakpleazi",
+      "email": "kobbygazi@gmail.com",
+      "subject": "Science",
+      "createdAt": "2026-03-23T17:07:25.030Z",
+      "updatedAt": "2026-03-23T19:35:25.816Z"
+    }
+  ]
+}

@@ -8,6 +8,7 @@ import SuperAdminLayout from './layouts/SuperAdminLayout'
 import LandingPage from './pages/LandingPage'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
+import Announcements from './pages/Announcements'
 import Assessments from './pages/Assessments'
 import AILessonNotes from './pages/AILessonNotes'
 import SmartID from './pages/SmartID'
@@ -128,6 +129,7 @@ const App = () => {
           <Route path="safety" element={<Safety />} />
           <Route path="security" element={<Security />} />
           <Route path="finance" element={<Finance />} />
+          <Route path="announcements" element={<Announcements />} />
           <Route path="settings" element={<UserSettings />} />
           <Route path="*" element={<ComingSoon />} />
         </Route>
@@ -150,6 +152,7 @@ const App = () => {
           <TeacherRoute><DashboardLayout /></TeacherRoute>
         }>
           <Route index element={<TeacherDashboard />} />
+          <Route path="announcements" element={<Announcements />} />
         </Route>
 
         {/* Student Portal */}

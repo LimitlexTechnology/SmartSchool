@@ -1,0 +1,71 @@
+{
+  "announcements": [
+    {
+      "id": "d8407400-3de6-4cdd-9464-7548fb442ec7",
+      "title": "OUTBREAK OF CHICKEN POX",
+      "content": "There is a pandemic",
+      "targetGroup": "students",
+      "priority": "High",
+      "createdAt": "2026-03-24T12:50:33.748Z",
+      "author": "School Admin"
+    },
+    {
+      "id": "67c77814-21bc-46dd-b895-e0b2519ac1db",
+      "title": "good",
+      "content": "better",
+      "targetGroup": "students",
+      "priority": "High",
+      "createdAt": "2026-03-24T12:41:56.394Z",
+      "author": "School Admin"
+    },
+    {
+      "id": "61dec534-a45b-46b6-b57c-402f31582b12",
+      "title": "hhigycfg,hbjkbk",
+      "content": "utjcfvgyb,iklgyjdjf gyhukj ,j",
+      "targetGroup": "students",
+      "priority": "High",
+      "createdAt": "2026-03-24T12:41:28.126Z",
+      "author": "School Admin"
+    },
+    {
+      "id": "4566e5bb-05e2-400d-8432-90d9469609c8",
+      "title": "hi",
+      "content": "good",
+      "targetGroup": "all",
+      "createdAt": "2026-03-24T12:24:14.234Z",
+      "author": "School Admin"
+    },
+    {
+      "id": "3ab1f41e-b287-4d14-bf7c-1a17db080d1f",
+      "title": "Welcome Back To School",
+      "content": "Enjoy the rest of the term",
+      "targetGroup": "all",
+      "createdAt": "2026-03-24T11:57:01.164Z",
+      "author": "School Admin"
+    },
+    {
+      "id": "345c82a4-bc42-439b-8e09-103ac2d3c7a8",
+      "title": "Deadline Due",
+      "content": "For submission of exams",
+      "targetGroup": "staff",
+      "createdAt": "2026-03-23T19:59:13.788Z",
+      "author": "School Admin"
+    },
+    {
+      "id": "312b29bf-8348-4345-b015-64e66c9c1f70",
+      "title": "Test Announcement",
+      "content": "This is a functional test for the notification bell.",
+      "targetGroup": "all",
+      "createdAt": "2026-03-23T19:46:56.402Z",
+      "author": "School Admin"
+    },
+    {
+      "id": "3a7a6d58-59c5-4b4d-b998-8996ef0e09ef",
+      "title": "EID MUBARAK HOLIDAY",
+      "content": "Tomorrow is holiday. No school",
+      "targetGroup": "students",
+      "createdAt": "2026-03-23T17:49:09.431Z",
+      "author": "School Admin"
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+// Server reload trigger and standardized fallback logic
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -43,6 +44,12 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Request Logger
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
 
 // Basic Health Check
 app.get('/', (req, res) => {
@@ -113,6 +120,13 @@ const auth = (req, res, next) => {
       if (k === 'schoolId') sid = decodeURIComponent(v || '')
       if (k === 'teacherId') tid = decodeURIComponent(v || '')
       if (k === 'studentId') studentId = decodeURIComponent(v || '')
+    }
+  }
+  // Also check x-school-id header as fallback (used by student portal)
+  if (!sid || sid === 'local') {
+    const headerSchoolId = req.headers['x-school-id']
+    if (headerSchoolId && headerSchoolId !== 'local') {
+      sid = headerSchoolId
     }
   }
   let schoolId = sid || 'local'
@@ -701,7 +715,7 @@ app.post('/api/classes', auth, async (req, res) => {
     const { name, grade } = req.body
     if (!grade) return res.status(400).json({ error: 'Grade is required' })
 
-    if (req.schoolId && req.schoolId !== 'local') {
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
       const store = readTenantClasses(req.schoolId)
       const newClass = {
         id: randomUUID(),
@@ -725,7 +739,7 @@ app.put('/api/classes/:id/assign-teacher', auth, async (req, res) => {
   try {
     const id = req.params.id
     const { teacherId } = req.body
-    if (req.schoolId && req.schoolId !== 'local') {
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
       const store = readTenantClasses(req.schoolId)
       const cIdx = store.classes.findIndex(c => c.id === id)
       if (cIdx < 0) return res.status(404).json({ error: 'Class not found' })
@@ -788,6 +802,131 @@ app.post('/api/subjects', auth, async (req, res) => {
     }
     res.status(501).json({ error: 'DB implementation for subjects pending' })
   } catch (e) {
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+// ============== Notifications ==============
+app.get('/api/notifications', auth, async (req, res) => {
+  try {
+    const schoolId = req.schoolId || 'local'
+    const notifications = []
+
+    // 1. Get School-wide and Subject-specific Announcements
+    const annStore = readTenantAnnouncements(schoolId)
+    annStore.announcements.forEach(ann => {
+      const target = ann.targetGroup || 'all';
+      if (req.studentId && target === 'staff') return;
+      if (req.teacherId && target === 'students') return;
+      
+      let link = '/portal'; // Student messages are typically handled in portal
+      if (req.teacherId) link = '/teacher/announcements';
+      else if (!req.studentId) link = '/dashboard/announcements'; // Admin
+
+      notifications.push({
+        id: ann.id,
+        type: 'announcement',
+        title: ann.title || 'Official Announcement',
+        content: ann.content,
+        createdAt: ann.createdAt,
+        link: link
+      })
+    })
+
+    // 2. If student, get Assignments and Behavior logs
+    if (req.studentId) {
+      // Get student's class
+      let student = null
+      if (schoolId !== 'local' || !isDBConnected) {
+        const { students } = readTenantStudents(schoolId)
+        student = students.find(s => s.id === req.studentId)
+      } else {
+        student = await prisma.student.findUnique({ where: { id: req.studentId } })
+      }
+
+      if (student) {
+        // Assignments
+        const assStore = readTenantClassAssignments(schoolId)
+        const studentAssignments = assStore.assignments.filter(a => a.classId === student.classId)
+        studentAssignments.forEach(ass => {
+          notifications.push({
+            id: ass.id,
+            type: 'assignment',
+            title: `New Assignment: ${ass.title}`,
+            content: `A new assignment has been posted for ${ass.subjectName || 'your class'}. Due: ${new Date(ass.dueDate).toLocaleDateString()}`,
+            createdAt: ass.createdAt || new Date().toISOString(),
+            link: `/portal/subject/${ass.subjectId}`
+          })
+        })
+
+        // Behavior Logs
+        const behStore = readTenantBehaviorLogs(schoolId)
+        const studentLogs = behStore.logs.filter(l => l.studentId === req.studentId)
+        studentLogs.slice(-5).forEach(log => {
+          notifications.push({
+            id: log.id,
+            type: 'behavior',
+            title: `Behavior Update: ${log.category}`,
+            content: `${log.type === 'addition' ? 'Earned' : 'Deducted'} ${log.score} points for ${log.category.toLowerCase()}.`,
+            createdAt: log.createdAt,
+            link: '/portal' // Dashboard shows behavior modal
+          })
+        })
+      }
+    }
+
+    // Sort by most recent
+    notifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    res.json(notifications.slice(0, 20)) // Return top 20
+  } catch (e) {
+    console.error('Notifications fetch error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+// ============== Announcements ==============
+app.get('/api/announcements', auth, async (req, res) => {
+  try {
+    const schoolId = req.schoolId || 'local'
+    const store = readTenantAnnouncements(schoolId)
+    
+    // Filter by targetGroup based on role
+    const filtered = store.announcements.filter(ann => {
+      const target = ann.targetGroup || 'all';
+      if (req.studentId && target === 'staff') return false;
+      if (req.teacherId && target === 'students') return false;
+      return true;
+    });
+
+    res.json(filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)))
+  } catch (e) {
+    console.error('Announcements fetch error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.post('/api/announcements', auth, async (req, res) => {
+  try {
+    const schoolId = req.schoolId
+    if (!schoolId) return res.status(401).json({ error: 'Unauthorized' })
+    const { title, content, targetGroup, priority } = req.body
+    if (!title || !content) return res.status(400).json({ error: 'title and content are required' })
+    
+    const store = readTenantAnnouncements(schoolId)
+    const newAnn = {
+      id: randomUUID(),
+      title,
+      content,
+      targetGroup: targetGroup || 'all',
+      priority: priority || 'Medium',
+      createdAt: new Date().toISOString(),
+      author: 'School Admin'
+    }
+    store.announcements.unshift(newAnn)
+    writeTenantAnnouncements(schoolId, store)
+    res.status(201).json(newAnn)
+  } catch (e) {
+    console.error('Create announcement error:', e)
     res.status(500).json({ error: e?.message || 'unknown' })
   }
 })
@@ -1548,33 +1687,17 @@ app.post('/api/student-auth/login', async (req, res) => {
     let targetSchoolId = headerSchoolId
 
     if (headerSchoolId && headerSchoolId !== 'local') {
+      // Specific school given in header - search that school's file
       const store = readTenantStudents(headerSchoolId)
       student = (store.students || []).find(s =>
         (s.wristbandId && s.wristbandId.toUpperCase() === sid.toUpperCase()) ||
         (s.id && s.id.slice(0, 8).toUpperCase() === sid.toUpperCase())
       )
-    } else {
-      if (isDBConnected) {
-        student = await prisma.student.findFirst({
-          where: {
-            OR: [
-              { wristbandId: { equals: sid, mode: 'insensitive' } },
-              { id: { startsWith: sid.toLowerCase() } }
-            ]
-          }
-        })
-      } else {
-        const store = readTenantStudents('local')
-        student = (store.students || []).find(s =>
-          (s.wristbandId && s.wristbandId.toUpperCase() === sid.toUpperCase()) ||
-          (s.id && s.id.slice(0, 8).toUpperCase() === sid.toUpperCase())
-        )
-      }
     }
 
-    // 2. Global search if not found locally
-    if (!student && headerSchoolId === 'local') {
-      const schools = schoolsStore.list().filter(s => s.id !== 'local')
+    // Global search across all tenant schools if not found yet
+    if (!student) {
+      const schools = schoolsStore.list()
       for (const s of schools) {
         try {
           const store = readTenantStudents(s.id)
@@ -1835,7 +1958,7 @@ app.post('/api/teachers', auth, async (req, res) => {
   try {
     const { name, email, subject, phone, tempPassword } = req.body || {}
     if (!name || !email) return res.status(400).json({ error: 'name and email are required' })
-    if (req.schoolId && req.schoolId !== 'local') {
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
       const store = readTenantTeachers(req.schoolId)
       const id = randomUUID()
       const obj = { id, name: name.trim(), email: String(email).trim(), subject: subject || '', createdAt: new Date().toISOString() }
@@ -1882,7 +2005,7 @@ app.post('/api/teachers', auth, async (req, res) => {
 app.get('/api/teachers/:id', auth, async (req, res) => {
   try {
     const id = req.params.id
-    if (req.schoolId && req.schoolId !== 'local') {
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
       const store = readTenantTeachers(req.schoolId)
       const t = (store.teachers || []).find(x => x.id === id)
       if (!t) return res.status(404).json({ error: 'not found' })
@@ -1901,10 +2024,11 @@ app.get('/api/teachers/:id', auth, async (req, res) => {
 })
 
 app.put('/api/teachers/:id', auth, async (req, res) => {
+  console.log(`PUT /api/teachers/${req.params.id} start`);
   try {
     const id = req.params.id
-    const { name, email, subject } = req.body || {}
-    if (req.schoolId && req.schoolId !== 'local') {
+    const { name, email, subject, tempPassword } = req.body || {}
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
       const store = readTenantTeachers(req.schoolId)
       const idx = (store.teachers || []).findIndex(t => t.id === id)
       if (idx === -1) return res.status(404).json({ error: 'not found' })
@@ -1917,6 +2041,12 @@ app.put('/api/teachers/:id', auth, async (req, res) => {
         updatedAt: new Date().toISOString()
       }
       store.teachers[idx] = next
+      if (tempPassword && tempPassword.trim()) {
+        const crypto = require('crypto')
+        const salt = crypto.randomBytes(16).toString('hex')
+        const hash = crypto.scryptSync(tempPassword.trim(), salt, 64).toString('hex')
+        staffStore.upsert(id, { passSalt: salt, passHash: hash })
+      }
       writeTenantTeachers(req.schoolId, store)
       return res.json({ id: next.id, name: next.name, email: next.email, subject: next.subject })
     }
@@ -1925,67 +2055,79 @@ app.put('/api/teachers/:id', auth, async (req, res) => {
     if (email !== undefined) data.email = email
     if (subject !== undefined) data.subject = subject
     const updated = await prisma.teacher.update({ where: { id }, data })
+
+    if (tempPassword && tempPassword.trim()) {
+      const crypto = require('crypto')
+      const salt = crypto.randomBytes(16).toString('hex')
+      const hash = crypto.scryptSync(tempPassword.trim(), salt, 64).toString('hex')
+      staffStore.upsert(id, { passSalt: salt, passHash: hash })
+    }
+
     res.json({ id: updated.id, name: updated.name, email: updated.email, subject: updated.subject })
   } catch (e) {
     if (e.code === 'P2002') return res.status(409).json({ error: 'Unique constraint failed' })
-    console.error('Update teacher error:', e)
+    console.error(`Update teacher ${id} error:`, e)
     res.status(500).json({ error: e?.message || 'unknown' })
   }
 })
 
 app.get('/api/teachers/:id/profile', auth, async (req, res) => {
+  console.log(`GET /api/teachers/${req.params.id}/profile start`);
   try {
     const id = req.params.id
-    try {
-      const prof = await prisma.teacherProfile.findUnique({ where: { teacherId: id } })
-      if (!prof) {
-        return res.json({
-          gender: '', phone: '', staffId: '', dateEmployed: '', ssn: '', nationalId: '', dob: '',
-          momoNumber: '', accountNumber: '', bankBranch: '', bankName: '', nextOfKin: '', nextOfKinRelation: '', nextOfKinPhone: '',
-          classesTaught: [], subjectsTaught: [], formMaster: ''
-        })
+    if (isDBConnected) {
+      try {
+        console.log(`Fetching from Prisma for ID: ${id}`);
+        const prof = await prisma.teacherProfile.findUnique({ where: { teacherId: id } })
+        console.log(`Prisma result: ${prof ? 'found' : 'not found'}`);
+        if (prof) {
+          return res.json({
+            gender: prof.gender || '',
+            phone: prof.phone || '',
+            staffId: prof.staffId || '',
+            dateEmployed: prof.dateEmployed ? prof.dateEmployed.toISOString().slice(0, 10) : '',
+            ssn: prof.ssn || '',
+            nationalId: prof.nationalId || '',
+            dob: prof.dob ? prof.dob.toISOString().slice(0, 10) : '',
+            momoNumber: prof.momoNumber || '',
+            accountNumber: prof.accountNumber || '',
+            bankBranch: prof.bankBranch || '',
+            bankName: prof.bankName || '',
+            nextOfKin: prof.nextOfKin || '',
+            nextOfKinRelation: prof.nextOfKinRelation || '',
+            nextOfKinPhone: prof.nextOfKinPhone || '',
+            classesTaught: prof.classesTaught || [],
+            subjectsTaught: prof.subjectsTaught || [],
+            formMaster: prof.formMaster || '',
+          })
+        }
+      } catch (e) {
+        console.error('Teacher profile Prisma error, falling back:', e)
       }
-      return res.json({
-        gender: prof.gender || '',
-        phone: prof.phone || '',
-        staffId: prof.staffId || '',
-        dateEmployed: prof.dateEmployed ? prof.dateEmployed.toISOString().slice(0, 10) : '',
-        ssn: prof.ssn || '',
-        nationalId: prof.nationalId || '',
-        dob: prof.dob ? prof.dob.toISOString().slice(0, 10) : '',
-        momoNumber: prof.momoNumber || '',
-        accountNumber: prof.accountNumber || '',
-        bankBranch: prof.bankBranch || '',
-        bankName: prof.bankName || '',
-        nextOfKin: prof.nextOfKin || '',
-        nextOfKinRelation: prof.nextOfKinRelation || '',
-        nextOfKinPhone: prof.nextOfKinPhone || '',
-        classesTaught: prof.classesTaught || [],
-        subjectsTaught: prof.subjectsTaught || [],
-        formMaster: prof.formMaster || '',
-      })
-    } catch (_) {
-      const p = staffStore.get(id) || {}
-      return res.json({
-        gender: p.gender || '',
-        phone: p.phone || '',
-        staffId: p.staffId || '',
-        dateEmployed: p.dateEmployed || '',
-        ssn: p.ssn || '',
-        nationalId: p.nationalId || '',
-        dob: p.dob || '',
-        momoNumber: p.momoNumber || '',
-        accountNumber: p.accountNumber || '',
-        bankBranch: p.bankBranch || '',
-        bankName: p.bankName || '',
-        nextOfKin: p.nextOfKin || '',
-        nextOfKinRelation: p.nextOfKinRelation || '',
-        nextOfKinPhone: p.nextOfKinPhone || '',
-        classesTaught: Array.isArray(p.classesTaught) ? p.classesTaught : [],
-        subjectsTaught: Array.isArray(p.subjectsTaught) ? p.subjectsTaught : [],
-        formMaster: p.formMaster || '',
-      })
     }
+    
+    console.log(`Using staffStore fallback for ID: ${id}`);
+    const p = staffStore.get(id) || {}
+    console.log(`staffStore result: ${p ? 'found' : 'not found'}`);
+    return res.json({
+      gender: p.gender || '',
+      phone: p.phone || '',
+      staffId: p.staffId || '',
+      dateEmployed: p.dateEmployed || '',
+      ssn: p.ssn || '',
+      nationalId: p.nationalId || '',
+      dob: p.dob || '',
+      momoNumber: p.momoNumber || '',
+      accountNumber: p.accountNumber || '',
+      bankBranch: p.bankBranch || '',
+      bankName: p.bankName || '',
+      nextOfKin: p.nextOfKin || '',
+      nextOfKinRelation: p.nextOfKinRelation || '',
+      nextOfKinPhone: p.nextOfKinPhone || '',
+      classesTaught: Array.isArray(p.classesTaught) ? p.classesTaught : [],
+      subjectsTaught: Array.isArray(p.subjectsTaught) ? p.subjectsTaught : [],
+      formMaster: p.formMaster || '',
+    })
   } catch (e) {
     console.error('Teacher profile error:', e)
     res.status(500).json({ error: e?.message || 'unknown' })
@@ -1993,6 +2135,7 @@ app.get('/api/teachers/:id/profile', auth, async (req, res) => {
 })
 
 app.put('/api/teachers/:id/profile', auth, async (req, res) => {
+  console.log(`PUT /api/teachers/${req.params.id}/profile start`);
   try {
     const id = req.params.id
     const {
@@ -2002,58 +2145,63 @@ app.put('/api/teachers/:id/profile', auth, async (req, res) => {
       classesTaught, subjectsTaught, formMaster, profilePicture
     } = req.body || {}
     const toDate = (v) => v ? new Date(v) : null
-    try {
-      const data = {
-        gender: gender ?? undefined,
-        phone: phone ?? undefined,
-        staffId: staffId ?? undefined,
-        dateEmployed: dateEmployed !== undefined ? toDate(dateEmployed) : undefined,
-        ssn: ssn ?? undefined,
-        nationalId: nationalId ?? undefined,
-        dob: dob !== undefined ? toDate(dob) : undefined,
-        momoNumber: momoNumber ?? undefined,
-        accountNumber: accountNumber ?? undefined,
-        bankBranch: bankBranch ?? undefined,
-        bankName: bankName ?? undefined,
-        nextOfKin: nextOfKin ?? undefined,
-        nextOfKinRelation: nextOfKinRelation ?? undefined,
-        nextOfKinPhone: nextOfKinPhone ?? undefined,
-        classesTaught: Array.isArray(classesTaught) ? classesTaught : classesTaught === undefined ? undefined : [],
-        subjectsTaught: Array.isArray(subjectsTaught) ? subjectsTaught : subjectsTaught === undefined ? undefined : [],
-        formMaster: formMaster ?? undefined,
-        profilePicture: profilePicture ?? undefined,
+
+    if (isDBConnected) {
+      try {
+        const data = {
+          gender: gender ?? undefined,
+          phone: phone ?? undefined,
+          staffId: staffId ?? undefined,
+          dateEmployed: dateEmployed !== undefined ? toDate(dateEmployed) : undefined,
+          ssn: ssn ?? undefined,
+          nationalId: nationalId ?? undefined,
+          dob: dob !== undefined ? toDate(dob) : undefined,
+          momoNumber: momoNumber ?? undefined,
+          accountNumber: accountNumber ?? undefined,
+          bankBranch: bankBranch ?? undefined,
+          bankName: bankName ?? undefined,
+          nextOfKin: nextOfKin ?? undefined,
+          nextOfKinRelation: nextOfKinRelation ?? undefined,
+          nextOfKinPhone: nextOfKinPhone ?? undefined,
+          classesTaught: Array.isArray(classesTaught) ? classesTaught : classesTaught === undefined ? undefined : [],
+          subjectsTaught: Array.isArray(subjectsTaught) ? subjectsTaught : subjectsTaught === undefined ? undefined : [],
+          formMaster: formMaster ?? undefined,
+          profilePicture: profilePicture ?? undefined,
+        }
+        const updated = await prisma.teacherProfile.upsert({
+          where: { teacherId: id },
+          update: data,
+          create: { teacherId: id, ...data, classesTaught: Array.isArray(classesTaught) ? classesTaught : [], subjectsTaught: Array.isArray(subjectsTaught) ? subjectsTaught : [] },
+        })
+        return res.json(updated)
+      } catch (e) {
+        console.error('Teacher profile update Prisma error, falling back:', e)
       }
-      const updated = await prisma.teacherProfile.upsert({
-        where: { teacherId: id },
-        update: data,
-        create: { teacherId: id, ...data, classesTaught: Array.isArray(classesTaught) ? classesTaught : [], subjectsTaught: Array.isArray(subjectsTaught) ? subjectsTaught : [] },
-      })
-      return res.json(updated)
-    } catch (_) {
-      const patch = {}
-      if (gender !== undefined) patch.gender = gender
-      if (phone !== undefined) patch.phone = phone
-      if (staffId !== undefined) patch.staffId = staffId
-      if (dateEmployed !== undefined) patch.dateEmployed = dateEmployed
-      if (ssn !== undefined) patch.ssn = ssn
-      if (nationalId !== undefined) patch.nationalId = nationalId
-      if (dob !== undefined) patch.dob = dob
-      if (momoNumber !== undefined) patch.momoNumber = momoNumber
-      if (accountNumber !== undefined) patch.accountNumber = accountNumber
-      if (bankBranch !== undefined) patch.bankBranch = bankBranch
-      if (bankName !== undefined) patch.bankName = bankName
-      if (nextOfKin !== undefined) patch.nextOfKin = nextOfKin
-      if (nextOfKinRelation !== undefined) patch.nextOfKinRelation = nextOfKinRelation
-      if (nextOfKinPhone !== undefined) patch.nextOfKinPhone = nextOfKinPhone
-      if (classesTaught !== undefined) patch.classesTaught = Array.isArray(classesTaught) ? classesTaught : []
-      if (subjectsTaught !== undefined) patch.subjectsTaught = Array.isArray(subjectsTaught) ? subjectsTaught : []
-      if (formMaster !== undefined) patch.formMaster = formMaster
-      if (profilePicture !== undefined) patch.profilePicture = profilePicture
-      const updatedFallback = staffStore.upsert(id, patch)
-      return res.json(updatedFallback)
     }
+
+    const patch = {}
+    if (gender !== undefined) patch.gender = gender
+    if (phone !== undefined) patch.phone = phone
+    if (staffId !== undefined) patch.staffId = staffId
+    if (dateEmployed !== undefined) patch.dateEmployed = dateEmployed
+    if (ssn !== undefined) patch.ssn = ssn
+    if (nationalId !== undefined) patch.nationalId = nationalId
+    if (dob !== undefined) patch.dob = dob
+    if (momoNumber !== undefined) patch.momoNumber = momoNumber
+    if (accountNumber !== undefined) patch.accountNumber = accountNumber
+    if (bankBranch !== undefined) patch.bankBranch = bankBranch
+    if (bankName !== undefined) patch.bankName = bankName
+    if (nextOfKin !== undefined) patch.nextOfKin = nextOfKin
+    if (nextOfKinRelation !== undefined) patch.nextOfKinRelation = nextOfKinRelation
+    if (nextOfKinPhone !== undefined) patch.nextOfKinPhone = nextOfKinPhone
+    if (classesTaught !== undefined) patch.classesTaught = Array.isArray(classesTaught) ? classesTaught : []
+    if (subjectsTaught !== undefined) patch.subjectsTaught = Array.isArray(subjectsTaught) ? subjectsTaught : []
+    if (formMaster !== undefined) patch.formMaster = formMaster
+    if (profilePicture !== undefined) patch.profilePicture = profilePicture
+    const updatedFallback = staffStore.upsert(id, patch)
+    return res.json(updatedFallback)
   } catch (e) {
-    console.error('Update teacher profile error:', e)
+    console.error(`Update teacher profile ${id} error:`, e)
     res.status(500).json({ error: e?.message || 'unknown' })
   }
 })
@@ -2388,6 +2536,7 @@ app.get('/api/teachers/:id/permissions', auth, async (req, res) => {
 })
 
 app.put('/api/teachers/:id/permissions', auth, async (req, res) => {
+  console.log(`PUT /api/teachers/${req.params.id}/permissions start`);
   try {
     const id = req.params.id
     const { allowedFeatures, allowedActions } = req.body || {}
@@ -2524,7 +2673,7 @@ app.post('/api/students/:id/archive', auth, async (req, res) => {
     const { reason } = req.body || {}
     if (!reason) return res.status(400).json({ error: 'reason is required' })
 
-    if (req.schoolId && req.schoolId !== 'local') {
+    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
       const store = readTenantStudents(req.schoolId)
       const idx = store.students.findIndex(s => s.id === id)
       if (idx < 0) return res.status(404).json({ error: 'student not found' })

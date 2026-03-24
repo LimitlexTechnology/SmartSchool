@@ -3,7 +3,7 @@ import {
     Users, UserCheck, BookOpen, LayoutGrid,
     Search, Bell, RefreshCw, TrendingUp,
     ChevronRight, Calendar, ArrowUpRight, ArrowDownRight,
-    GraduationCap, Shield, Plus, MoreHorizontal
+    GraduationCap, Shield, Plus, MoreHorizontal, MessageSquare
 } from 'lucide-react';
 
 /* ─────────────── helpers ─────────────── */
@@ -155,19 +155,21 @@ const Dashboard = () => {
     const admittedData = [20, 60, 280, 140, 20];
     const leftData = [5, 8, 3, 6, 2];
     const [stats, setStats] = useState({
-        totalStudents: null,
-        totalClasses: null,
-        totalStaff: null,
-        totalGuardians: null,
-        revenue: null,
-        status: null
+        totalStudents: 0,
+        totalStaff: 0,
+        totalGuardians: 0,
+        totalClasses: 0
     });
+    const [announcements, setAnnouncements] = useState([]);
     useEffect(() => {
         const load = async () => {
             try {
                 const res = await fetch('/api/dashboard/stats');
                 const data = await res.json();
                 setStats(data);
+                
+                const annRes = await fetch('/api/announcements');
+                if (annRes.ok) setAnnouncements(await annRes.json());
             } catch {
                 setStats(s => ({ ...s, status: 'degraded' }));
             }
@@ -205,12 +207,11 @@ const Dashboard = () => {
                             placeholder="Find action e.g. Add Student"
                         />
                     </div>
-                    <button className="p-2.5 bg-white rounded-xl border border-gray-100 shadow-soft-sm text-muted-text hover:text-primary-teal transition">
+                    <button onClick={() => window.location.reload()} className="p-2.5 bg-white rounded-xl border border-gray-100 shadow-soft-sm text-muted-text hover:text-primary-teal transition" title="Refresh">
                         <RefreshCw size={18} />
                     </button>
-                    <button className="relative p-2.5 bg-white rounded-xl border border-gray-100 shadow-soft-sm text-muted-text hover:text-primary-teal transition">
-                        <Bell size={18} />
-                        <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full"></span>
+                    <button onClick={() => window.location.href = '/dashboard/announcements'} className="p-2.5 bg-white rounded-xl border border-gray-100 shadow-soft-sm text-muted-text hover:text-primary-teal transition" title="Messages">
+                        <MessageSquare size={18} />
                     </button>
                 </div>
             </div>
@@ -348,7 +349,27 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            {/* ── Quick Actions / Staff Row ── */}
+            {/* ── Latest Announcement Teaser ── */}
+            {announcements.length > 0 && (
+                <div 
+                    onClick={() => window.location.href = '/dashboard/announcements'}
+                    className="bg-white rounded-2xl border border-gray-100 shadow-soft-sm overflow-hidden cursor-pointer hover:border-primary-teal/30 transition-all group"
+                >
+                    <div className="bg-primary-teal/5 px-6 py-3 border-b border-gray-100 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Bell size={14} className="text-primary-teal" />
+                            <h3 className="text-xs font-black text-dark-text uppercase tracking-widest">Latest School Announcement</h3>
+                        </div>
+                        <span className="text-[10px] font-bold text-muted-text">
+                            {new Date(announcements[0].createdAt).toLocaleDateString()}
+                        </span>
+                    </div>
+                    <div className="p-6">
+                        <h4 className="text-base font-black text-dark-text mb-1 group-hover:text-primary-teal transition-colors">{announcements[0].title}</h4>
+                        <p className="text-sm text-muted-text line-clamp-2">{announcements[0].content}</p>
+                    </div>
+                </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                 {/* Staff on Duty */}
