@@ -46,6 +46,7 @@ import ExamMarks from './pages/ExamMarks'
 import ExamAnalytics from './pages/ExamAnalytics'
 import ExamConfiguration from './pages/ExamConfiguration'
 import ExamSettings from './pages/ExamSettings'
+import Calendar from './pages/Calendar'
 
 // SuperAdmin Pages
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard'
@@ -114,6 +115,9 @@ const App = () => {
           <Route path="ai-lesson-notes" element={<AILessonNotes />} />
           <Route path="smart-id" element={<SmartID />} />
           <Route path="diary" element={<Diary />} />
+          <Route path="calendar" element={<Calendar />} />
+          <Route path="messages" element={<ComingSoon />} />
+          <Route path="front-desk" element={<ComingSoon />} />
           <Route path="attendance" element={<Attendance />} />
           <Route path="classroom" element={<Classroom />} />
           <Route path="classroom/:id" element={<ClassDetails />} />

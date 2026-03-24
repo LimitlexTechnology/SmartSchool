@@ -7,7 +7,7 @@ import {
     Activity
 } from 'lucide-react'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
-import SkullarLogo from '../assets/Skullar Logo.png'
+import SkullarLogo from '../assets/SkullarLogo.png'
 import { fetchCurrentTermContext } from '../utils/termContext'
 
 const StudentPortal = () => {

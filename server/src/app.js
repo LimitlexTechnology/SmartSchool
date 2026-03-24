@@ -511,6 +511,23 @@ function writeTenantRemarks(schoolId, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2))
 }
 
+function ensureTenantEventsFile(schoolId) {
+  if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
+  const dir = path.join(TENANT_DIR, schoolId)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'events.json')
+  if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify({ events: [] }, null, 2))
+  return file
+}
+function readTenantEvents(schoolId) {
+  const file = ensureTenantEventsFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { events: [] } }
+}
+function writeTenantEvents(schoolId, data) {
+  const file = ensureTenantEventsFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
 // Super Admin profile store (file-based)
 const SUPERADMIN_FILE = path.join(__dirname, '..', 'data', 'superadmin-profile.json')
 function ensureSuperAdminFile() {
@@ -1390,6 +1407,52 @@ app.post('/api/allocations/bulk', auth, async (req, res) => {
   } catch (e) {
     console.error('Allocation bulk error:', e)
     res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+// ============== Calendar Events ==============
+app.get('/api/events', auth, async (req, res) => {
+  try {
+    const schoolId = req.schoolId || 'local'
+    const { events } = readTenantEvents(schoolId)
+    res.json(events)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.post('/api/events', auth, async (req, res) => {
+  try {
+    const schoolId = req.schoolId || 'local'
+    const event = req.body
+    if (!event.title || !event.date) return res.status(400).json({ error: 'Title and date are required' })
+    
+    const store = readTenantEvents(schoolId)
+    store.events = Array.isArray(store.events) ? store.events : []
+    
+    if (!event.id) event.id = Math.random().toString(36).substr(2, 9)
+    
+    // Remove if exists (for edit)
+    store.events = store.events.filter(e => e.id !== event.id)
+    store.events.push(event)
+    
+    writeTenantEvents(schoolId, store)
+    res.json(event)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.delete('/api/events/:id', auth, async (req, res) => {
+  try {
+    const schoolId = req.schoolId || 'local'
+    const id = req.params.id
+    const store = readTenantEvents(schoolId)
+    store.events = (store.events || []).filter(e => e.id !== id)
+    writeTenantEvents(schoolId, store)
+    res.json({ status: 'deleted' })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
   }
 })
 

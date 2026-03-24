@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 
 const terms = ['First Term', 'Second Term', 'Third Term']
 
@@ -13,7 +14,7 @@ function useOutside(ref, onOutside) {
   }, [ref, onOutside])
 }
 
-const YearTermPicker = () => {
+const YearTermPicker = ({ type, variant }) => {
   const [open, setOpen] = useState(false)
   const [showAdminOnly, setShowAdminOnly] = useState(false)
   const userRole = localStorage.getItem('userRole')
@@ -23,7 +24,7 @@ const YearTermPicker = () => {
     const stored = localStorage.getItem('academicBaseYear')
     if (stored) return parseInt(stored, 10)
     const y = new Date().getFullYear()
-    return new Date().getMonth() >= 8 ? y : y - 1 // academic year usually starts Sep
+    return new Date().getMonth() >= 8 ? y : y - 1 
   })
   const [selectedYear, setSelectedYear] = useState(() => {
     return localStorage.getItem('academicYearLabel') || `${baseYear}/${baseYear + 1}`
@@ -39,7 +40,19 @@ const YearTermPicker = () => {
   useEffect(() => {
     setDraftYear(selectedYear)
     setDraftTerm(selectedTerm)
-  }, [open])
+  }, [open, selectedYear, selectedTerm])
+
+  // Listen for changes from other pickers
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.detail) {
+        setSelectedYear(e.detail.year)
+        setSelectedTerm(e.detail.term)
+      }
+    }
+    window.addEventListener('academicPeriod:change', handler)
+    return () => window.removeEventListener('academicPeriod:change', handler)
+  }, [])
 
   const years = [
     `${baseYear + 1}/${baseYear + 2}`,
@@ -47,23 +60,72 @@ const YearTermPicker = () => {
     `${baseYear - 1}/${baseYear}`,
   ]
 
-  const save = () => {
+  const save = (newYear, newTerm) => {
     if (!isAdmin) {
       setShowAdminOnly(true)
       setTimeout(() => setShowAdminOnly(false), 2000)
       return
     }
-    setSelectedYear(draftYear)
-    setSelectedTerm(draftTerm)
-    // persist
-    const start = parseInt(draftYear.split('/')[0], 10)
+    const y = newYear || draftYear
+    const t = newTerm || draftTerm
+    setSelectedYear(y)
+    setSelectedTerm(t)
+    const start = parseInt(y.split('/')[0], 10)
     localStorage.setItem('academicBaseYear', String(start))
-    localStorage.setItem('academicYearLabel', draftYear)
-    localStorage.setItem('academicTermLabel', draftTerm)
+    localStorage.setItem('academicYearLabel', y)
+    localStorage.setItem('academicTermLabel', t)
     setOpen(false)
-    window.dispatchEvent(new CustomEvent('academicPeriod:change', { detail: { year: draftYear, term: draftTerm } }))
+    window.dispatchEvent(new CustomEvent('academicPeriod:change', { detail: { year: y, term: t } }))
   }
 
+  if (variant === 'sidebar') {
+    const label = type === 'year' ? selectedYear : selectedTerm
+    const options = type === 'year' ? years : terms
+
+    return (
+      <div className="relative w-full" ref={ref}>
+        <button 
+          onClick={() => setOpen(!open)}
+          className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl text-xs font-black text-dark-text hover:bg-white hover:border-primary-teal/30 transition-all group"
+        >
+          <span className="truncate">{label}</span>
+          <ChevronDown size={14} className={`text-muted-text group-hover:text-primary-teal transition-transform ${open ? 'rotate-180' : ''}`} />
+        </button>
+
+        {open && (
+          <div className="absolute left-0 mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-xl p-1.5 z-[2000] animate-scale-in">
+            <div className="flex flex-col gap-0.5">
+              {options.map(opt => (
+                <button 
+                  key={opt}
+                  onClick={() => {
+                    if (type === 'year') save(opt, selectedTerm)
+                    else save(selectedYear, opt)
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-colors ${label === opt ? 'bg-primary-teal text-white' : 'text-dark-text hover:bg-light-bg'}`}
+                >
+                  {opt}
+                </button>
+              ))}
+              {type === 'year' && (
+                <div className="mt-1 border-t border-gray-50 pt-1 flex items-center gap-1">
+                  <button onClick={() => setBaseYear(y => y - 1)} className="flex-1 py-1 rounded-md hover:bg-light-bg text-[10px] font-bold text-muted-text">Prev</button>
+                  <button onClick={() => setBaseYear(y => y + 1)} className="flex-1 py-1 rounded-md hover:bg-light-bg text-[10px] font-bold text-muted-text">Next</button>
+                </div>
+              )}
+            </div>
+            {showAdminOnly && (
+              <div className="px-2 py-1.5 text-[8px] font-black text-rose-500 uppercase tracking-widest text-center">
+                Admin Only
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Default Navbar variant
   return (
     <div className="relative" ref={ref}>
       <div className="flex items-center gap-2">
@@ -112,7 +174,7 @@ const YearTermPicker = () => {
               <button onClick={() => isAdmin ? setBaseYear(y=>y-1) : setShowAdminOnly(true)} className={`px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold ${!isAdmin && 'opacity-50'}`}>◀</button>
               <button onClick={() => isAdmin ? setBaseYear(y=>y+1) : setShowAdminOnly(true)} className={`px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold ${!isAdmin && 'opacity-50'}`}>▶</button>
             </div>
-            <button onClick={save} className={`px-4 py-1.5 rounded-lg bg-primary-teal text-white text-xs font-extrabold ${!isAdmin && 'bg-gray-400 cursor-not-allowed'}`}>OK</button>
+            <button onClick={() => save()} className={`px-4 py-1.5 rounded-lg bg-primary-teal text-white text-xs font-extrabold ${!isAdmin && 'bg-gray-400 cursor-not-allowed'}`}>OK</button>
           </div>
         </div>
       )}
@@ -121,4 +183,3 @@ const YearTermPicker = () => {
 }
 
 export default YearTermPicker
-

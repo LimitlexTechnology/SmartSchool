@@ -23,7 +23,7 @@ import Card from '../components/ui/Card';
 import parentHero from '../assets/parent-hero.png';
 import studentHero from '../assets/student-hero.png';
 import SkullarLogoAnimation from '../components/ui/SkullarLogoAnimation';
-import SkullarLogo from '../assets/Skullar Logo.png';
+import SkullarLogo from '../assets/SkullarLogo.png';
 
 const LandingPage = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);

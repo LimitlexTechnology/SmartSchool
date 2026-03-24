@@ -4,7 +4,7 @@ import {
     LayoutDashboard, Building2, CreditCard, Users,
     BarChart3, ScrollText, Settings, Shield
 } from 'lucide-react';
-import SkullarLogo from '../../assets/Skullar Logo.png';
+import SkullarLogo from '../../assets/SkullarLogo.png';
 
 const navItems = [
     { icon: LayoutDashboard, label: 'Overview', to: '/superadmin' },
