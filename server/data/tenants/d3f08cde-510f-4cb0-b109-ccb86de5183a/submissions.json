@@ -36,6 +36,130 @@
       "score": 100,
       "gradedAt": "2026-03-20T17:38:43.048Z",
       "feedback": "Good Job"
+    },
+    {
+      "id": "7410711e-c629-4178-a3ff-ba39525bb56a",
+      "assignmentId": "f0a3b157-2bb2-47fd-b2dd-538ae73c0141",
+      "studentId": "df94d02a-4655-4a3a-af86-476687e3051d",
+      "fileName": "Digital Exam: Science -E-learning Test",
+      "submittedAt": "2026-03-20T18:47:04.094Z",
+      "status": "Graded",
+      "answers": {
+        "a8aca342-26f1-44a0-9df3-3ee541e5ab5f": 2
+      },
+      "score": 0,
+      "gradedAt": "2026-03-20T18:51:37.428Z",
+      "feedback": "Better Luck next time "
+    },
+    {
+      "id": "bccd6210-6ae0-4dd3-af9f-4cafd3e1338b",
+      "assignmentId": "f0a3b157-2bb2-47fd-b2dd-538ae73c0141",
+      "studentId": "df94d02a-4655-4a3a-af86-476687e3051d",
+      "fileName": "Digital Exam: Science -E-learning Test",
+      "submittedAt": "2026-03-20T18:47:09.308Z",
+      "status": "Turned In",
+      "answers": {
+        "a8aca342-26f1-44a0-9df3-3ee541e5ab5f": 2
+      },
+      "score": 0,
+      "gradedAt": "2026-03-20T18:47:09.351Z",
+      "feedback": ""
+    },
+    {
+      "id": "2ab92809-9504-4aaf-8c51-c97a40110b5e",
+      "assignmentId": "63dd3fc3-8888-4e42-92f1-4dbcf0a4c5f2",
+      "studentId": "b0baa93b-bfb8-4b7e-aee6-4495e318f3c4",
+      "fileName": "Digital Exam: Midterm-Computing-Term 1",
+      "submittedAt": "2026-03-20T23:02:26.469Z",
+      "status": "Graded",
+      "answers": {
+        "43173bf2-8dca-47e4-ad89-1f292bf73cc4": 1,
+        "81ba2f7e-dbee-4361-99d6-d2c8e914f88c": 1,
+        "e1e609e4-d1ce-4d45-980d-390c69870c0b": "Devices connected internally or externally to provide additional functionality "
+      },
+      "score": 50,
+      "gradedAt": "2026-03-20T23:04:28.519Z",
+      "feedback": "Could do better"
+    },
+    {
+      "id": "7858b305-bb56-4ce4-b6ab-896db815b0a6",
+      "assignmentId": "63dd3fc3-8888-4e42-92f1-4dbcf0a4c5f2",
+      "studentId": "b0baa93b-bfb8-4b7e-aee6-4495e318f3c4",
+      "fileName": "Digital Exam: Midterm-Computing-Term 1",
+      "submittedAt": "2026-03-20T23:02:43.834Z",
+      "status": "Turned In",
+      "answers": {
+        "43173bf2-8dca-47e4-ad89-1f292bf73cc4": 1,
+        "81ba2f7e-dbee-4361-99d6-d2c8e914f88c": 1,
+        "e1e609e4-d1ce-4d45-980d-390c69870c0b": "Devices connected internally or externally to provide additional functionality "
+      },
+      "score": 0,
+      "gradedAt": "2026-03-20T23:02:43.943Z",
+      "feedback": ""
+    },
+    {
+      "id": "49ebfed5-955f-4ad4-a087-adf097c07dc1",
+      "assignmentId": "63dd3fc3-8888-4e42-92f1-4dbcf0a4c5f2",
+      "studentId": "b0baa93b-bfb8-4b7e-aee6-4495e318f3c4",
+      "fileName": "Digital Exam: Midterm-Computing-Term 1",
+      "submittedAt": "2026-03-20T23:02:54.139Z",
+      "status": "Turned In",
+      "answers": {
+        "43173bf2-8dca-47e4-ad89-1f292bf73cc4": 1,
+        "81ba2f7e-dbee-4361-99d6-d2c8e914f88c": 1,
+        "e1e609e4-d1ce-4d45-980d-390c69870c0b": "Devices connected internally or externally to provide additional functionality "
+      },
+      "score": 0,
+      "gradedAt": "2026-03-20T23:02:54.219Z",
+      "feedback": ""
+    },
+    {
+      "id": "b9ae497c-b2ee-4802-be2b-07fe2b7a53a0",
+      "assignmentId": "e25c7987-7c10-4552-bb27-908e9ce4413c",
+      "studentId": "b0baa93b-bfb8-4b7e-aee6-4495e318f3c4",
+      "fileName": "Digital Exam: French",
+      "submittedAt": "2026-03-20T23:05:07.946Z",
+      "status": "Graded",
+      "answers": {
+        "f2dbd072-8eb0-4b61-a13e-1737cc7ecaf1": 1,
+        "b40b719c-8b86-4456-8ed6-a58f1366d969": 0,
+        "86925b31-efc0-48b1-a663-823bd103af21": 0,
+        "39ea4a80-84e4-4387-a229-a5545c87b499": 1,
+        "6259b623-dcde-4a0e-807b-cde3fadbec4a": 1
+      },
+      "score": 100,
+      "gradedAt": "2026-03-20T23:05:54.842Z",
+      "feedback": ""
+    },
+    {
+      "id": "eec151d1-5319-4e81-836c-7963c7dc81a3",
+      "assignmentId": "655ba244-494c-4437-9382-c77f00f923cc",
+      "studentId": "b0baa93b-bfb8-4b7e-aee6-4495e318f3c4",
+      "fileName": "Digital Exam: Science Test",
+      "submittedAt": "2026-03-20T23:06:35.508Z",
+      "status": "Turned In",
+      "answers": {
+        "f0bf3798-c544-4df3-b233-aef290f12d53": 1,
+        "938d10de-80a4-4050-91c0-e6d31ad2fecf": 0
+      },
+      "score": 1,
+      "gradedAt": "2026-03-20T23:06:35.577Z",
+      "feedback": ""
+    },
+    {
+      "id": "68b29020-5872-4876-b976-19aa482befb6",
+      "assignmentId": "655ba244-494c-4437-9382-c77f00f923cc",
+      "studentId": "b0baa93b-bfb8-4b7e-aee6-4495e318f3c4",
+      "fileName": "Digital Exam: Science Test",
+      "submittedAt": "2026-03-20T23:08:52.169Z",
+      "status": "Turned In",
+      "answers": {
+        "f0bf3798-c544-4df3-b233-aef290f12d53": 1,
+        "938d10de-80a4-4050-91c0-e6d31ad2fecf": 0
+      },
+      "score": 1,
+      "gradedAt": "2026-03-20T23:08:52.219Z",
+      "feedback": ""
     }
   ]
 }

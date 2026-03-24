@@ -19,6 +19,16 @@
       "authorRole": "admin",
       "attachments": [],
       "createdAt": "2026-03-20T13:49:25.503Z"
+    },
+    {
+      "id": "63c3a814-fbee-4eb1-ae92-5e7ffd2c8ac4",
+      "content": "Your Science E-Learning Assignment has been posted",
+      "subjectId": "38fc1ae4-c2b8-4003-8777-fefd728e6784",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "authorName": "Teacher",
+      "authorRole": "admin",
+      "attachments": [],
+      "createdAt": "2026-03-20T18:45:24.299Z"
     }
   ]
 }

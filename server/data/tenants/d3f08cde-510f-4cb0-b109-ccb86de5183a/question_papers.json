@@ -23,6 +23,30 @@
       "title": "Science Test",
       "createdAt": "2026-03-20T17:24:17.392Z",
       "status": "Published"
+    },
+    {
+      "id": "2de63fe5-4634-4a7e-a4c7-55aa58e11680",
+      "title": "Science -E-learning Test",
+      "createdAt": "2026-03-20T18:35:29.917Z",
+      "status": "Published"
+    },
+    {
+      "id": "69b2cc78-0f96-4e35-8ed4-07fed32279d8",
+      "title": "Presentation software",
+      "createdAt": "2026-03-21T06:19:41.026Z",
+      "status": "Draft"
+    },
+    {
+      "id": "9c0a05f8-de39-48f5-8421-37c79f392aee",
+      "title": "Mathematics test",
+      "createdAt": "2026-03-21T06:24:59.592Z",
+      "status": "Draft"
+    },
+    {
+      "id": "8de763dc-528c-4ab3-aeaa-b6c87cac3644",
+      "title": "MATHS",
+      "createdAt": "2026-03-21T07:22:22.389Z",
+      "status": "Draft"
     }
   ],
   "sections": [
@@ -52,6 +76,13 @@
       "paperId": "62398158-e514-4e1a-93b5-e2f5c483603d",
       "title": "OBJECTIVE TEST",
       "description": "",
+      "order": 0
+    },
+    {
+      "id": "68a50967-ec01-4d5c-85bc-f5ff728dc3c0",
+      "paperId": "2de63fe5-4634-4a7e-a4c7-55aa58e11680",
+      "title": "E-Learning Test",
+      "description": "Answer the following question ",
       "order": 0
     }
   ],
@@ -195,6 +226,20 @@
       ],
       "correctAnswer": "Carbon dioxide",
       "order": 1
+    },
+    {
+      "id": "a8aca342-26f1-44a0-9df3-3ee541e5ab5f",
+      "sectionId": "68a50967-ec01-4d5c-85bc-f5ff728dc3c0",
+      "text": "What is name of the second planet ",
+      "type": "Multiple Choice",
+      "marks": 1,
+      "options": [
+        "Mercury",
+        "Venus",
+        "Earth "
+      ],
+      "correctAnswer": "Venus",
+      "order": 0
     }
   ]
 }

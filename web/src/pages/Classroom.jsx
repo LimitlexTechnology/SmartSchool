@@ -10,6 +10,8 @@ const Classroom = () => {
     const [search, setSearch] = useState('');
     const [form, setForm] = useState({ name: '', grade: '' });
     const [saving, setSaving] = useState(false);
+    const [deleteId, setDeleteId] = useState(null);
+    const [error, setError] = useState(null);
 
     const loadClasses = async () => {
         setLoading(true);
@@ -42,25 +44,29 @@ const Classroom = () => {
                 setForm({ name: '', grade: '' });
                 loadClasses();
             } else {
-                const error = await res.json();
-                alert(error.error || 'Failed to create class');
+                const err = await res.json();
+                setError(err.error || 'Failed to create class');
             }
         } catch (error) {
-            alert('Failed to create class');
+            setError('An error occurred while creating the class');
         } finally {
             setSaving(false);
         }
     };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this class?')) return;
+    const confirmDelete = async () => {
+        if (!deleteId) return;
         try {
-            const res = await fetch(`/api/classes/${id}`, { method: 'DELETE' });
+            const res = await fetch(`/api/classes/${deleteId}`, { method: 'DELETE' });
             if (res.ok) {
                 loadClasses();
+            } else {
+                setError('Failed to delete class');
             }
         } catch (error) {
-            alert('Failed to delete class');
+            setError('An error occurred while deleting the class');
+        } finally {
+            setDeleteId(null);
         }
     };
 
@@ -149,7 +155,7 @@ const Classroom = () => {
                                     </div>
                                 </div>
                                 <button 
-                                    onClick={() => handleDelete(c.id)}
+                                    onClick={() => setDeleteId(c.id)}
                                     className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 transition rounded-lg"
                                 >
                                     <Trash2 size={16} />
@@ -185,6 +191,54 @@ const Classroom = () => {
                     </div>
                 )}
             </div>
+
+            {/* Error Modal */}
+            {error && (
+                <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setError(null)} />
+                    <div className="relative bg-white rounded-3xl border border-gray-100 shadow-2xl w-full max-w-sm p-6 text-center">
+                        <div className="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-500 mx-auto mb-4">
+                            <X size={32} />
+                        </div>
+                        <h3 className="text-lg font-black text-dark-text uppercase tracking-tight mb-2">Error</h3>
+                        <p className="text-sm font-bold text-muted-text mb-6">{error}</p>
+                        <button 
+                            onClick={() => setError(null)}
+                            className="w-full py-3 bg-dark-text text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-black transition shadow-lg"
+                        >
+                            Dismiss
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {deleteId && (
+                <div className="fixed inset-0 z-[5000] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setDeleteId(null)} />
+                    <div className="relative bg-white rounded-3xl border border-gray-100 shadow-2xl w-full max-w-sm p-6 text-center">
+                        <div className="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-500 mx-auto mb-4">
+                            <Trash2 size={32} />
+                        </div>
+                        <h3 className="text-lg font-black text-dark-text uppercase tracking-tight mb-2">Delete Class?</h3>
+                        <p className="text-sm font-bold text-muted-text mb-6">Are you sure you want to delete this class? This action cannot be undone.</p>
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => setDeleteId(null)}
+                                className="flex-1 py-3 bg-light-bg text-muted-text rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-gray-100 transition"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={confirmDelete}
+                                className="flex-1 py-3 bg-rose-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-rose-600 transition shadow-lg shadow-rose-500/20"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Create Modal */}
             {showModal && (

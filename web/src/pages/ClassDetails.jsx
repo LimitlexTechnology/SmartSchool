@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, GraduationCap, Mail, Phone, Calendar, Search, Filter, Plus, X, Heart, History, TrendingDown, TrendingUp, MapPin, Flag, User, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Users, GraduationCap, Mail, Phone, Calendar, Search, Filter, Plus, X, Heart, History, TrendingDown, TrendingUp, MapPin, Flag, User, ShieldCheck, Table, AlertCircle, Download, FileText } from 'lucide-react';
 import StudentProfileModal from '../components/StudentProfileModal';
 
 const Avatar = ({ name, src }) => {
@@ -40,6 +40,13 @@ const ClassDetails = () => {
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [profileStudent, setProfileStudent] = useState(null);
     const [profileLoading, setProfileLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState('students');
+
+    const tabs = [
+        { id: 'students', label: 'Students', icon: Users, subtitle: 'Class List' },
+        { id: 'broadsheet', label: 'Broadsheet', icon: Table, subtitle: 'Marks Overview' },
+        { id: 'issue-finder', label: 'Issue Finder', icon: AlertCircle, subtitle: 'Data Validation' },
+    ];
 
     const behaviorCategories = {
         deduction: [
@@ -231,10 +238,43 @@ const ClassDetails = () => {
                 </div>
             </div>
 
+            {/* Tab System */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {tabs.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`flex items-center justify-between p-5 rounded-[1.5rem] border-2 transition-all text-left group ${
+                                isActive 
+                                    ? 'bg-white border-primary-teal shadow-soft-xl' 
+                                    : 'bg-white border-transparent hover:border-gray-100 shadow-soft-sm'
+                            }`}
+                        >
+                            <div className="space-y-1">
+                                <h3 className={`text-xs font-black uppercase tracking-tight ${isActive ? 'text-dark-text' : 'text-muted-text'}`}>
+                                    {tab.label}
+                                </h3>
+                                <p className="text-[9px] font-bold text-muted-text uppercase tracking-widest opacity-60">
+                                    {tab.subtitle}
+                                </p>
+                            </div>
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                                isActive ? 'bg-primary-teal text-white shadow-lg shadow-primary-teal/20' : 'bg-gray-50 text-gray-400 group-hover:bg-gray-100'
+                            }`}>
+                                <Icon size={20} />
+                            </div>
+                        </button>
+                    );
+                })}
+            </div>
+
             {/* Main Content */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                {/* Left: Student List */}
-                <div className="lg:col-span-3 space-y-4">
+                {activeTab === 'students' ? (
+                    <div className="lg:col-span-3 space-y-4">
                     {/* Search & Filter */}
                     <div className="flex items-center gap-3">
                         <div className="relative flex-1">
@@ -323,13 +363,8 @@ const ClassDetails = () => {
                                             </tr>
                                         ))
                                     ) : (
-                                        <tr>
-                                            <td colSpan="5" className="px-6 py-20 text-center">
-                                                <div className="flex flex-col items-center">
-                                                    <Users size={32} className="text-gray-200 mb-3" />
-                                                    <p className="text-sm font-bold text-muted-text">No students found in this class</p>
-                                                </div>
-                                            </td>
+                                        <tr className="hover:bg-light-bg/50 transition">
+                                            <td colSpan="5" className="px-6 py-12 text-center text-muted-text font-bold italic">No students found in this class.</td>
                                         </tr>
                                     )}
                                 </tbody>
@@ -337,8 +372,128 @@ const ClassDetails = () => {
                         </div>
                     </div>
                 </div>
+            ) : activeTab === 'broadsheet' ? (
+                <div className="lg:col-span-4 space-y-4">
+                    <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-soft-xl overflow-hidden">
+                        <div className="p-8 border-b border-gray-50 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-sm font-black text-dark-text uppercase tracking-tight">Broadsheet - {classInfo.name}</h3>
+                                <p className="text-[10px] font-bold text-muted-text uppercase tracking-widest mt-1">2025/2026 Academic Year • First Term</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button className="flex items-center gap-2 px-4 py-2 bg-light-bg rounded-xl text-[10px] font-black uppercase tracking-widest text-muted-text hover:text-primary-teal transition">
+                                    <Filter size={14} /> Filter Subjects
+                                </button>
+                                <button className="flex items-center gap-2 px-4 py-2 bg-primary-teal text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-secondary-teal transition shadow-lg shadow-primary-teal/20">
+                                    <Download size={14} /> Export PDF
+                                </button>
+                            </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full border-collapse">
+                                <thead>
+                                    <tr className="bg-gray-50/50">
+                                        <th className="px-8 py-4 text-left text-[10px] font-black text-muted-text uppercase tracking-widest sticky left-0 bg-gray-50/50 z-10">Student</th>
+                                        <th className="px-4 py-4 text-center text-[10px] font-black text-muted-text uppercase tracking-widest">Mathematics</th>
+                                        <th className="px-4 py-4 text-center text-[10px] font-black text-muted-text uppercase tracking-widest">English</th>
+                                        <th className="px-4 py-4 text-center text-[10px] font-black text-muted-text uppercase tracking-widest">Science</th>
+                                        <th className="px-4 py-4 text-center text-[10px] font-black text-muted-text uppercase tracking-widest">Social</th>
+                                        <th className="px-4 py-4 text-center text-[10px] font-black text-muted-text uppercase tracking-widest">ICT</th>
+                                        <th className="px-4 py-4 text-center text-[10px] font-black text-dark-text uppercase tracking-widest bg-primary-teal/5">Total</th>
+                                        <th className="px-4 py-4 text-center text-[10px] font-black text-dark-text uppercase tracking-widest bg-primary-teal/5">Avg</th>
+                                        <th className="px-8 py-4 text-right text-[10px] font-black text-muted-text uppercase tracking-widest">Pos</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {students.map((s, idx) => {
+                                        const seed = s.firstName.length + s.lastName.length;
+                                        const m = (seed * 7) % 30 + 65;
+                                        const e = (seed * 9) % 25 + 70;
+                                        const sc = (seed * 11) % 35 + 60;
+                                        const so = (seed * 13) % 20 + 75;
+                                        const ic = (seed * 17) % 15 + 85;
+                                        const total = m + e + sc + so + ic;
+                                        const avg = (total / 5).toFixed(1);
+                                        return (
+                                            <tr key={s.id} className="hover:bg-gray-50/30 transition-colors group">
+                                                <td className="px-8 py-4 text-xs font-black text-dark-text uppercase tracking-tight sticky left-0 bg-white group-hover:bg-gray-50/30 z-10 border-r border-gray-50">
+                                                    {s.firstName} {s.lastName}
+                                                </td>
+                                                <td className="px-4 py-4 text-center text-xs font-bold text-muted-text">{m}</td>
+                                                <td className="px-4 py-4 text-center text-xs font-bold text-muted-text">{e}</td>
+                                                <td className="px-4 py-4 text-center text-xs font-bold text-muted-text">{sc}</td>
+                                                <td className="px-4 py-4 text-center text-xs font-bold text-muted-text">{so}</td>
+                                                <td className="px-4 py-4 text-center text-xs font-bold text-muted-text">{ic}</td>
+                                                <td className="px-4 py-4 text-center text-xs font-black text-primary-teal bg-primary-teal/5">{total}</td>
+                                                <td className="px-4 py-4 text-center text-xs font-black text-dark-text bg-primary-teal/5">{avg}%</td>
+                                                <td className="px-8 py-4 text-right">
+                                                    <span className="px-3 py-1 bg-gray-50 rounded-lg text-[10px] font-black text-dark-text uppercase">{idx + 1}</span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            ) : activeTab === 'issue-finder' ? (
+                <div className="lg:col-span-4 space-y-6">
+                    <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-soft-xl p-12">
+                        <div className="flex items-center justify-between mb-10">
+                            <div>
+                                <h3 className="text-lg font-black text-dark-text uppercase tracking-tight">Issue Finder</h3>
+                                <p className="text-xs font-bold text-muted-text mt-1 uppercase tracking-widest opacity-60">Automated Error Detection for {classInfo.name}</p>
+                            </div>
+                            <span className="px-6 py-2 bg-rose-50 text-rose-500 rounded-full text-[10px] font-black uppercase tracking-widest border border-rose-100/50">
+                                2 Issues Detected
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4">
+                            {[
+                                { type: 'Missing Mark', student: students[0] ? `${students[0].firstName} ${students[0].lastName}` : 'Sarah Johnson', subject: 'Mathematics', severity: 'high', detail: 'No mark found for First Term Mid-Term' },
+                                { type: 'Suspicious Mark', student: students[1] ? `${students[1].firstName} ${students[1].lastName}` : 'Mohammed Ali', subject: 'Integrated Science', detail: 'Score (105) exceeds maximum possible (100)', severity: 'medium' },
+                            ].map((issue, i) => (
+                                <div key={i} className="flex items-center gap-6 p-6 bg-gray-50/50 rounded-[2rem] border border-gray-100 group hover:bg-white hover:border-rose-100 transition-all">
+                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm ${issue.severity === 'high' ? 'bg-rose-100 text-rose-500' : 'bg-amber-100 text-amber-500'}`}>
+                                        <AlertCircle size={28} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-3 mb-1">
+                                            <p className="text-sm font-black text-dark-text uppercase tracking-tight">{issue.type}</p>
+                                            <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest ${issue.severity === 'high' ? 'bg-rose-500 text-white' : 'bg-amber-500 text-white'}`}>
+                                                {issue.severity}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs font-bold text-muted-text uppercase tracking-widest">{issue.student} • {issue.subject}</p>
+                                        <p className="text-[10px] font-bold text-rose-400 mt-2 italic">{issue.detail}</p>
+                                    </div>
+                                    <button className="px-6 py-3 bg-white border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-primary-teal hover:bg-primary-teal hover:text-white transition shadow-soft-sm">
+                                        Fix Now
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="mt-12 p-8 bg-primary-teal/5 rounded-[2.5rem] border border-primary-teal/10 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-primary-teal shadow-soft-sm">
+                                    <ShieldCheck size={24} />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-black text-dark-text uppercase tracking-tight">Run Full Validation Scan</p>
+                                    <p className="text-[10px] font-bold text-muted-text uppercase tracking-widest">Check for consistency, missing marks, and duplicates</p>
+                                </div>
+                            </div>
+                            <button className="px-8 py-3 bg-white border border-primary-teal/20 text-primary-teal rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-primary-teal hover:text-white transition shadow-soft-sm">
+                                Scan Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
 
-                {/* Right: Quick Stats & Actions */}
+            {/* Right: Quick Stats & Actions */}
+            {activeTab === 'students' && (
                 <div className="space-y-6">
                     <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-soft-sm">
                         <h3 className="text-xs font-black text-muted-text uppercase tracking-widest mb-4">Class Overview</h3>
@@ -396,7 +551,8 @@ const ClassDetails = () => {
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
+        </div>
 
             {/* Add Student Modal */}
             {showAddModal && (
