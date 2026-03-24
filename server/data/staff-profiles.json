@@ -161,7 +161,26 @@
       "phone": "3333333333",
       "passSalt": "bad7f008b5906c8017a866823f0a8b17",
       "passHash": "179df7eb0a3e1d70fd97b0244bcf74170252e7ae85259a558df8020717e552a87b85cd5c6b37e6aed77af44e3dd213c81c1dab8d25fe8d28ac23d58a865fb68c",
-      "schoolId": "d3f08cde-510f-4cb0-b109-ccb86de5183a"
+      "schoolId": "d3f08cde-510f-4cb0-b109-ccb86de5183a",
+      "gender": "",
+      "staffId": "",
+      "dateEmployed": "",
+      "ssn": "",
+      "nationalId": "",
+      "dob": "",
+      "momoNumber": "",
+      "accountNumber": "",
+      "bankBranch": "",
+      "bankName": "",
+      "nextOfKin": "",
+      "nextOfKinRelation": "",
+      "nextOfKinPhone": "",
+      "classesTaught": [],
+      "subjectsTaught": [],
+      "formMaster": "",
+      "profilePicture": null,
+      "allowedFeatures": [],
+      "allowedActions": []
     }
   }
 }

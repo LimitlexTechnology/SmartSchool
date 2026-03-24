@@ -171,12 +171,6 @@ app.get('/api/marks', auth, async (req, res) => {
   }
 });
 
-// DEBUG: Catch-all for /api/marks to see if it's hitting another method
-app.all('/api/marks', (req, res) => {
-  console.log(`DEBUG: ${req.method} /api/marks hit`, req.query, req.body);
-  res.status(405).send('Method Not Allowed or caught by debug');
-});
-
 const TENANT_DIR = path.join(__dirname, '..', 'data', 'tenants')
 function ensureTenantStudentsFile(schoolId) {
   if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
@@ -497,6 +491,23 @@ function readTenantMarks(schoolId) {
 }
 function writeTenantMarks(schoolId, data) {
   const file = ensureTenantMarksFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
+function ensureTenantRemarksFile(schoolId) {
+  if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
+  const dir = path.join(TENANT_DIR, schoolId)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'remarks.json')
+  if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify({ remarks: [] }, null, 2))
+  return file
+}
+function readTenantRemarks(schoolId) {
+  const file = ensureTenantRemarksFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { remarks: [] } }
+}
+function writeTenantRemarks(schoolId, data) {
+  const file = ensureTenantRemarksFile(schoolId)
   fs.writeFileSync(file, JSON.stringify(data, null, 2))
 }
 
@@ -2432,6 +2443,47 @@ app.post('/api/marks', auth, async (req, res) => {
     store.marks.push(...newEntries)
     writeTenantMarks(schoolId, store)
     res.json({ status: 'saved', count: newEntries.length })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.get('/api/reports/remarks', auth, async (req, res) => {
+  try {
+    const schoolId = req.schoolId || 'local'
+    const { studentId, examId } = req.query
+    const store = readTenantRemarks(schoolId)
+    let filtered = store.remarks || []
+    if (studentId) filtered = filtered.filter(r => r.studentId === studentId)
+    if (examId) filtered = filtered.filter(r => r.examId === examId)
+    res.json(filtered)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.post('/api/reports/remarks', auth, async (req, res) => {
+  try {
+    const schoolId = req.schoolId || 'local'
+    const { studentId, examId, attendance, headRemarks, teacherRemarks } = req.body
+    if (!studentId || !examId) return res.status(400).json({ error: 'studentId and examId are required' })
+    const store = readTenantRemarks(schoolId)
+    store.remarks = Array.isArray(store.remarks) ? store.remarks : []
+    
+    // Remove existing
+    store.remarks = store.remarks.filter(r => !(r.studentId === studentId && r.examId === examId))
+    
+    store.remarks.push({
+      studentId,
+      examId,
+      attendance,
+      headRemarks,
+      teacherRemarks,
+      updatedAt: new Date().toISOString()
+    })
+    
+    writeTenantRemarks(schoolId, store)
+    res.json({ status: 'saved' })
   } catch (e) {
     res.status(500).json({ error: e.message })
   }

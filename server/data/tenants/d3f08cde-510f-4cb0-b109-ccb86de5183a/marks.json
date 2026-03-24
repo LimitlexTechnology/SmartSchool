@@ -48,27 +48,27 @@
       "score": 18,
       "assessmentType": "ca",
       "elementName": "MIDTERM",
-      "updatedAt": "2026-03-23T16:20:21.035Z"
+      "updatedAt": "2026-03-23T18:55:56.938Z"
     },
     {
       "examId": "ca-marks",
       "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
       "subject": "COMPUTING",
       "studentId": "71c04ff1-dfd8-4f34-b0f6-78715a153770",
-      "score": 18,
+      "score": 12,
       "assessmentType": "ca",
       "elementName": "MIDTERM",
-      "updatedAt": "2026-03-23T16:20:21.035Z"
+      "updatedAt": "2026-03-23T18:55:56.938Z"
     },
     {
       "examId": "ca-marks",
       "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
       "subject": "COMPUTING",
       "studentId": "df94d02a-4655-4a3a-af86-476687e3051d",
-      "score": 19,
+      "score": 11,
       "assessmentType": "ca",
       "elementName": "MIDTERM",
-      "updatedAt": "2026-03-23T16:20:21.035Z"
+      "updatedAt": "2026-03-23T18:55:56.938Z"
     },
     {
       "examId": "ca-marks",
@@ -78,7 +78,7 @@
       "score": 20,
       "assessmentType": "ca",
       "elementName": "MIDTERM",
-      "updatedAt": "2026-03-23T16:20:21.035Z"
+      "updatedAt": "2026-03-23T18:55:56.938Z"
     },
     {
       "examId": "ca-marks",
@@ -88,7 +88,7 @@
       "score": 8,
       "assessmentType": "ca",
       "elementName": "CLASS TEST",
-      "updatedAt": "2026-03-23T16:20:33.788Z"
+      "updatedAt": "2026-03-23T18:56:12.025Z"
     },
     {
       "examId": "ca-marks",
@@ -98,187 +98,523 @@
       "score": 8,
       "assessmentType": "ca",
       "elementName": "CLASS TEST",
-      "updatedAt": "2026-03-23T16:20:33.788Z"
+      "updatedAt": "2026-03-23T18:56:12.025Z"
     },
     {
       "examId": "ca-marks",
       "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
       "subject": "COMPUTING",
       "studentId": "df94d02a-4655-4a3a-af86-476687e3051d",
+      "score": 8,
+      "assessmentType": "ca",
+      "elementName": "CLASS TEST",
+      "updatedAt": "2026-03-23T18:56:12.025Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "COMPUTING",
+      "studentId": "b0baa93b-bfb8-4b7e-aee6-4495e318f3c4",
       "score": 9,
       "assessmentType": "ca",
       "elementName": "CLASS TEST",
-      "updatedAt": "2026-03-23T16:20:33.788Z"
+      "updatedAt": "2026-03-23T18:56:12.025Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "COMPUTING",
+      "studentId": "3b30b7eb-e00b-43fa-bb16-0c682e9f9876",
+      "score": 9,
+      "assessmentType": "ca",
+      "elementName": "GROUP WORK",
+      "updatedAt": "2026-03-23T18:56:22.978Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "COMPUTING",
+      "studentId": "71c04ff1-dfd8-4f34-b0f6-78715a153770",
+      "score": 8,
+      "assessmentType": "ca",
+      "elementName": "GROUP WORK",
+      "updatedAt": "2026-03-23T18:56:22.978Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "COMPUTING",
+      "studentId": "df94d02a-4655-4a3a-af86-476687e3051d",
+      "score": 9,
+      "assessmentType": "ca",
+      "elementName": "GROUP WORK",
+      "updatedAt": "2026-03-23T18:56:22.978Z"
     },
     {
       "examId": "ca-marks",
       "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
       "subject": "COMPUTING",
       "studentId": "b0baa93b-bfb8-4b7e-aee6-4495e318f3c4",
+      "score": 8,
+      "assessmentType": "ca",
+      "elementName": "GROUP WORK",
+      "updatedAt": "2026-03-23T18:56:22.978Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "COMPUTING",
+      "studentId": "3b30b7eb-e00b-43fa-bb16-0c682e9f9876",
+      "score": 10,
+      "assessmentType": "ca",
+      "elementName": "PROJECT WORK",
+      "updatedAt": "2026-03-23T18:56:36.724Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "COMPUTING",
+      "studentId": "71c04ff1-dfd8-4f34-b0f6-78715a153770",
+      "score": 10,
+      "assessmentType": "ca",
+      "elementName": "PROJECT WORK",
+      "updatedAt": "2026-03-23T18:56:36.724Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "COMPUTING",
+      "studentId": "df94d02a-4655-4a3a-af86-476687e3051d",
+      "score": 10,
+      "assessmentType": "ca",
+      "elementName": "PROJECT WORK",
+      "updatedAt": "2026-03-23T18:56:36.724Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "COMPUTING",
+      "studentId": "b0baa93b-bfb8-4b7e-aee6-4495e318f3c4",
+      "score": 10,
+      "assessmentType": "ca",
+      "elementName": "PROJECT WORK",
+      "updatedAt": "2026-03-23T18:56:36.724Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "COMPUTING",
+      "studentId": "3b30b7eb-e00b-43fa-bb16-0c682e9f9876",
+      "score": 4,
+      "assessmentType": "ca",
+      "elementName": "CLASS WORK",
+      "updatedAt": "2026-03-23T18:56:48.596Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "COMPUTING",
+      "studentId": "71c04ff1-dfd8-4f34-b0f6-78715a153770",
+      "score": 4,
+      "assessmentType": "ca",
+      "elementName": "CLASS WORK",
+      "updatedAt": "2026-03-23T18:56:48.596Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "COMPUTING",
+      "studentId": "df94d02a-4655-4a3a-af86-476687e3051d",
+      "score": 5,
+      "assessmentType": "ca",
+      "elementName": "CLASS WORK",
+      "updatedAt": "2026-03-23T18:56:48.596Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "COMPUTING",
+      "studentId": "b0baa93b-bfb8-4b7e-aee6-4495e318f3c4",
+      "score": 5,
+      "assessmentType": "ca",
+      "elementName": "CLASS WORK",
+      "updatedAt": "2026-03-23T18:56:48.596Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "COMPUTING",
+      "studentId": "3b30b7eb-e00b-43fa-bb16-0c682e9f9876",
+      "score": 4,
+      "assessmentType": "ca",
+      "elementName": "HOMEWORK",
+      "updatedAt": "2026-03-23T18:56:59.399Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "COMPUTING",
+      "studentId": "71c04ff1-dfd8-4f34-b0f6-78715a153770",
+      "score": 4,
+      "assessmentType": "ca",
+      "elementName": "HOMEWORK",
+      "updatedAt": "2026-03-23T18:56:59.399Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "COMPUTING",
+      "studentId": "df94d02a-4655-4a3a-af86-476687e3051d",
+      "score": 5,
+      "assessmentType": "ca",
+      "elementName": "HOMEWORK",
+      "updatedAt": "2026-03-23T18:56:59.399Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "COMPUTING",
+      "studentId": "b0baa93b-bfb8-4b7e-aee6-4495e318f3c4",
+      "score": 5,
+      "assessmentType": "ca",
+      "elementName": "HOMEWORK",
+      "updatedAt": "2026-03-23T18:56:59.399Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "Numeracy",
+      "studentId": "3b30b7eb-e00b-43fa-bb16-0c682e9f9876",
+      "score": 20,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "ca",
+      "elementName": "MIDTERM",
+      "updatedAt": "2026-03-23T19:13:35.814Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "Numeracy",
+      "studentId": "71c04ff1-dfd8-4f34-b0f6-78715a153770",
+      "score": 19,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "ca",
+      "elementName": "MIDTERM",
+      "updatedAt": "2026-03-23T19:13:35.814Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "Numeracy",
+      "studentId": "df94d02a-4655-4a3a-af86-476687e3051d",
+      "score": 14,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "ca",
+      "elementName": "MIDTERM",
+      "updatedAt": "2026-03-23T19:13:35.814Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "Numeracy",
+      "studentId": "b0baa93b-bfb8-4b7e-aee6-4495e318f3c4",
+      "score": 18,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "ca",
+      "elementName": "MIDTERM",
+      "updatedAt": "2026-03-23T19:13:35.814Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "Numeracy",
+      "studentId": "3b30b7eb-e00b-43fa-bb16-0c682e9f9876",
       "score": 9,
+      "comment": "",
+      "synopsis": "",
       "assessmentType": "ca",
       "elementName": "CLASS TEST",
-      "updatedAt": "2026-03-23T16:20:33.788Z"
+      "updatedAt": "2026-03-23T19:15:14.124Z"
     },
     {
       "examId": "ca-marks",
       "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
-      "subject": "COMPUTING",
-      "studentId": "3b30b7eb-e00b-43fa-bb16-0c682e9f9876",
+      "subject": "Numeracy",
+      "studentId": "71c04ff1-dfd8-4f34-b0f6-78715a153770",
+      "score": 8,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "ca",
+      "elementName": "CLASS TEST",
+      "updatedAt": "2026-03-23T19:15:14.124Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "Numeracy",
+      "studentId": "df94d02a-4655-4a3a-af86-476687e3051d",
+      "score": 8,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "ca",
+      "elementName": "CLASS TEST",
+      "updatedAt": "2026-03-23T19:15:14.124Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "Numeracy",
+      "studentId": "b0baa93b-bfb8-4b7e-aee6-4495e318f3c4",
       "score": 9,
+      "comment": "",
+      "synopsis": "",
       "assessmentType": "ca",
-      "elementName": "GROUP WORK",
-      "updatedAt": "2026-03-23T16:20:46.492Z"
+      "elementName": "CLASS TEST",
+      "updatedAt": "2026-03-23T19:15:14.124Z"
     },
     {
       "examId": "ca-marks",
       "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
-      "subject": "COMPUTING",
+      "subject": "Numeracy",
+      "studentId": "3b30b7eb-e00b-43fa-bb16-0c682e9f9876",
+      "score": 8,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "ca",
+      "elementName": "GROUP WORK",
+      "updatedAt": "2026-03-23T19:15:27.429Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "Numeracy",
       "studentId": "71c04ff1-dfd8-4f34-b0f6-78715a153770",
       "score": 9,
+      "comment": "",
+      "synopsis": "",
       "assessmentType": "ca",
       "elementName": "GROUP WORK",
-      "updatedAt": "2026-03-23T16:20:46.492Z"
+      "updatedAt": "2026-03-23T19:15:27.429Z"
     },
     {
       "examId": "ca-marks",
       "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
-      "subject": "COMPUTING",
+      "subject": "Numeracy",
+      "studentId": "df94d02a-4655-4a3a-af86-476687e3051d",
+      "score": 8,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "ca",
+      "elementName": "GROUP WORK",
+      "updatedAt": "2026-03-23T19:15:27.429Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "Numeracy",
+      "studentId": "b0baa93b-bfb8-4b7e-aee6-4495e318f3c4",
+      "score": 9,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "ca",
+      "elementName": "GROUP WORK",
+      "updatedAt": "2026-03-23T19:15:27.429Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "Numeracy",
+      "studentId": "3b30b7eb-e00b-43fa-bb16-0c682e9f9876",
+      "score": 8,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "ca",
+      "elementName": "PROJECT WORK",
+      "updatedAt": "2026-03-23T19:15:39.896Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "Numeracy",
+      "studentId": "71c04ff1-dfd8-4f34-b0f6-78715a153770",
+      "score": 9,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "ca",
+      "elementName": "PROJECT WORK",
+      "updatedAt": "2026-03-23T19:15:39.896Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
+      "subject": "Numeracy",
       "studentId": "df94d02a-4655-4a3a-af86-476687e3051d",
       "score": 9,
+      "comment": "",
+      "synopsis": "",
       "assessmentType": "ca",
-      "elementName": "GROUP WORK",
-      "updatedAt": "2026-03-23T16:20:46.492Z"
+      "elementName": "PROJECT WORK",
+      "updatedAt": "2026-03-23T19:15:39.896Z"
     },
     {
       "examId": "ca-marks",
       "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
-      "subject": "COMPUTING",
+      "subject": "Numeracy",
       "studentId": "b0baa93b-bfb8-4b7e-aee6-4495e318f3c4",
-      "score": 10,
+      "score": 9,
+      "comment": "",
+      "synopsis": "",
       "assessmentType": "ca",
-      "elementName": "GROUP WORK",
-      "updatedAt": "2026-03-23T16:20:46.492Z"
+      "elementName": "PROJECT WORK",
+      "updatedAt": "2026-03-23T19:15:39.896Z"
     },
     {
       "examId": "ca-marks",
       "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
-      "subject": "COMPUTING",
+      "subject": "Numeracy",
       "studentId": "3b30b7eb-e00b-43fa-bb16-0c682e9f9876",
-      "score": 10,
+      "score": 4,
+      "comment": "",
+      "synopsis": "",
       "assessmentType": "ca",
-      "elementName": "PROJECT WORK",
-      "updatedAt": "2026-03-23T16:20:57.747Z"
+      "elementName": "CLASS WORK",
+      "updatedAt": "2026-03-23T19:15:55.437Z"
     },
     {
       "examId": "ca-marks",
       "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
-      "subject": "COMPUTING",
+      "subject": "Numeracy",
       "studentId": "71c04ff1-dfd8-4f34-b0f6-78715a153770",
-      "score": 10,
+      "score": 4,
+      "comment": "",
+      "synopsis": "",
       "assessmentType": "ca",
-      "elementName": "PROJECT WORK",
-      "updatedAt": "2026-03-23T16:20:57.747Z"
+      "elementName": "CLASS WORK",
+      "updatedAt": "2026-03-23T19:15:55.437Z"
     },
     {
       "examId": "ca-marks",
       "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
-      "subject": "COMPUTING",
+      "subject": "Numeracy",
       "studentId": "df94d02a-4655-4a3a-af86-476687e3051d",
-      "score": 10,
+      "score": 8,
+      "comment": "",
+      "synopsis": "",
       "assessmentType": "ca",
-      "elementName": "PROJECT WORK",
-      "updatedAt": "2026-03-23T16:20:57.747Z"
+      "elementName": "CLASS WORK",
+      "updatedAt": "2026-03-23T19:15:55.437Z"
     },
     {
       "examId": "ca-marks",
       "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
-      "subject": "COMPUTING",
+      "subject": "Numeracy",
       "studentId": "b0baa93b-bfb8-4b7e-aee6-4495e318f3c4",
-      "score": 10,
+      "score": 6,
+      "comment": "",
+      "synopsis": "",
       "assessmentType": "ca",
-      "elementName": "PROJECT WORK",
-      "updatedAt": "2026-03-23T16:20:57.747Z"
+      "elementName": "CLASS WORK",
+      "updatedAt": "2026-03-23T19:15:55.437Z"
     },
     {
       "examId": "ca-marks",
       "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
-      "subject": "COMPUTING",
+      "subject": "Numeracy",
       "studentId": "3b30b7eb-e00b-43fa-bb16-0c682e9f9876",
-      "score": 5,
+      "score": 4,
+      "comment": "",
+      "synopsis": "",
       "assessmentType": "ca",
-      "elementName": "CLASS WORK",
-      "updatedAt": "2026-03-23T16:21:08.148Z"
+      "elementName": "HOMEWORK",
+      "updatedAt": "2026-03-23T19:16:15.398Z"
     },
     {
       "examId": "ca-marks",
       "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
-      "subject": "COMPUTING",
+      "subject": "Numeracy",
       "studentId": "71c04ff1-dfd8-4f34-b0f6-78715a153770",
-      "score": 5,
+      "score": 3,
+      "comment": "",
+      "synopsis": "",
       "assessmentType": "ca",
-      "elementName": "CLASS WORK",
-      "updatedAt": "2026-03-23T16:21:08.148Z"
+      "elementName": "HOMEWORK",
+      "updatedAt": "2026-03-23T19:16:15.398Z"
     },
     {
       "examId": "ca-marks",
       "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
-      "subject": "COMPUTING",
+      "subject": "Numeracy",
       "studentId": "df94d02a-4655-4a3a-af86-476687e3051d",
-      "score": 5,
+      "score": 2,
+      "comment": "",
+      "synopsis": "",
       "assessmentType": "ca",
-      "elementName": "CLASS WORK",
-      "updatedAt": "2026-03-23T16:21:08.148Z"
+      "elementName": "HOMEWORK",
+      "updatedAt": "2026-03-23T19:16:15.398Z"
     },
     {
       "examId": "ca-marks",
       "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
-      "subject": "COMPUTING",
+      "subject": "Numeracy",
       "studentId": "b0baa93b-bfb8-4b7e-aee6-4495e318f3c4",
-      "score": 5,
+      "score": 1,
+      "comment": "",
+      "synopsis": "",
       "assessmentType": "ca",
-      "elementName": "CLASS WORK",
-      "updatedAt": "2026-03-23T16:21:08.148Z"
+      "elementName": "HOMEWORK",
+      "updatedAt": "2026-03-23T19:16:15.398Z"
     },
     {
-      "examId": "ca-marks",
+      "examId": "bbedd848-3820-4be1-81e5-09e76ae6eb8b",
       "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
-      "subject": "COMPUTING",
+      "subject": "Numeracy",
       "studentId": "3b30b7eb-e00b-43fa-bb16-0c682e9f9876",
-      "score": 5,
-      "assessmentType": "ca",
-      "elementName": "HOMEWORK",
-      "updatedAt": "2026-03-23T16:21:18.748Z"
+      "score": 80,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "exam",
+      "elementName": null,
+      "updatedAt": "2026-03-23T19:16:40.203Z"
     },
     {
-      "examId": "ca-marks",
+      "examId": "bbedd848-3820-4be1-81e5-09e76ae6eb8b",
       "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
-      "subject": "COMPUTING",
+      "subject": "Numeracy",
       "studentId": "71c04ff1-dfd8-4f34-b0f6-78715a153770",
-      "score": 5,
-      "assessmentType": "ca",
-      "elementName": "HOMEWORK",
-      "updatedAt": "2026-03-23T16:21:18.748Z"
+      "score": 90,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "exam",
+      "elementName": null,
+      "updatedAt": "2026-03-23T19:16:40.203Z"
     },
     {
-      "examId": "ca-marks",
+      "examId": "bbedd848-3820-4be1-81e5-09e76ae6eb8b",
       "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
-      "subject": "COMPUTING",
+      "subject": "Numeracy",
       "studentId": "df94d02a-4655-4a3a-af86-476687e3051d",
-      "score": 5,
-      "assessmentType": "ca",
-      "elementName": "HOMEWORK",
-      "updatedAt": "2026-03-23T16:21:18.748Z"
+      "score": 85,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "exam",
+      "elementName": null,
+      "updatedAt": "2026-03-23T19:16:40.203Z"
     },
     {
-      "examId": "ca-marks",
+      "examId": "bbedd848-3820-4be1-81e5-09e76ae6eb8b",
       "classId": "96f56af3-999b-4db3-97fe-0a15bea76175",
-      "subject": "COMPUTING",
+      "subject": "Numeracy",
       "studentId": "b0baa93b-bfb8-4b7e-aee6-4495e318f3c4",
-      "score": 5,
-      "assessmentType": "ca",
-      "elementName": "HOMEWORK",
-      "updatedAt": "2026-03-23T16:21:18.748Z"
+      "score": 94,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "exam",
+      "elementName": null,
+      "updatedAt": "2026-03-23T19:16:40.203Z"
     }
   ]
 }

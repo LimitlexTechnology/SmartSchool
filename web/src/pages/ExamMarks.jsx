@@ -466,10 +466,13 @@ const ExamMarks = () => {
       );
     }
     
-    if (!config) return {};
-    
-    const scale = allScales.find(s => s.name === config.scale);
-    const assessment = allAssessments.find(a => a.name === config.assessmentType);
+    // We still want to compute basic CA sums even if config is missing
+    let scale;
+    let assessment;
+    if (config) {
+      scale = allScales.find(s => s.name === config.scale);
+      assessment = allAssessments.find(a => a.name === config.assessmentType);
+    }
     
     // Calculate Max CA Total
     const maxCaTotal = assessment?.items?.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0) || 100;
