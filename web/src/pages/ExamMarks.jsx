@@ -71,12 +71,33 @@ const ExamMarks = () => {
   const [students, setStudents] = useState([]);
   const [caMarks, setCaMarks] = useState([]);
   const [allScales, setAllScales] = useState([]);
+  
+  // Review Summary State
+  const [marksSummary, setMarksSummary] = useState([]);
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   // Reset selection when tab changes
   useEffect(() => {
     setSelectedElement('');
     setIsCaOverviewMode(false);
+    
+    if (activeTab === 'review') {
+      fetchSummary();
+    }
   }, [activeTab]);
+
+  const fetchSummary = async () => {
+    setSummaryLoading(true);
+    try {
+      const res = await fetch('/api/admin/marks/summary');
+      const data = await res.json();
+      setMarksSummary(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching marks summary:', error);
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
 
   // Initial load: Exams, Exam Configs, Classes and Assessments
   useEffect(() => {
@@ -919,7 +940,125 @@ const ExamMarks = () => {
 
       {/* Content Area */}
       <div className="bg-white rounded-[2rem] border border-gray-100 shadow-soft-xl overflow-hidden min-h-[500px] flex flex-col">
-        {isCaEntryMode ? (
+        {activeTab === 'review' ? (
+          /* Review Assessments View */
+          <div className="flex flex-col h-full animate-in fade-in duration-300">
+            <div className="p-8 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-black text-dark-text uppercase tracking-tight">Review Submissions</h2>
+                <p className="text-[10px] font-bold text-muted-text uppercase tracking-widest opacity-60">Overview of all marks entries across classes and subjects</p>
+              </div>
+              <button 
+                onClick={fetchSummary}
+                className="px-4 py-2 bg-white border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-muted-text hover:bg-gray-50 transition flex items-center gap-2"
+              >
+                <RotateCcw size={14} className={summaryLoading ? 'animate-spin' : ''} />
+                Refresh
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-gray-50/50 border-b border-gray-100">
+                    <th className="px-8 py-5 text-left text-[10px] font-black text-muted-text uppercase tracking-widest">Assessment Details</th>
+                    <th className="px-6 py-5 text-left text-[10px] font-black text-muted-text uppercase tracking-widest">Class</th>
+                    <th className="px-6 py-5 text-left text-[10px] font-black text-muted-text uppercase tracking-widest">Subject</th>
+                    <th className="px-6 py-5 text-center text-[10px] font-black text-muted-text uppercase tracking-widest">Completion</th>
+                    <th className="px-6 py-5 text-center text-[10px] font-black text-muted-text uppercase tracking-widest">Last Updated</th>
+                    <th className="px-6 py-5 text-center text-[10px] font-black text-muted-text uppercase tracking-widest">Status</th>
+                    <th className="px-8 py-5 text-right text-[10px] font-black text-muted-text uppercase tracking-widest">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {summaryLoading ? (
+                    <tr>
+                      <td colSpan={7} className="px-8 py-20 text-center">
+                        <Loader2 size={40} className="text-primary-teal animate-spin mx-auto mb-4" />
+                        <p className="text-[10px] font-black text-muted-text uppercase tracking-widest">Fetching submissions...</p>
+                      </td>
+                    </tr>
+                  ) : marksSummary.length > 0 ? marksSummary.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50/30 transition-colors group">
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs uppercase ${
+                            item.assessmentType === 'ca' ? 'bg-amber-50 text-amber-500' : 'bg-blue-50 text-blue-500'
+                          }`}>
+                            {item.assessmentType === 'ca' ? 'CA' : 'EX'}
+                          </div>
+                          <div>
+                            <div className="text-sm font-black text-dark-text tracking-tight uppercase">{item.examTitle}</div>
+                            <div className="text-[9px] font-bold text-muted-text uppercase tracking-widest opacity-60">
+                              {item.elementName ? item.elementName : (item.assessmentType === 'ca' ? 'CA Overview' : 'Final Exam')}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className="text-sm font-black text-dark-text uppercase">{item.className}</span>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className="text-sm font-black text-muted-text uppercase tracking-tight">{item.subject}</span>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="flex flex-col items-center gap-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black text-dark-text">{item.recordedCount} / {item.totalStudents}</span>
+                            <span className="text-[9px] font-bold text-muted-text uppercase tracking-tighter opacity-60">Recorded</span>
+                          </div>
+                          <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full transition-all duration-1000 ${item.isComplete ? 'bg-emerald-500' : 'bg-primary-teal'}`}
+                              style={{ width: `${Math.min(100, (item.recordedCount / Math.max(1, item.totalStudents)) * 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <span className="text-[10px] font-bold text-muted-text uppercase tracking-widest">
+                          {new Date(item.lastUpdated).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                          item.isComplete ? 'text-emerald-500 bg-emerald-50' : 'text-amber-500 bg-amber-50'
+                        }`}>
+                          {item.status}
+                        </span>
+                      </td>
+                      <td className="px-8 py-5 text-right">
+                        <button 
+                          onClick={() => {
+                            setSelectedExam(item.examId);
+                            // Need to handle classId properly since it might be canonical or name
+                            setSelectedClass(item.classId);
+                            setSelectedSubject(item.subject);
+                            if (item.assessmentType === 'ca') {
+                              setActiveTab('ca');
+                              setSelectedElement(item.elementName || '');
+                            } else {
+                              setActiveTab('exams');
+                            }
+                          }}
+                          className="px-4 py-2 bg-gray-50 text-muted-text hover:bg-primary-teal hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition"
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan={7} className="px-8 py-20 text-center">
+                        <p className="text-sm font-bold text-muted-text italic">No submissions found.</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : isCaEntryMode ? (
           /* CA Marks Entry Sheet */
           <div className="flex flex-col h-full animate-in fade-in duration-300">
             {/* Entry Sheet Header */}

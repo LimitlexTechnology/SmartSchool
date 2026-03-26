@@ -135,8 +135,81 @@ const auth = (req, res, next) => {
   req.schoolId = schoolId
   req.teacherId = tid || ''
   req.studentId = studentId || ''
+  req.userRole = parts.find(p => p.startsWith('userRole='))?.split('=')[1] || ''
   next();
 };
+
+const superAdminAuth = (req, res, next) => {
+  const raw = req.headers.cookie || ''
+  const parts = raw.split(';').map(s => s.trim()).filter(Boolean)
+  const userRole = parts.find(p => p.startsWith('userRole='))?.split('=')[1] || ''
+  
+  if (userRole !== 'superadmin') {
+    return res.status(403).json({ error: 'Super Admin access required' })
+  }
+  next()
+}
+
+app.get('/api/admin/marks/summary', auth, async (req, res) => {
+  try {
+    const schoolId = req.schoolId || 'local'
+    const marksStore = readTenantMarks(schoolId)
+    const classesStore = readTenantClasses(schoolId)
+    const studentsStore = readTenantStudents(schoolId)
+    const examsStore = readTenantExams(schoolId)
+    
+    const allMarks = marksStore.marks || []
+    const classes = classesStore.classes || []
+    const allStudents = studentsStore.students || []
+    const exams = examsStore.exams || []
+    
+    // Group marks by context (exam, class, subject)
+    const contexts = {}
+    allMarks.forEach(m => {
+      const key = `${m.examId}-${m.classId}-${m.subject}-${m.assessmentType}-${m.elementName || ''}`
+      if (!contexts[key]) {
+        contexts[key] = {
+          examId: m.examId,
+          classId: m.classId,
+          subject: m.subject,
+          assessmentType: m.assessmentType,
+          elementName: m.elementName,
+          studentIds: new Set(),
+          lastUpdated: m.updatedAt
+        }
+      }
+      contexts[key].studentIds.add(m.studentId)
+      if (new Date(m.updatedAt) > new Date(contexts[key].lastUpdated)) {
+        contexts[key].lastUpdated = m.updatedAt
+      }
+    })
+    
+    const summary = Object.values(contexts).map(ctx => {
+      const targetClass = classes.find(c => c.id === ctx.classId || c.name === ctx.classId || c.grade === ctx.classId)
+      const classStudents = allStudents.filter(s => s.classId === (targetClass ? targetClass.id : ctx.classId))
+      const totalStudents = classStudents.length
+      const recordedStudents = ctx.studentIds.size
+      
+      const exam = exams.find(e => e.id === ctx.examId)
+      
+      return {
+        ...ctx,
+        studentIds: Array.from(ctx.studentIds),
+        className: targetClass ? (targetClass.grade + ' ' + targetClass.name) : ctx.classId,
+        examTitle: exam ? exam.title : (ctx.examId === 'ca-marks' ? 'Continuous Assessment' : ctx.examId),
+        totalStudents,
+        recordedCount: recordedStudents,
+        isComplete: totalStudents > 0 && recordedStudents >= totalStudents,
+        status: (totalStudents > 0 && recordedStudents >= totalStudents) ? 'Completed' : 'In Progress'
+      }
+    })
+    
+    res.json(summary)
+  } catch (e) {
+    console.error('Marks summary error:', e)
+    res.status(500).json({ error: e.message })
+  }
+})
 
 app.get('/api/marks', auth, async (req, res) => {
   try {
@@ -1900,7 +1973,7 @@ app.delete('/api/timetables/:id', auth, async (req, res) => {
 })
 
 // ============== Super Admin: Schools ==============
-app.get('/api/admin/schools', auth, async (_req, res) => {
+app.get('/api/admin/schools', auth, superAdminAuth, async (_req, res) => {
   try {
     const name = process.env.SCHOOL_NAME || 'Skullar Local'
     const admin = process.env.SCHOOL_ADMIN || 'Admin'
@@ -1976,7 +2049,7 @@ app.get('/api/admin/dashboard/stats', auth, async (req, res) => {
   }
 })
 
-app.post('/api/admin/schools', auth, async (req, res) => {
+app.post('/api/admin/schools', auth, superAdminAuth, async (req, res) => {
   try {
     const { name, address, adminName, adminPhone, adminTempPassword, plan = 'Basic' } = req.body || {}
     if (!name) return res.status(400).json({ error: 'name is required' })
@@ -1998,7 +2071,7 @@ app.post('/api/admin/schools', auth, async (req, res) => {
   }
 })
 
-app.get('/api/admin/schools/:id', auth, async (req, res) => {
+app.get('/api/admin/schools/:id', auth, superAdminAuth, async (req, res) => {
   try {
     const id = req.params.id
     if (id === 'local') {
@@ -2027,7 +2100,7 @@ app.get('/api/admin/schools/:id', auth, async (req, res) => {
   }
 })
 
-app.put('/api/admin/schools/:id', auth, async (req, res) => {
+app.put('/api/admin/schools/:id', auth, superAdminAuth, async (req, res) => {
   try {
     const id = req.params.id
     if (id === 'local') return res.status(400).json({ error: 'cannot edit local school' })
@@ -2054,7 +2127,7 @@ app.put('/api/admin/schools/:id', auth, async (req, res) => {
   }
 })
 
-app.put('/api/admin/schools/:id/suspend', auth, async (req, res) => {
+app.put('/api/admin/schools/:id/suspend', auth, superAdminAuth, async (req, res) => {
   try {
     const id = req.params.id
     if (id === 'local') return res.status(400).json({ error: 'cannot suspend local school' })
@@ -2069,7 +2142,7 @@ app.put('/api/admin/schools/:id/suspend', auth, async (req, res) => {
   }
 })
 
-app.delete('/api/admin/schools/:id', auth, async (req, res) => {
+app.delete('/api/admin/schools/:id', auth, superAdminAuth, async (req, res) => {
   try {
     const id = req.params.id
     if (id === 'local') return res.status(400).json({ error: 'cannot delete local school' })
@@ -2170,19 +2243,26 @@ app.post('/api/superadmin/login', async (req, res) => {
   try {
     const { phone, password } = req.body || {}
     if (!phone || !password) return res.status(400).json({ error: 'phone and password are required' })
+    
+    const inputPhone = String(phone).trim()
     const superPhone = (process.env.SUPERADMIN_PHONE || '0000000000').trim()
     const superPass = (process.env.SUPERADMIN_PASSWORD || 'super123')
-    if (phone.trim() !== superPhone || password !== superPass) {
-      return res.status(401).json({ error: 'invalid credentials' })
+    
+    if (inputPhone === superPhone && password === superPass) {
+      console.log(`[SuperAdmin] Successful login for phone: ${inputPhone}`);
+      res.cookie('userRole', 'superadmin', { path: '/', httpOnly: false });
+      return res.json({ role: 'superadmin', name: 'Super Admin' })
     }
-    res.json({ role: 'superadmin', name: 'Super Admin' })
+    
+    console.warn(`[SuperAdmin] Failed login attempt for phone: ${inputPhone}`);
+    res.status(401).json({ error: 'Invalid super admin credentials' })
   } catch (e) {
     console.error('Super admin auth error:', e)
     res.status(500).json({ error: e?.message || 'unknown' })
   }
 })
 
-app.get('/api/superadmin/profile', async (_req, res) => {
+app.get('/api/superadmin/profile', superAdminAuth, async (_req, res) => {
   try {
     const p = readSuperAdminProfile()
     res.json({ name: p.name || 'Super Admin', phone: p.phone || '', email: p.email || '' })
@@ -2191,7 +2271,57 @@ app.get('/api/superadmin/profile', async (_req, res) => {
   }
 })
 
-app.put('/api/superadmin/profile', async (req, res) => {
+app.post('/api/superadmin/impersonate/:schoolId', superAdminAuth, async (req, res) => {
+  try {
+    const schoolId = req.params.schoolId
+    if (!schoolId) return res.status(400).json({ error: 'schoolId is required' })
+    
+    // Validate school exists
+    const schools = schoolsStore.list()
+    const targetSchool = schools.find(s => s.id === schoolId)
+    if (!targetSchool) {
+      return res.status(404).json({ error: 'School not found' })
+    }
+    
+    const profile = readSuperAdminProfile()
+    const name = profile.name || 'Super Admin'
+    const email = profile.email || 'superadmin@skullar.com'
+    
+    const store = readTenantTeachers(schoolId)
+    let teacher = (store.teachers || []).find(t => t.email === email || t.name === name)
+    
+    if (!teacher) {
+      teacher = {
+        id: randomUUID(),
+        name: name,
+        email: email,
+        subject: 'System Administration',
+        createdAt: new Date().toISOString()
+      }
+      store.teachers = Array.isArray(store.teachers) ? store.teachers : []
+      store.teachers.unshift(teacher)
+      writeTenantTeachers(schoolId, store)
+    }
+    
+    // Set cookies for backend auth
+    res.cookie('schoolId', schoolId, { path: '/', httpOnly: false });
+    res.cookie('teacherId', teacher.id, { path: '/', httpOnly: false });
+    res.cookie('userRole', 'systemadmin', { path: '/', httpOnly: false });
+    
+    res.json({ 
+      status: 'ok', 
+      teacherId: teacher.id, 
+      schoolId: schoolId,
+      name: name,
+      role: 'systemadmin'
+    })
+  } catch (e) {
+    console.error('Impersonate error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.put('/api/superadmin/profile', superAdminAuth, async (req, res) => {
   try {
     const { name, phone, email } = req.body || {}
     const updated = writeSuperAdminProfile({
@@ -2382,12 +2512,12 @@ app.post('/api/lessons/:id/assign-reviewer', auth, async (req, res) => {
 
 app.post('/api/teachers', auth, async (req, res) => {
   try {
-    const { name, email, subject, phone, tempPassword } = req.body || {}
+    const { name, email, subject, phone, tempPassword, type = 'teaching' } = req.body || {}
     if (!name || !email) return res.status(400).json({ error: 'name and email are required' })
     if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
       const store = readTenantTeachers(req.schoolId)
       const id = randomUUID()
-      const obj = { id, name: name.trim(), email: String(email).trim(), subject: subject || '', createdAt: new Date().toISOString() }
+      const obj = { id, name: name.trim(), email: String(email).trim(), subject: subject || '', type, createdAt: new Date().toISOString() }
       store.teachers = Array.isArray(store.teachers) ? store.teachers : []
       store.teachers.unshift(obj)
       writeTenantTeachers(req.schoolId, store)
@@ -2404,9 +2534,9 @@ app.post('/api/teachers', auth, async (req, res) => {
         patch.schoolId = req.schoolId
         staffStore.upsert(id, patch)
       }
-      return res.status(201).json({ id, name: obj.name, email: obj.email, subject: obj.subject })
+      return res.status(201).json({ id, name: obj.name, email: obj.email, subject: obj.subject, type: obj.type })
     }
-    const created = await prisma.teacher.create({ data: { name: name.trim(), email: email.trim(), subject: subject || '' } })
+    const created = await prisma.teacher.create({ data: { name: name.trim(), email: email.trim(), subject: subject || '', type } })
     if (phone || tempPassword) {
       const patch = {}
       if (phone) patch.phone = String(phone).trim()
@@ -2420,7 +2550,7 @@ app.post('/api/teachers', auth, async (req, res) => {
       patch.schoolId = 'local'
       staffStore.upsert(created.id, patch)
     }
-    res.status(201).json({ id: created.id, name: created.name, email: created.email, subject: created.subject })
+    res.status(201).json({ id: created.id, name: created.name, email: created.email, subject: created.subject, type: created.type })
   } catch (e) {
     if (e.code === 'P2002') return res.status(409).json({ error: 'Unique constraint failed' })
     console.error('Create teacher error:', e)
@@ -2453,7 +2583,7 @@ app.put('/api/teachers/:id', auth, async (req, res) => {
   console.log(`PUT /api/teachers/${req.params.id} start`);
   try {
     const id = req.params.id
-    const { name, email, subject, tempPassword } = req.body || {}
+    const { name, email, subject, type, tempPassword } = req.body || {}
     if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
       const store = readTenantTeachers(req.schoolId)
       const idx = (store.teachers || []).findIndex(t => t.id === id)
@@ -2464,6 +2594,7 @@ app.put('/api/teachers/:id', auth, async (req, res) => {
         name: name !== undefined ? String(name) : prev.name,
         email: email !== undefined ? String(email) : prev.email,
         subject: subject !== undefined ? String(subject) : prev.subject,
+        type: type !== undefined ? String(type) : prev.type,
         updatedAt: new Date().toISOString()
       }
       store.teachers[idx] = next
@@ -2474,14 +2605,14 @@ app.put('/api/teachers/:id', auth, async (req, res) => {
         staffStore.upsert(id, { passSalt: salt, passHash: hash })
       }
       writeTenantTeachers(req.schoolId, store)
-      return res.json({ id: next.id, name: next.name, email: next.email, subject: next.subject })
+      return res.json({ id: next.id, name: next.name, email: next.email, subject: next.subject, type: next.type })
     }
     const data = {}
     if (name !== undefined) data.name = name
     if (email !== undefined) data.email = email
     if (subject !== undefined) data.subject = subject
+    if (type !== undefined) data.type = type
     const updated = await prisma.teacher.update({ where: { id }, data })
-
     if (tempPassword && tempPassword.trim()) {
       const crypto = require('crypto')
       const salt = crypto.randomBytes(16).toString('hex')
@@ -2489,7 +2620,7 @@ app.put('/api/teachers/:id', auth, async (req, res) => {
       staffStore.upsert(id, { passSalt: salt, passHash: hash })
     }
 
-    res.json({ id: updated.id, name: updated.name, email: updated.email, subject: updated.subject })
+    res.json({ id: updated.id, name: updated.name, email: updated.email, subject: updated.subject, type: updated.type })
   } catch (e) {
     if (e.code === 'P2002') return res.status(409).json({ error: 'Unique constraint failed' })
     console.error(`Update teacher ${id} error:`, e)
