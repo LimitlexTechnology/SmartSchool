@@ -8,11 +8,11 @@ import SuperAdminLayout from './layouts/SuperAdminLayout'
 import LandingPage from './pages/LandingPage'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
-import Announcements from './pages/Announcements'
 import Assessments from './pages/Assessments'
 import AILessonNotes from './pages/AILessonNotes'
 import SmartID from './pages/SmartID'
 import Diary from './pages/Diary'
+import SkullarConnect from './pages/SkullarConnect'
 import Finance from './pages/Finance'
 import Attendance from './pages/Attendance'
 import VirtualClass from './pages/VirtualClass'
@@ -25,6 +25,7 @@ import Guardians from './pages/Guardians'
 import AdminSettings from './pages/AdminSettings'
 import UserSettings from './pages/UserSettings'
 import StaffList from './pages/StaffList'
+import Messages from './pages/Messages'
 import CourseAllocation from './pages/CourseAllocation'
 import OnlineCampus from './pages/OnlineCampus'
 import SubjectDetails from './pages/SubjectDetails'
@@ -117,7 +118,8 @@ const App = () => {
           <Route path="smart-id" element={<SmartID />} />
           <Route path="diary" element={<Diary />} />
           <Route path="calendar" element={<Calendar />} />
-          <Route path="messages" element={<ComingSoon />} />
+          <Route path="messages" element={<Messages />} />
+          <Route path="skullar-connect" element={<SkullarConnect />} />
           <Route path="front-desk" element={<ComingSoon />} />
           <Route path="attendance" element={<Attendance />} />
           <Route path="classroom" element={<Classroom />} />
@@ -145,7 +147,6 @@ const App = () => {
           <Route path="safety" element={<Safety />} />
           <Route path="security" element={<Security />} />
           <Route path="finance" element={<Finance />} />
-          <Route path="announcements" element={<Announcements />} />
           <Route path="settings" element={<UserSettings />} />
           <Route path="*" element={<ComingSoon />} />
         </Route>
@@ -168,7 +169,7 @@ const App = () => {
           <TeacherRoute><DashboardLayout /></TeacherRoute>
         }>
           <Route index element={<TeacherDashboard />} />
-          <Route path="announcements" element={<Announcements />} />
+          <Route path="diary" element={<Diary />} />
         </Route>
 
         {/* Student Portal */}

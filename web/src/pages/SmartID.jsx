@@ -52,7 +52,7 @@ const SmartID = () => {
                         <div className="p-8 h-full flex flex-col justify-between relative z-10">
                             <div className="flex justify-between items-center">
                                 <div className="flex items-center gap-3">
-                                    <img src={SkullarLogo} alt="Skullar" className="w-[150px] h-auto object-contain" />
+                                    <img src={SkullarLogo} alt="Skullar" className="w-[110px] h-auto object-contain" />
                                     <div>
                                         <span className="text-[8px] font-bold text-white/40 uppercase tracking-[0.2em]">Academic Year 2026</span>
                                     </div>

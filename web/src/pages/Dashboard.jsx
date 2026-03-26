@@ -3,11 +3,25 @@ import {
     Users, UserCheck, BookOpen, LayoutGrid,
     Search, Bell, RefreshCw, TrendingUp,
     ChevronRight, Calendar, ArrowUpRight, ArrowDownRight,
-    GraduationCap, Shield, Plus, MoreHorizontal, MessageSquare
+    GraduationCap, Shield, Plus, MoreHorizontal, MessageSquare,
+    AlertCircle
 } from 'lucide-react';
 
 /* ─────────────── helpers ─────────────── */
 const clx = (...c) => c.filter(Boolean).join(' ');
+
+const getTargetLabel = (target) => {
+    if (!target) return 'All Staff & Students';
+    const parts = target.split(',').map(t => t.trim().toLowerCase());
+    if (parts.includes('all')) return 'All Staff & Students';
+    const roles = [];
+    if (parts.includes('students')) roles.push('Students');
+    if (parts.includes('staff')) roles.push('Staff');
+    
+    if (roles.length === 2) return 'All Staff & Students';
+    if (roles.length === 1) return roles[0] + ' Only';
+    return 'Targeted Group';
+};
 
 /* ─────── Donut Chart ─────── */
 const Donut = ({ present, absent, color = '#09637E', size = 80, stroke = 10 }) => {
@@ -140,17 +154,8 @@ const Dashboard = () => {
     const dateStr = today.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
     const timeStr = today.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-    const role = (typeof window !== 'undefined' && window.localStorage.getItem('userRole')) || 'admin';
-    const sid = (typeof window !== 'undefined' && window.localStorage.getItem('schoolId')) || 'local';
-    const schoolName = (typeof window !== 'undefined' && (window.localStorage.getItem(`schoolName:${sid}`) || window.localStorage.getItem('schoolName'))) || 'Your School';
-    const schoolLogo = (typeof window !== 'undefined' && window.localStorage.getItem(`schoolLogo:${sid}`)) || null;
-    const userAvatar = (typeof window !== 'undefined' && window.localStorage.getItem(`userAvatar:${sid}`)) || null;
-    const displayName = (() => {
-        if (role === 'teacher') return (typeof window !== 'undefined' && window.localStorage.getItem('teacherName')) || 'Teacher';
-        if (role === 'superadmin') return 'Super Admin';
-        const kn = `adminName:${sid}`;
-        return (typeof window !== 'undefined' && (window.localStorage.getItem(kn) || window.localStorage.getItem('adminName'))) || 'Admin';
-    })();
+    const [profile, setProfile] = useState({ name: '', role: '', profilePicture: null, schoolName: '', schoolLogo: null });
+    const [loadingProfile, setLoadingProfile] = useState(true);
 
     const admittedData = [20, 60, 280, 140, 20];
     const leftData = [5, 8, 3, 6, 2];
@@ -177,14 +182,38 @@ const Dashboard = () => {
     useEffect(() => {
         const load = async () => {
             try {
-                const res = await fetch('/api/dashboard/stats');
+                const schoolId = localStorage.getItem('schoolId') || 'local';
+                // Fetch stats and announcements
+                const res = await fetch('/api/dashboard/stats', {
+                    headers: { 'x-school-id': schoolId }
+                });
                 const data = await res.json();
                 setStats(data);
                 
-                const annRes = await fetch('/api/announcements');
+                const annRes = await fetch('/api/announcements', {
+                    headers: { 'x-school-id': schoolId }
+                });
                 if (annRes.ok) setAnnouncements(await annRes.json());
+
+                // Fetch Profile
+                const role = localStorage.getItem('userRole') || 'admin';
+                let endpoint = '/api/school-auth/profile';
+                if (role === 'superadmin') endpoint = '/api/superadmin-auth/profile';
+                
+                const profRes = await fetch(endpoint).then(r => r.ok ? r.json() : null).catch(() => null);
+                if (profRes) {
+                    setProfile({
+                        name: profRes.adminName || profRes.name || 'Admin',
+                        role: role === 'admin' ? 'School Admin' : (profRes.role || 'Super Admin'),
+                        profilePicture: profRes.adminProfilePicture || profRes.profilePicture || null,
+                        schoolName: profRes.schoolName || 'SmartSchool',
+                        schoolLogo: profRes.schoolLogo || null
+                    });
+                }
             } catch {
                 setStats(s => ({ ...s, status: 'degraded' }));
+            } finally {
+                setLoadingProfile(false);
             }
         };
         load();
@@ -197,17 +226,22 @@ const Dashboard = () => {
             {/* ── Top Greeting Bar ── */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div className="flex items-center gap-4">
-                    {userAvatar && (
-                        <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-primary-teal/20 shadow-soft-sm">
-                            <img src={userAvatar} alt="User" className="w-full h-full object-cover" />
+                    {profile.profilePicture && (
+                        <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-primary-teal/20 shadow-soft-sm bg-gray-50 flex items-center justify-center">
+                            <img src={profile.profilePicture} alt="User" className="w-full h-full object-cover" />
+                        </div>
+                    )}
+                    {!profile.profilePicture && (
+                        <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-primary-teal/20 shadow-soft-sm bg-primary-teal text-white flex items-center justify-center text-xl font-black">
+                            {profile.name[0] || 'A'}
                         </div>
                     )}
                     <div>
                         <h1 className="text-2xl font-extrabold text-dark-text tracking-tight">
-                            Good {today.getHours() < 12 ? 'morning' : today.getHours() < 17 ? 'afternoon' : 'evening'},
-                            <span className="text-primary-teal"> {displayName}</span>
+                            Good {today.getHours() < 12 ? 'morning' : today.getHours() < 17 ? 'afternoon' : 'evening'}, 
+                            <span className="text-primary-teal"> {profile.name}</span>
                         </h1>
-                        <p className="text-sm text-muted-text mt-0.5">What would you like to do today?</p>
+                        <p className="text-sm text-muted-text mt-0.5 font-bold uppercase tracking-widest text-[10px]">Role: {profile.role}</p>
                     </div>
                 </div>
 
@@ -223,7 +257,7 @@ const Dashboard = () => {
                     <button onClick={() => window.location.reload()} className="p-2.5 bg-white rounded-xl border border-gray-100 shadow-soft-sm text-muted-text hover:text-primary-teal transition" title="Refresh">
                         <RefreshCw size={18} />
                     </button>
-                    <button onClick={() => window.location.href = '/dashboard/announcements'} className="p-2.5 bg-white rounded-xl border border-gray-100 shadow-soft-sm text-muted-text hover:text-primary-teal transition" title="Messages">
+                    <button onClick={() => window.location.href = '/dashboard/messages'} className="p-2.5 bg-white rounded-xl border border-gray-100 shadow-soft-sm text-muted-text hover:text-primary-teal transition" title="Messages">
                         <MessageSquare size={18} />
                     </button>
                 </div>
@@ -232,9 +266,9 @@ const Dashboard = () => {
             {/* ── School Banner Card ── */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-soft-sm p-5 flex flex-col md:flex-row items-start md:items-center gap-4">
                 {/* Logo */}
-                {schoolLogo ? (
+                {profile.schoolLogo ? (
                     <div className="w-20 h-20 flex-shrink-0 rounded-2xl overflow-hidden shadow-lg border border-gray-100 flex items-center justify-center p-2 bg-white">
-                        <img src={schoolLogo} alt="School Logo" className="w-full h-full object-contain" />
+                        <img src={profile.schoolLogo} alt="School Logo" className="w-full h-full object-contain" />
                     </div>
                 ) : (
                     <div className="w-20 h-20 flex-shrink-0 rounded-2xl bg-gradient-to-br from-primary-teal to-secondary-teal flex items-center justify-center shadow-lg">
@@ -243,7 +277,7 @@ const Dashboard = () => {
                 )}
 
                 <div className="flex-1">
-                    <h2 className="text-xl font-extrabold text-dark-text">{schoolName}</h2>
+                    <h2 className="text-xl font-extrabold text-dark-text">{profile.schoolName || 'Skullar School'}</h2>
                     <p className="text-sm text-muted-text font-medium">{academicTerm}, {academicYear}</p>
                     <div className="flex flex-wrap gap-3 mt-3">
                         <span className="text-[11px] font-bold bg-primary-teal/10 text-primary-teal px-3 py-1 rounded-full">Active Academic Year</span>
@@ -365,21 +399,58 @@ const Dashboard = () => {
             {/* ── Latest Announcement Teaser ── */}
             {announcements.length > 0 && (
                 <div 
-                    onClick={() => window.location.href = '/dashboard/announcements'}
-                    className="bg-white rounded-2xl border border-gray-100 shadow-soft-sm overflow-hidden cursor-pointer hover:border-primary-teal/30 transition-all group"
+                    onClick={() => window.location.href = `/dashboard/messages?id=${announcements[0].id}`}
+                    className="group relative bg-white rounded-[2rem] border border-gray-100 shadow-xl hover:shadow-2xl hover:shadow-primary-teal/10 transition-all duration-500 cursor-pointer overflow-hidden transform hover:-translate-y-1"
                 >
-                    <div className="bg-primary-teal/5 px-6 py-3 border-b border-gray-100 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <Bell size={14} className="text-primary-teal" />
-                            <h3 className="text-xs font-black text-dark-text uppercase tracking-widest">Latest School Announcement</h3>
+                    {/* Visual Decor */}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary-teal/5 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-primary-teal/10 transition-colors" />
+                    
+                    <div className="flex flex-col md:flex-row items-stretch">
+                        <div className="md:w-1.5 bg-primary-teal" />
+                        <div className="flex-1 p-8 relative z-10">
+                            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-2xl bg-primary-teal/10 flex items-center justify-center text-primary-teal shadow-inner">
+                                        <Bell size={20} className="animate-pulse" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xs font-black text-primary-teal uppercase tracking-[0.2em]">Latest Announcement</h3>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-[10px] font-bold text-muted-text flex items-center gap-1.5 opacity-60">
+                                                <Calendar size={12} /> {new Date(announcements[0].createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-sm ${
+                                        announcements[0].priority === 'High' ? 'bg-error/10 text-error border border-error/10' :
+                                        announcements[0].priority === 'Medium' ? 'bg-primary-teal/10 text-primary-teal border border-primary-teal/10' :
+                                        'bg-gray-100 text-gray-500 border border-gray-200'
+                                    }`}>
+                                        <AlertCircle size={14} /> {announcements[0].priority} Priority
+                                    </span>
+                                    <span className="px-4 py-1.5 rounded-xl bg-gray-50 border border-gray-100 text-muted-text text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                                        <Users size={14} className="text-primary-teal" /> 
+                                        {getTargetLabel(announcements[0].targetGroup)}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="flex items-start justify-between gap-6">
+                                <div className="flex-1">
+                                    <h4 className="text-2xl font-black text-dark-text mb-3 leading-tight group-hover:text-primary-teal transition-colors tracking-tight">
+                                        {announcements[0].title}
+                                    </h4>
+                                    <p className="text-muted-text text-base leading-relaxed line-clamp-2 opacity-80 font-medium">
+                                        {announcements[0].content}
+                                    </p>
+                                </div>
+                                <div className="w-14 h-14 rounded-2xl border-2 border-primary-teal/20 flex items-center justify-center text-primary-teal group-hover:bg-primary-teal group-hover:text-white group-hover:border-primary-teal transition-all shadow-lg shadow-primary-teal/5">
+                                    <ArrowUpRight size={24} />
+                                </div>
+                            </div>
                         </div>
-                        <span className="text-[10px] font-bold text-muted-text">
-                            {new Date(announcements[0].createdAt).toLocaleDateString()}
-                        </span>
-                    </div>
-                    <div className="p-6">
-                        <h4 className="text-base font-black text-dark-text mb-1 group-hover:text-primary-teal transition-colors">{announcements[0].title}</h4>
-                        <p className="text-sm text-muted-text line-clamp-2">{announcements[0].content}</p>
                     </div>
                 </div>
             )}

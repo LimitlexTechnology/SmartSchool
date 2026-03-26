@@ -16,16 +16,20 @@ const Stat = ({ icon: Icon, label, value }) => (
 
 const TeacherDashboard = () => {
   const navigate = useNavigate()
-  const [stats, setStats] = useState({ students: '—', lessons: '—', classes: '—', assessments: '—' })
+  const [profile, setProfile] = useState({ name: '', role: 'Teacher', profilePicture: null })
+  const [loadingProfile, setLoadingProfile] = useState(true)
   const [schoolName, setSchoolName] = useState(() => (typeof window !== 'undefined' && window.localStorage.getItem('schoolName')) || '')
   const [announcements, setAnnouncements] = useState([])
   useEffect(() => {
     const load = async () => {
       try {
-        const s = await fetch('/api/students?page=1&pageSize=1').then(r=>r.json()).catch(()=>({ total: '—' }))
-        const t = await fetch('/api/lessons?status=pending').then(r=>r.json()).catch(()=>({ total: '—' }))
-        const c = await fetch('/api/classes').then(r=>r.json()).catch(()=>[])
-        const a = await fetch('/api/announcements').then(r=>r.json()).catch(()=>[])
+        const [s, t, c, a, p] = await Promise.all([
+          fetch('/api/students?page=1&pageSize=1').then(r=>r.json()).catch(()=>({ total: '—' })),
+          fetch('/api/lessons?status=pending').then(r=>r.json()).catch(()=>({ total: '—' })),
+          fetch('/api/classes').then(r=>r.json()).catch(()=>[]),
+          fetch('/api/announcements').then(r=>r.json()).catch(()=>[]),
+          fetch('/api/teacher-auth/profile').then(r=>r.ok?r.json():null).catch(()=>null)
+        ])
 
         setStats({
           students: s.total ?? '—',
@@ -34,29 +38,46 @@ const TeacherDashboard = () => {
           assessments: '—'
         })
         setAnnouncements(a)
-        if (!schoolName) {
-          const prof = await fetch('/api/school-auth/profile').then(r=>r.ok?r.json():null).catch(()=>null)
-          if (prof && (prof.schoolName || prof.name)) {
-            const nm = prof.schoolName || prof.name || ''
-            setSchoolName(nm)
-            if (typeof window !== 'undefined') window.localStorage.setItem('schoolName', nm)
+        
+        if (p) {
+          setProfile({
+            name: p.name || 'Teacher',
+            role: p.role || 'Teacher',
+            profilePicture: p.profilePicture || null
+          })
+          if (p.schoolName) {
+            setSchoolName(p.schoolName)
+            if (typeof window !== 'undefined') window.localStorage.setItem('schoolName', p.schoolName)
           }
         }
-      } catch {}
+      } catch (err) {
+        console.error("Failed to load dashboard data", err)
+      } finally {
+        setLoadingProfile(false)
+      }
     }
     load()
-  }, [schoolName])
-  const name = (typeof window !== 'undefined' && window.localStorage.getItem('userPhone')) || 'Teacher'
+  }, [])
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-extrabold text-dark-text">Welcome</h1>
-          <p className="text-sm text-muted-text font-bold">Your teaching overview</p>
-          <p className="text-xs font-extrabold text-primary-teal mt-1">School: {schoolName || '—'}</p>
+        <div className="flex items-center gap-4">
+          {profile.profilePicture ? (
+            <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-primary-teal/20 shadow-soft-sm bg-gray-50 flex items-center justify-center">
+              <img src={profile.profilePicture} alt="User" className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-primary-teal/20 shadow-soft-sm bg-primary-teal text-white flex items-center justify-center text-2xl font-black">
+              {profile.name[0] || 'T'}
+            </div>
+          )}
+          <div>
+            <h1 className="text-2xl font-extrabold text-dark-text tracking-tight">Welcome, <span className="text-primary-teal">{profile.name}</span></h1>
+            <p className="text-sm text-muted-text font-bold uppercase tracking-widest text-[10px]">Role: {profile.role} • {schoolName || '—'}</p>
+          </div>
         </div>
         <button
-          onClick={() => navigate('/teacher/announcements')}
+          onClick={() => navigate('/teacher/diary')}
           className="flex items-center gap-2 bg-primary-teal text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-primary-teal/20 hover:shadow-primary-teal/30 transition-all hover:-translate-y-0.5"
         >
           <MessageSquare size={18} />
@@ -84,7 +105,7 @@ const TeacherDashboard = () => {
             <h4 className="text-lg font-black text-dark-text mb-2 uppercase">{announcements[0].title}</h4>
             <p className="text-sm text-muted-text line-clamp-3 mb-4">{announcements[0].content}</p>
             <button 
-              onClick={() => window.location.href = '/teacher/announcements'}
+              onClick={() => window.location.href = '/teacher/messages'}
               className="text-[10px] font-black text-primary-teal uppercase tracking-widest hover:text-secondary-teal transition-colors"
             >
               Read Full Announcement →

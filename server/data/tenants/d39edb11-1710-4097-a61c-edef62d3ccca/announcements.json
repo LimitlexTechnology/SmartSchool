@@ -1,6 +1,126 @@
 {
   "announcements": [
     {
+      "id": "05092644-1486-4577-8dc6-88f916abf1f3",
+      "title": "PREFECTORIAL ELECTIONS",
+      "content": "Let us prepare for tomorrow\n\nBest Regards,\nSchool Admin - SmartSchool",
+      "targetGroup": "all",
+      "priority": "Low",
+      "subjectId": "",
+      "classId": "",
+      "author": "School Official",
+      "authorName": "School Official",
+      "authorRole": "teacher",
+      "attachments": [],
+      "scheduledAt": null,
+      "deliveryChannels": [
+        "system"
+      ],
+      "createdAt": "2026-03-26T17:35:42.461Z"
+    },
+    {
+      "id": "61d08493-a674-416b-983b-d87421eb1e23",
+      "title": "Holiday",
+      "content": "Tomorrow is a holiday\n\nBest Regards,\nProsper Yesuli Gakpleazi - SmartSchool",
+      "targetGroup": "all",
+      "priority": "Medium",
+      "subjectId": "",
+      "classId": "",
+      "author": "Prosper Yesuli Gakpleazi",
+      "authorName": "Prosper Yesuli Gakpleazi",
+      "authorRole": "School Admin",
+      "attachments": [],
+      "scheduledAt": "2026-03-27T12:05",
+      "deliveryChannels": [
+        "system"
+      ],
+      "createdAt": "2026-03-26T17:30:34.280Z"
+    },
+    {
+      "id": "ec30a647-7ed4-4f04-8fbb-0c9876ad5554",
+      "title": "Staff Meeting",
+      "content": "Dear Teacher, \nthis is a reminder that the staff meeting will be held tomorrow at 3:00 PM in the school hall. Please be punctual and come prepared with your class reports. \nThank you for your dedication and commitment to our students.",
+      "targetGroup": "students,staff",
+      "priority": "High",
+      "subjectId": "",
+      "classId": "",
+      "author": "Limitless Academy",
+      "authorName": "Limitless Academy",
+      "authorRole": "admin",
+      "attachments": [],
+      "scheduledAt": null,
+      "createdAt": "2026-03-26T15:38:56.577Z"
+    },
+    {
+      "id": "5a98a01f-64b9-4d10-85d6-820daac0f29f",
+      "title": "hhfkdkk",
+      "content": "jkwhafIL/NCEJog EPJroiiii",
+      "targetGroup": "staff",
+      "priority": "High",
+      "subjectId": "",
+      "classId": "",
+      "author": "Limitless Academy",
+      "authorName": "Limitless Academy",
+      "authorRole": "admin",
+      "attachments": [],
+      "scheduledAt": null,
+      "createdAt": "2026-03-26T15:11:34.668Z"
+    },
+    {
+      "id": "ef624a35-2af7-4d0f-a901-d5bd604fb1e6",
+      "title": "STAFF MEETING",
+      "content": "Dear Teacher, \n\nThis is a reminder that the staff meeting will be held tomorrow at 3:00 PM in the school hall. Please be punctual and come prepared with your class reports. \n\nThank you for your dedication and commitment to our students.",
+      "targetGroup": "staff",
+      "priority": "High",
+      "subjectId": "",
+      "classId": "",
+      "author": "Limitless Academy",
+      "authorName": "Limitless Academy",
+      "authorRole": "admin",
+      "attachments": [],
+      "scheduledAt": null,
+      "createdAt": "2026-03-26T13:23:06.936Z"
+    },
+    {
+      "id": "87dd8733-9632-420d-ace4-477c1b0538bf",
+      "title": "STAFF MEETING",
+      "content": "Dear Teacher, \nThis is a reminder that the staff meeting will be held tomorrow at 3:00 PM in the school hall. Please be punctual and come prepared with your class reports. Thank you for your dedication and commitment to our students.",
+      "targetGroup": "staff",
+      "priority": "High",
+      "subjectId": "",
+      "classId": "",
+      "author": "School Official",
+      "authorName": "School Official",
+      "authorRole": "teacher",
+      "attachments": [],
+      "scheduledAt": null,
+      "createdAt": "2026-03-26T13:12:22.582Z"
+    },
+    {
+      "id": "e339b6cb-2777-41f1-ae49-914337939ea0",
+      "title": "Staff Meeting",
+      "content": "Dear Teacher, \nThis is a reminder that the staff meeting will be held tomorrow at 3:00 PM in the school hall. Please be punctual and come prepared with your class reports. Thank you for your dedication and commitment to our students.",
+      "targetGroup": "staff",
+      "priority": "High",
+      "subjectId": "",
+      "classId": "",
+      "author": "School Official",
+      "authorName": "School Official",
+      "authorRole": "teacher",
+      "attachments": [],
+      "scheduledAt": null,
+      "createdAt": "2026-03-26T13:08:55.534Z"
+    },
+    {
+      "id": "009a3e4a-54c7-4713-a2fd-a2ef903f7615",
+      "title": "Spoilt Phone",
+      "content": "Who spoilt Ms. Bella Rose's phone?",
+      "targetGroup": "students",
+      "priority": "Low",
+      "createdAt": "2026-03-24T17:11:45.725Z",
+      "author": "School Admin"
+    },
+    {
       "id": "d8407400-3de6-4cdd-9464-7548fb442ec7",
       "title": "OUTBREAK OF CHICKEN POX",
       "content": "There is a pandemic",
@@ -28,35 +148,11 @@
       "author": "School Admin"
     },
     {
-      "id": "4566e5bb-05e2-400d-8432-90d9469609c8",
-      "title": "hi",
-      "content": "good",
-      "targetGroup": "all",
-      "createdAt": "2026-03-24T12:24:14.234Z",
-      "author": "School Admin"
-    },
-    {
-      "id": "3ab1f41e-b287-4d14-bf7c-1a17db080d1f",
-      "title": "Welcome Back To School",
-      "content": "Enjoy the rest of the term",
-      "targetGroup": "all",
-      "createdAt": "2026-03-24T11:57:01.164Z",
-      "author": "School Admin"
-    },
-    {
       "id": "345c82a4-bc42-439b-8e09-103ac2d3c7a8",
       "title": "Deadline Due",
       "content": "For submission of exams",
       "targetGroup": "staff",
       "createdAt": "2026-03-23T19:59:13.788Z",
-      "author": "School Admin"
-    },
-    {
-      "id": "312b29bf-8348-4345-b015-64e66c9c1f70",
-      "title": "Test Announcement",
-      "content": "This is a functional test for the notification bell.",
-      "targetGroup": "all",
-      "createdAt": "2026-03-23T19:46:56.402Z",
       "author": "School Admin"
     },
     {

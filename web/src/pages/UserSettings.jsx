@@ -205,7 +205,8 @@ const UserSettings = () => {
     const name = localStorage.getItem(nKey) || localStorage.getItem('adminName') || 'Admin User'
     const email = localStorage.getItem(eKey) || localStorage.getItem('userEmail') || 'admin@school.com'
     const phone = localStorage.getItem(pKey) || localStorage.getItem('adminPhone') || localStorage.getItem('userPhone') || ''
-    const role = localStorage.getItem('userRole') || 'System Admin'
+    const roleKey = localStorage.getItem('userRole') || 'admin'
+    const role = roleKey === 'teacher' ? 'Teacher' : roleKey === 'superadmin' ? 'Super Admin' : 'School Admin'
     const profilePicture = localStorage.getItem(`userAvatar:${sidNow}`) || null
     
     setProfile({ name, email, phone, role, profilePicture })
