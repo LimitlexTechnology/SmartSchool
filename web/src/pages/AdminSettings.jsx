@@ -302,6 +302,26 @@ const AdminSettings = () => {
     // Load App Prefs
     const storedPrefs = localStorage.getItem(`appPrefs:${sid}`)
     if (storedPrefs) setAppPreferences(JSON.parse(storedPrefs))
+
+    // Fetch profile to cache the avatar
+    if (sid !== 'local') {
+      const role = localStorage.getItem('userRole') || 'admin'
+      if (role === 'teacher') {
+        fetch('/api/teacher-auth/profile').then(r => r.ok ? r.json() : null).then(j => {
+          if (j && j.profilePicture) {
+            localStorage.setItem(`userAvatar:${sid}`, j.profilePicture)
+            window.dispatchEvent(new CustomEvent('adminProfile:change'))
+          }
+        }).catch(() => {})
+      } else if (role !== 'superadmin') {
+        fetch('/api/school-auth/profile').then(r => r.ok ? r.json() : null).then(j => {
+          if (j && j.profilePicture) {
+            localStorage.setItem(`userAvatar:${sid}`, j.profilePicture)
+            window.dispatchEvent(new CustomEvent('adminProfile:change'))
+          }
+        }).catch(() => {})
+      }
+    }
   }, [])
 
   const handleInputChange = (field, value) => {
