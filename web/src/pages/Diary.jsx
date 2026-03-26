@@ -15,7 +15,8 @@ import {
     Heart,
     Share2,
     X,
-    Clock
+    Clock,
+    User,
 } from 'lucide-react';
 
 const Diary = () => {
@@ -24,6 +25,11 @@ const Diary = () => {
     const initialTab = queryParams.get('tab') === 'calendar' ? 'calendar' : 'feed';
     const [activeTab, setActiveTab] = useState(initialTab);
     const [selectedEvent, setSelectedEvent] = useState(null);
+    const [status, setStatus] = useState({ type: '', message: '' });
+    
+    const userRole = localStorage.getItem('userRole') || 'admin';
+    const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+    const canCreate = isAdmin || userRole === 'teacher';
 
     useEffect(() => {
         const tab = queryParams.get('tab');
@@ -69,7 +75,7 @@ const Diary = () => {
         return (
             <div
                 className={`h-24 md:h-32 border border-gray-50 flex flex-col p-2 transition-all cursor-pointer ${bgColor}`}
-                onClick={() => hasEvent && setSelectedEvent({ day, title: 'Sample Event' })}
+                onClick={() => hasEvent && setSelectedEvent({ day, title: hasEvent })}
             >
                 <span className="text-sm font-bold opacity-60">{day}</span>
                 {hasEvent && (
@@ -87,26 +93,28 @@ const Diary = () => {
     };
 
     return (
-        <div className="flex flex-col gap-8 animate-fade-in pb-20">
+        <div className="flex flex-col gap-8 animate-fade-in pb-20 font-inter">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                     <h1 className="text-3xl font-extrabold text-[#0F172A]">Parent-School Diary</h1>
-                    <p className="text-muted-text mt-1">Daily updates, memories, and school calendar.</p>
+                    <p className="text-muted-text mt-1">Daily updates, activities, and school calendar.</p>
                 </div>
-                <div className="flex p-1 bg-white rounded-2xl border border-gray-100 shadow-sm w-fit">
-                    <button
-                        onClick={() => setActiveTab('feed')}
-                        className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'feed' ? 'bg-[#0F172A] text-white' : 'text-muted-text hover:text-primary-teal'}`}
-                    >
-                        Daily Feed
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('calendar')}
-                        className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'calendar' ? 'bg-[#0F172A] text-white' : 'text-muted-text hover:text-primary-teal'}`}
-                    >
-                        Calendar
-                    </button>
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <div className="flex p-1 bg-white rounded-2xl border border-gray-100 shadow-sm w-fit">
+                        <button
+                            onClick={() => setActiveTab('feed')}
+                            className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'feed' ? 'bg-[#0F172A] text-white' : 'text-muted-text hover:text-primary-teal'}`}
+                        >
+                            Daily Feed
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('calendar')}
+                            className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'calendar' ? 'bg-[#0F172A] text-white' : 'text-muted-text hover:text-primary-teal'}`}
+                        >
+                            Calendar
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -114,6 +122,7 @@ const Diary = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Feed Column */}
                     <div className="lg:col-span-2 flex flex-col gap-8">
+                        {/* Regular Posts */}
                         {posts.map(post => (
                             <Card key={post.id} padding="none" className="overflow-hidden group hover:border-primary-teal transition-all">
                                 <div className="p-6 border-b border-gray-50 flex items-center justify-between bg-gradient-to-r from-light-bg to-white">
@@ -127,7 +136,7 @@ const Diary = () => {
                                         </div>
                                     </div>
                                     <button className="p-2 text-muted-text hover:text-primary-teal transition-all">
-                                        <Plus size={20} />
+                                        <Share2 size={20} />
                                     </button>
                                 </div>
 
@@ -172,9 +181,6 @@ const Diary = () => {
                                                 <span className="text-sm font-bold">{post.comments}</span>
                                             </button>
                                         </div>
-                                        <button className="text-muted-text hover:text-primary-teal transition-all">
-                                            <Share2 size={20} />
-                                        </button>
                                     </div>
                                 </div>
 
@@ -247,9 +253,11 @@ const Diary = () => {
                                     </button>
                                 </div>
                             </div>
-                            <Button className="flex items-center gap-2 h-11 px-6">
-                                <Plus size={18} /> Add Event
-                            </Button>
+                            {canCreate && (
+                                <Button className="flex items-center gap-2 h-11 px-6">
+                                    <Plus size={18} /> Add Event
+                                </Button>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-7 border-collapse">
@@ -284,10 +292,10 @@ const Diary = () => {
                                     <button onClick={() => setSelectedEvent(null)}><X /></button>
                                 </div>
                                 <div className="bg-primary-teal/10 p-6 rounded-[24px] mb-6">
-                                    <h4 className="text-xl font-bold text-primary-teal mb-2">Annual Sports Day</h4>
+                                    <h4 className="text-xl font-bold text-primary-teal mb-2">{selectedEvent.title}</h4>
                                     <div className="flex flex-col gap-2">
                                         <div className="flex items-center gap-2 text-sm font-bold text-muted-text">
-                                            <CalendarIcon size={16} /> October 20, 2026
+                                            <CalendarIcon size={16} /> October {selectedEvent.day}, 2026
                                         </div>
                                         <div className="flex items-center gap-2 text-sm font-bold text-muted-text">
                                             <Clock size={16} /> 08:00 AM - 04:00 PM
@@ -295,7 +303,7 @@ const Diary = () => {
                                     </div>
                                 </div>
                                 <p className="text-muted-text leading-relaxed mb-8">
-                                    Join us for a day of teamwork and competition! Students should arrive in their sports kits and bring their smart wristbands for attendance and the canteen.
+                                    Join us for a day of school activities! Students should arrive on time and bring necessary materials.
                                 </p>
                                 <Button fullWidth onClick={() => setSelectedEvent(null)}>Dismiss</Button>
                             </Card>
@@ -308,3 +316,4 @@ const Diary = () => {
 };
 
 export default Diary;
+;

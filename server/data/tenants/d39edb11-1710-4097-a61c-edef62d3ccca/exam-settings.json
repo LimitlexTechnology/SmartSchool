@@ -1,0 +1,233 @@
+{
+  "systems": [
+    {
+      "id": "7993ff1a-afd2-4d55-a388-a0e2fd93fd0d",
+      "name": "END OF TERM EXAMS",
+      "grades": [
+        {
+          "id": 1,
+          "lower": "90",
+          "upper": "100",
+          "grade": "1",
+          "remarks": "Highest",
+          "descriptor": "Excellent"
+        },
+        {
+          "id": 2,
+          "lower": "80",
+          "upper": "89",
+          "grade": "2",
+          "remarks": "HIGHER",
+          "descriptor": "Very good"
+        },
+        {
+          "id": 3,
+          "lower": "70",
+          "upper": "79",
+          "grade": "3",
+          "remarks": "HIGH",
+          "descriptor": "GOOD"
+        },
+        {
+          "id": 4,
+          "lower": "60",
+          "upper": "69",
+          "grade": "4",
+          "remarks": "HIGH AVERAGE",
+          "descriptor": "ABOVE AVERAGE"
+        },
+        {
+          "id": 5,
+          "lower": "55",
+          "upper": "59",
+          "grade": "5",
+          "remarks": "AVERAGE",
+          "descriptor": "SATISFACTORY"
+        },
+        {
+          "id": 6,
+          "lower": "50",
+          "upper": "54",
+          "grade": "6",
+          "remarks": "LOW AVERAGE",
+          "descriptor": "FAIR"
+        },
+        {
+          "id": 7,
+          "lower": "45",
+          "upper": "49",
+          "grade": "7",
+          "remarks": "LOW",
+          "descriptor": "BELOW"
+        },
+        {
+          "id": 8,
+          "lower": "40",
+          "upper": "44",
+          "grade": "8",
+          "remarks": "LOWER",
+          "descriptor": "POOR"
+        },
+        {
+          "id": 9,
+          "lower": "0",
+          "upper": "39",
+          "grade": "9",
+          "remarks": "LOWEST",
+          "descriptor": "NEEDS IMPROVEMENT"
+        }
+      ],
+      "assignedClasses": [
+        "108cd125-8374-4f65-85c9-bad44fa1bf0c",
+        "a9a3fc37-0f89-4b3d-a746-50beea6f662f"
+      ]
+    }
+  ],
+  "scales": [
+    {
+      "id": "0f1a958e-7e15-474f-bbbb-a5cc439fdf55",
+      "name": "PRIMARY END OF TERM EXAMS SCALE",
+      "overallScore": 100,
+      "from": 60,
+      "to": 40,
+      "assignedClasses": [],
+      "status": "active"
+    },
+    {
+      "id": "e0f63f46-0884-4bd1-bc3a-398c48a7bb11",
+      "name": "END OF TERM EXAMS SCALE",
+      "overallScore": 100,
+      "from": 100,
+      "to": 40,
+      "assignedClasses": [
+        "108cd125-8374-4f65-85c9-bad44fa1bf0c",
+        "a9a3fc37-0f89-4b3d-a746-50beea6f662f"
+      ],
+      "status": "active"
+    }
+  ],
+  "assessments": [
+    {
+      "id": "30ba29e6-ea48-4848-b155-e6e63f78bed6",
+      "name": "End of Term",
+      "items": [
+        {
+          "id": 1,
+          "name": "MID TERM",
+          "total": 20
+        },
+        {
+          "id": 2,
+          "name": "CLASS TEST",
+          "total": 10
+        },
+        {
+          "id": 3,
+          "name": "GROUP WORK",
+          "total": 10
+        },
+        {
+          "id": 4,
+          "name": "PROJECT WORK",
+          "total": 10
+        },
+        {
+          "id": 5,
+          "name": "CLASS WORK",
+          "total": 5
+        },
+        {
+          "id": 6,
+          "name": "HOMEWORK",
+          "total": 5
+        }
+      ],
+      "assignedClasses": [],
+      "status": "active"
+    },
+    {
+      "id": "d2cd9b82-a925-4a64-ae79-f2da3c838d60",
+      "name": "CLASS SCORE",
+      "items": [
+        {
+          "id": 1,
+          "name": "MID-TERM",
+          "total": "20"
+        },
+        {
+          "id": 2,
+          "name": "PROJECT",
+          "total": "8"
+        },
+        {
+          "id": 3,
+          "name": "GROUP WORK",
+          "total": "7"
+        },
+        {
+          "id": 4,
+          "name": "HOMEWORK",
+          "total": "5"
+        },
+        {
+          "id": 5,
+          "name": "CLASS EXERCISE",
+          "total": "5"
+        },
+        {
+          "id": 6,
+          "name": "CLASS TEST",
+          "total": "10"
+        },
+        {
+          "id": 7,
+          "name": "E-LEARNING",
+          "total": "5"
+        }
+      ],
+      "assignedClasses": [
+        "a9a3fc37-0f89-4b3d-a746-50beea6f662f",
+        "108cd125-8374-4f65-85c9-bad44fa1bf0c"
+      ],
+      "status": "active"
+    }
+  ],
+  "examConfigs": [
+    {
+      "id": "61f85365-5e2f-490e-98fd-3e17513c233f",
+      "name": "End of Year Science Exam",
+      "gradingSystem": "",
+      "scale": "",
+      "assessmentType": "",
+      "classes": [],
+      "terms": [
+        "Term 1",
+        "Term 2",
+        "Term 3"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "3d0291f5-a2f6-401f-9755-7fe3966d8509",
+      "name": "END OF TERM EXAMS",
+      "gradingSystem": "END OF TERM EXAMS",
+      "scale": "END OF TERM EXAMS SCALE",
+      "assessmentType": "CLASS SCORE",
+      "classes": [
+        "108cd125-8374-4f65-85c9-bad44fa1bf0c",
+        "a9a3fc37-0f89-4b3d-a746-50beea6f662f"
+      ],
+      "terms": [
+        "First Term"
+      ],
+      "session": "2025/2026",
+      "status": "active"
+    }
+  ],
+  "rules": {
+    "autoCalculatePositions": true,
+    "showPositionOnReport": true,
+    "allowTeacherModifications": false,
+    "requireAdminApproval": true
+  }
+}

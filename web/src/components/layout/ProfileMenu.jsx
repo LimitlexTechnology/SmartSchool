@@ -31,34 +31,54 @@ const ProfileMenu = ({ onLogout }) => {
     if (userRole === 'teacher') return localStorage.getItem('userPhone') || ''
     return localStorage.getItem(keyPhone) || localStorage.getItem('adminPhone') || localStorage.getItem('userPhone') || ''
   })
-  const role = userRole === 'teacher' ? 'Teacher' : userRole === 'superadmin' ? 'Super Admin' : 'System Admin'
+  const [profilePic, setProfilePic] = useState(() => localStorage.getItem('userProfilePic') || '')
+  const role = userRole === 'teacher' ? 'Teacher' : userRole === 'superadmin' ? 'Super Admin' : 'School Admin'
   const ref = useRef(null)
   useOutside(ref, () => setOpen(false))
 
   useEffect(() => {
-    const handler = () => {
-      const sid = localStorage.getItem('schoolId') || 'local'
-      const kn = `adminName:${sid}`
-      const kp = `adminPhone:${sid}`
-      if (userRole === 'teacher') {
-        const tid = localStorage.getItem('teacherId') || ''
-        if (tid) {
-          fetch(`/api/teachers/${tid}`).then(r=>r.ok?r.json():null).then(d=>{
-            if (d && d.name) {
-              setName(d.name)
-              localStorage.setItem('teacherName', d.name)
+    const fetchProfile = async () => {
+      try {
+        let endpoint = ''
+        if (userRole === 'teacher') endpoint = '/api/teacher-auth/profile'
+        else if (userRole === 'superadmin') endpoint = '/api/superadmin/profile'
+        else if (userRole === 'admin') endpoint = '/api/school-auth/profile'
+
+        if (endpoint) {
+          const res = await fetch(endpoint)
+          if (res.ok) {
+            const data = await res.json()
+            const newName = data.name || data.adminName || name
+            const newPic = data.profilePicture || data.adminProfilePicture || ''
+            const newPhone = data.phone || data.adminPhone || phone
+
+            setName(newName)
+            setProfilePic(newPic)
+            setPhone(newPhone)
+
+            localStorage.setItem('userProfilePic', newPic)
+            if (userRole === 'teacher') {
+              localStorage.setItem('teacherName', newName)
+              localStorage.setItem('userPhone', newPhone)
+            } else if (userRole === 'admin') {
+              localStorage.setItem(`adminName:${schoolId}`, newName)
+              localStorage.setItem(`adminPhone:${schoolId}`, newPhone)
             }
-          }).catch(()=>{})
+          }
         }
-        setPhone(localStorage.getItem('userPhone') || '')
-      } else {
-        setName(localStorage.getItem(kn) || localStorage.getItem('adminName') || 'Admin User')
-        setPhone(localStorage.getItem(kp) || localStorage.getItem('adminPhone') || localStorage.getItem('userPhone') || '')
+      } catch (err) {
+        console.error('Failed to fetch profile:', err)
       }
+    }
+
+    fetchProfile()
+
+    const handler = () => {
+      fetchProfile()
     }
     window.addEventListener('adminProfile:change', handler)
     return () => window.removeEventListener('adminProfile:change', handler)
-  }, [])
+  }, [userRole, schoolId])
 
   const save = () => {
     const sid = localStorage.getItem('schoolId') || 'local'
@@ -67,7 +87,7 @@ const ProfileMenu = ({ onLogout }) => {
         fetch('/api/school-auth/profile', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ adminName: name.trim() || 'Admin User', adminPhone: phone.trim() })
+          body: JSON.stringify({ adminName: name.trim(), adminPhone: phone.trim() })
         }).catch(()=>{})
       } catch {}
     } else {
@@ -92,14 +112,24 @@ const ProfileMenu = ({ onLogout }) => {
           <div className="text-sm font-bold text-dark-text truncate max-w-[160px]">{name}</div>
           <div className="text-[10px] text-muted-text uppercase tracking-wider font-semibold">{role}</div>
         </div>
-        <div className="w-10 h-10 rounded-full bg-soft-teal flex items-center justify-center text-white font-bold border-2 border-transparent">
-          {initials(name)}
+        <div className="w-10 h-10 rounded-full bg-soft-teal flex items-center justify-center text-white font-bold border-2 border-transparent overflow-hidden">
+          {profilePic ? (
+            <img src={profilePic} alt={name} className="w-full h-full object-cover" />
+          ) : (
+            initials(name)
+          )}
         </div>
       </button>
       {open && (
         <div className="absolute right-0 mt-2 w-[280px] bg-white border border-gray-100 rounded-2xl shadow-soft-sm p-4 z-[3000]">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-soft-teal flex items-center justify-center text-white font-extrabold">{initials(name)}</div>
+            <div className="w-12 h-12 rounded-full bg-soft-teal flex items-center justify-center text-white font-extrabold overflow-hidden">
+              {profilePic ? (
+                <img src={profilePic} alt={name} className="w-full h-full object-cover" />
+              ) : (
+                initials(name)
+              )}
+            </div>
             <div>
               <div className="font-extrabold text-dark-text">{name}</div>
               <div className="text-xs text-muted-text font-bold">{phone || '—'}</div>

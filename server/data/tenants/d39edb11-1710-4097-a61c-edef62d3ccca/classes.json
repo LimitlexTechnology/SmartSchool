@@ -1,0 +1,16 @@
+{
+  "classes": [
+    {
+      "id": "a9a3fc37-0f89-4b3d-a746-50beea6f662f",
+      "name": "Evergreen",
+      "grade": "1",
+      "createdAt": "2026-03-23T17:04:53.415Z"
+    },
+    {
+      "id": "108cd125-8374-4f65-85c9-bad44fa1bf0c",
+      "name": "Pioneers",
+      "grade": "9",
+      "createdAt": "2026-03-23T17:06:13.907Z"
+    }
+  ]
+}

@@ -31,6 +31,7 @@ const SuperAdminDashboard = () => {
         planDistribution: { Premium: 0, Basic: 0, Free: 0 }
     });
     const [recentSchools, setRecentSchools] = React.useState([]);
+    const [profile, setProfile] = React.useState({ name: '', role: 'Super Admin', profilePicture: null });
     const [loading, setLoading] = React.useState(true);
 
     const loadData = async () => {
@@ -50,6 +51,15 @@ const SuperAdminDashboard = () => {
                 const schools = await schoolsRes.json();
                 // Take 5 most recent
                 setRecentSchools(schools.slice(0, 5));
+            }
+
+            const profRes = await fetch('/api/superadmin-auth/profile').then(r => r.ok ? r.json() : null).catch(() => null);
+            if (profRes) {
+                setProfile({
+                    name: profRes.name || 'Super Admin',
+                    role: profRes.role || 'Super Admin',
+                    profilePicture: profRes.profilePicture || null
+                });
             }
         } catch (error) {
             console.error('Failed to fetch dashboard data:', error);
@@ -80,9 +90,20 @@ const SuperAdminDashboard = () => {
         <div className="flex flex-col gap-7">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-extrabold text-white tracking-tight">Platform Overview</h1>
-                    <p className="text-sm text-gray-400 mt-0.5">{new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })} — All systems operational</p>
+                <div className="flex items-center gap-4">
+                    {profile.profilePicture ? (
+                        <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-primary-teal/20 shadow-soft-sm bg-[#0F1A2E] flex items-center justify-center">
+                            <img src={profile.profilePicture} alt="User" className="w-full h-full object-cover" />
+                        </div>
+                    ) : (
+                        <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-primary-teal/20 shadow-soft-sm bg-primary-teal text-white flex items-center justify-center text-2xl font-black">
+                            {profile.name[0] || 'S'}
+                        </div>
+                    )}
+                    <div>
+                        <h1 className="text-2xl font-extrabold text-white tracking-tight">Welcome, <span className="text-primary-teal">{profile.name}</span></h1>
+                        <p className="text-sm text-gray-500 mt-0.5">{new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })} — {profile.role}</p>
+                    </div>
                 </div>
                 <div className="flex gap-3">
                     <button onClick={() => navigate('/superadmin/schools')} className="flex items-center gap-2 px-4 py-2.5 bg-primary-teal text-white text-sm font-bold rounded-xl hover:bg-secondary-teal transition shadow-lg shadow-primary-teal/20">

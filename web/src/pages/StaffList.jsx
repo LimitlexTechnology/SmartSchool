@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Search, Plus, Download, FileDown, X, Camera, User } from 'lucide-react'
+import { Search, Plus, Download, FileDown, X, Camera, User, Eye, EyeOff } from 'lucide-react'
 
 const Avatar = ({ name, src }) => {
   if (src) return (
@@ -55,7 +55,8 @@ const StaffList = () => {
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState({ total: 0, page: 1, pageSize: 20, data: [] })
   const [showAdd, setShowAdd] = useState(false)
-  const [form, setForm] = useState({ name: '', email: '', subject: '', type: 'teaching' })
+  const [form, setForm] = useState({ name: '', email: '', subject: '', type: 'teaching', phone: '', tempPassword: '' })
+  const [showPass, setShowPass] = useState(false)
   const [saving, setSaving] = useState(false)
   const [classes, setClasses] = useState([])
 
@@ -165,7 +166,21 @@ const StaffList = () => {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-muted-text">Temporary Password</label>
-                  <input type="password" value={form.tempPassword || ''} onChange={e=>setForm({...form, tempPassword: e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
+                  <div className="relative mt-1">
+                    <input
+                      type={showPass ? "text" : "password"}
+                      value={form.tempPassword || ''}
+                      onChange={e=>setForm({...form, tempPassword: e.target.value})}
+                      className="w-full px-3 py-2 pr-10 rounded-xl border border-gray-200 text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPass(!showPass)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-primary-teal"
+                    >
+                      {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </div>
               </div>
               {form.type === 'teaching' && (
@@ -311,7 +326,8 @@ const TeacherDrawer = ({ id, onClose, initial, classes = [] }) => {
   const [loading, setLoading] = useState(false)
   const [edit, setEdit] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState(initial ? { name: initial.name || '', email: initial.email || '', subject: initial.subject || '', type: initial.type || 'teaching' } : null)
+  const [form, setForm] = useState(initial ? { name: initial.name || '', email: initial.email || '', subject: initial.subject || '', type: initial.type || 'teaching', tempPassword: '' } : null)
+  const [showPass, setShowPass] = useState(false)
   const [profile, setProfile] = useState({
     gender: '', phone: '', staffId: '', dateEmployed: '', ssn: '', nationalId: '', dob: '',
     momoNumber: '', accountNumber: '', bankBranch: '', bankName: '', nextOfKin: '', nextOfKinRelation: '', nextOfKinPhone: '',
@@ -406,7 +422,8 @@ const TeacherDrawer = ({ id, onClose, initial, classes = [] }) => {
                         name: form.name.trim(),
                         email: form.email.trim(),
                         subject: form.type === 'teaching' ? form.subject.trim() : '',
-                        type: form.type
+                        type: form.type,
+                        tempPassword: (form.tempPassword || '').trim()
                       }
                       await fetch(`/api/teachers/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }).then(async r=>{ if(!r.ok){ const t=await r.json().catch(()=>({})); throw new Error(t.error || 'Failed')} return r.json() })
                       const payloadProfile = { ...profileForm, classesTaught: profileForm.classesTaught, subjectsTaught: profileForm.subjectsTaught }
@@ -543,6 +560,25 @@ const TeacherDrawer = ({ id, onClose, initial, classes = [] }) => {
               {form.type === 'teaching' && (
                 <EditField label="Subject" value={form.subject} onChange={v=>setForm({...form, subject:v})} />
               )}
+              <div className="grid grid-cols-3 items-center">
+                <div className="text-xs font-bold text-muted-text">Reset Password</div>
+                <div className="col-span-2 relative">
+                  <input
+                    type={showPass ? "text" : "password"}
+                    value={form.tempPassword || ''}
+                    onChange={e=>setForm({...form, tempPassword: e.target.value})}
+                    placeholder="Enter new password"
+                    className="px-3 py-2 pr-10 rounded-xl border border-gray-200 text-sm w-full"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPass(!showPass)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-primary-teal"
+                  >
+                    {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
             </Section>
             <Section title="Private Information">
               <EditField label="Staff ID" value={profileForm.staffId} onChange={v=>setProfileForm({...profileForm, staffId:v})} />

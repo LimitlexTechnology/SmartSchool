@@ -1,0 +1,24 @@
+{
+  "posts": [
+    {
+      "id": "3f77f13e-5584-4610-ad7a-2833c7c03138",
+      "authorName": "Limitless Academy",
+      "role": "Member",
+      "content": "hkfdlfnvabjfrjwalib wrjc ",
+      "imageUrl": null,
+      "visibility": "all",
+      "likes": [
+        "0000000000"
+      ],
+      "comments": [
+        {
+          "id": "e45a0b3a-3d10-41d0-ab54-d606ddd65c10",
+          "authorName": "Limitless Academy",
+          "text": "ajxkamv",
+          "createdAt": "2026-03-26T18:02:54.166Z"
+        }
+      ],
+      "createdAt": "2026-03-26T18:02:43.960Z"
+    }
+  ]
+}
