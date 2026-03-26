@@ -41,7 +41,7 @@ const SuperAdminSidebar = () => {
             {/* Branding */}
             <div className="p-6 border-b border-white/5">
                 <div className="flex items-center gap-3">
-                    <img src={SkullarLogo} alt="Skullar" className="w-[150px] h-auto object-contain" />
+                    <img src={SkullarLogo} alt="Skullar" onClick={() => window.location.reload()} className="w-[110px] h-auto object-contain cursor-pointer" />
                     <div>
                         <p className="text-[10px] font-bold text-primary-teal uppercase tracking-widest">Super Admin</p>
                     </div>

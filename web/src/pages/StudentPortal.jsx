@@ -191,7 +191,7 @@ const StudentPortal = () => {
                     </button>
                     <div className="h-8 border-r border-white/20 mx-2 hidden lg:block"></div>
                     <div className="flex items-center gap-3">
-                        <img src={SkullarLogo} alt="School Logo" className="h-8 w-auto object-contain" />
+                        <img src={SkullarLogo} alt="School Logo" onClick={() => window.location.reload()} className="h-6 w-auto object-contain cursor-pointer" />
                         <p className="text-[10px] font-bold text-white/50 tracking-widest uppercase">The Student Portal</p>
                     </div>
                 </div>
@@ -811,7 +811,7 @@ const StudentPortal = () => {
                     <div className="fixed top-0 left-0 bottom-0 w-[280px] bg-white z-[10001] shadow-2xl animate-slide-right flex flex-col">
                         <div className="p-6 border-b border-gray-50 flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <img src={SkullarLogo} alt="Skullar" className="h-8 w-auto object-contain" />
+                                <img src={SkullarLogo} alt="Skullar" onClick={() => window.location.reload()} className="h-6 w-auto object-contain cursor-pointer" />
                                 <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase">The Student Portal</p>
                             </div>
                             <button onClick={() => setIsSidebarOpen(false)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400">

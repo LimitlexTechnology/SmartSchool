@@ -15,7 +15,8 @@ import {
     X,
     GraduationCap,
     Megaphone,
-    Sparkles
+    Sparkles,
+    Settings
 } from 'lucide-react';
 import SkullarLogo from '../../assets/SkullarLogo.png';
 
@@ -167,7 +168,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
     const serviceLinks = [
         { label: 'Calendar', to: '/dashboard/calendar', key: 'calendar' },
         { label: 'Messages', to: '/dashboard/messages', key: 'messages' },
-        { label: 'Diary', to: '/dashboard/diary', key: 'diary' },
+        { label: 'Skullar Connect', to: '/dashboard/skullar-connect', key: 'skullar_connect' },
         { label: 'Front desk', to: '/dashboard/front-desk', key: 'front_desk' },
     ];
 
@@ -224,7 +225,6 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
         { icon: UserSquare2, label: 'Staff', to: '/dashboard/staff', key: 'staff' },
         { icon: ClipboardList, label: 'Exams', to: '#', key: 'assessments' },
         { icon: Landmark, label: 'Accounts', to: '/dashboard/finance', key: 'finance' },
-        { icon: Megaphone, label: 'Announcements', to: `/${role === 'teacher' ? 'teacher' : 'dashboard'}/announcements`, key: 'announcements' },
         { icon: Sparkles, label: 'AI Assistant', to: '/dashboard/ai-assistant', key: 'ai_assistant' },
         { icon: Package, label: 'Inventory', to: '/dashboard/inventory', key: 'inventory' },
         { icon: Wrench, label: 'Services', to: '#', key: 'services' },
@@ -286,11 +286,11 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
                 {/* ── School Logo / Crest ── */}
                 <div className="flex flex-col items-center pt-5 pb-3 px-2 border-b border-gray-50">
                     {collapsed ? (
-                        <div className="w-10 h-10 rounded-xl bg-primary-teal flex items-center justify-center shadow-lg shadow-primary-teal/20">
+                        <div onClick={() => window.location.reload()} className="w-10 h-10 rounded-xl bg-primary-teal flex items-center justify-center shadow-lg shadow-primary-teal/20 cursor-pointer">
                             <GraduationCap size={22} className="text-white" />
                         </div>
                     ) : (
-                        <img src={SkullarLogo} alt="Skullar" className="w-[150px] h-auto flex-shrink-0 object-contain" />
+                        <img src={SkullarLogo} alt="Skullar" onClick={() => window.location.reload()} className="w-[110px] h-auto flex-shrink-0 object-contain cursor-pointer" />
                     )}
                     {/* Mobile close btn */}
                     <button
@@ -514,14 +514,8 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
                         className="flex flex-col items-center gap-1 py-2 rounded-xl hover:bg-light-bg transition-colors no-underline group"
                         title="Settings"
                     >
-                        <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-gray-100 group-hover:border-primary-teal transition-colors flex items-center justify-center bg-gray-50 shrink-0">
-                            {userAvatar ? (
-                                <img src={userAvatar} alt="User" className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-gray-400">
-                                    <Home size={18} />
-                                </div>
-                            )}
+                        <div className="w-10 h-10 rounded-xl border-2 border-gray-100 group-hover:border-primary-teal group-hover:bg-primary-teal/5 transition-all flex items-center justify-center text-gray-400 group-hover:text-primary-teal shrink-0">
+                            <Settings size={20} />
                         </div>
                         {!collapsed && <span className="text-[9px] font-black text-muted-text uppercase tracking-widest group-hover:text-primary-teal transition-colors">Settings</span>}
                     </Link>
