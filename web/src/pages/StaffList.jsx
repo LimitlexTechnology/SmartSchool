@@ -422,8 +422,7 @@ const TeacherDrawer = ({ id, onClose, initial, classes = [] }) => {
                         name: form.name.trim(),
                         email: form.email.trim(),
                         subject: form.type === 'teaching' ? form.subject.trim() : '',
-                        type: form.type,
-                        tempPassword: (form.tempPassword || '').trim()
+                        type: form.type
                       }
                       await fetch(`/api/teachers/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }).then(async r=>{ if(!r.ok){ const t=await r.json().catch(()=>({})); throw new Error(t.error || 'Failed')} return r.json() })
                       const payloadProfile = { ...profileForm, classesTaught: profileForm.classesTaught, subjectsTaught: profileForm.subjectsTaught }

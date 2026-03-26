@@ -14,11 +14,8 @@ const UserSettings = () => {
   }, [navigate]);
 
   return (
-    <div className="flex items-center justify-center min-h-[400px]">
-      <div className="text-center space-y-4">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-teal mx-auto"></div>
-        <p className="text-sm text-muted-text font-bold">Redirecting to new Settings Panel...</p>
-      </div>
+    <div className="p-6 flex items-center justify-center h-full">
+      <div className="text-muted-text">Redirecting to settings...</div>
     </div>
   );
 };
