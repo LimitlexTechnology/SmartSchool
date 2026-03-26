@@ -181,6 +181,18 @@
       "profilePicture": null,
       "allowedFeatures": [],
       "allowedActions": []
+    },
+    "e2002e07-644f-4280-b846-e7ecc410e5a4": {
+      "phone": "DF94D02A",
+      "passSalt": "235013f8b48b3adf40bc54153a66f3d7",
+      "passHash": "510d764566674aa48dd31432901bbf8f39149e1e394a05af277c5a6ea2c848795a2370607dcb9f758cef7befa7f18bb13fe61270a1df8ad26892e1ae01d9a533",
+      "schoolId": "d3f08cde-510f-4cb0-b109-ccb86de5183a"
+    },
+    "a5415486-7e18-4932-8624-586cf07e4beb": {
+      "phone": "1111111111",
+      "passSalt": "f04858f5d54a8e7ca4f83539ef4dc042",
+      "passHash": "4ba37aa272484ed5da7f4f087f0fb4d151c61ae59fc550862c5ac1a4bd4025d9cb1b9aa2e8d2662a4b39de7b4614a4c003f15c027a828633fd52c9c74d1791d5",
+      "schoolId": "d3f08cde-510f-4cb0-b109-ccb86de5183a"
     }
   }
 }

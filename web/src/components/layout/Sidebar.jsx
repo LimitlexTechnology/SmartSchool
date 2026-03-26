@@ -17,8 +17,7 @@ import {
     Sparkles
 } from 'lucide-react';
 import SkullarLogo from '../../assets/SkullarLogo.png';
-
-import YearTermPicker from './YearTermPicker';
+import { hasPermission, getPermissions } from '../../utils/permissionUtils';
 
 /* ── Single Nav Item ── */
 const SidebarItem = ({ icon: Icon, label, to, active = false, collapsed = false, onClick }) => {
@@ -73,18 +72,22 @@ const SidebarItem = ({ icon: Icon, label, to, active = false, collapsed = false,
 /* ── Sidebar ── */
 const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
     const [collapsed, setCollapsed] = useState(false);
+    const [showSchool, setShowSchool] = useState(false);
     const [showStudents, setShowStudents] = useState(false);
     const [showStaff, setShowStaff] = useState(false);
     const [showExams, setShowExams] = useState(false);
     const [showServices, setShowServices] = useState(false);
+    const schoolRef = useRef(null);
     const studentsRef = useRef(null);
     const staffRef = useRef(null);
     const examsRef = useRef(null);
     const servicesRef = useRef(null);
+    const schoolMenuRef = useRef(null);
     const submenuRef = useRef(null);
     const staffMenuRef = useRef(null);
     const examsMenuRef = useRef(null);
     const servicesMenuRef = useRef(null);
+    const [schoolMenuPos, setSchoolMenuPos] = useState({ top: 0, left: 0 });
     const [submenuPos, setSubmenuPos] = useState({ top: 0, left: 0 });
     const [staffMenuPos, setStaffMenuPos] = useState({ top: 0, left: 0 });
     const [examsMenuPos, setExamsMenuPos] = useState({ top: 0, left: 0 });
@@ -92,21 +95,6 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
     const [schoolLogo, setSchoolLogo] = useState(null);
     const [userAvatar, setUserAvatar] = useState(null);
     
-    // Academic Period State
-    const [academicYear, setAcademicYear] = useState(() => localStorage.getItem('academicYearLabel') || '2025/2026');
-    const [academicTerm, setAcademicTerm] = useState(() => localStorage.getItem('academicTermLabel') || 'Second Term');
-    
-    useEffect(() => {
-        const handlePeriodChange = (e) => {
-            if (e.detail) {
-                setAcademicYear(e.detail.year);
-                setAcademicTerm(e.detail.term);
-            }
-        };
-        window.addEventListener('academicPeriod:change', handlePeriodChange);
-        return () => window.removeEventListener('academicPeriod:change', handlePeriodChange);
-    }, []);
-
     const location = useLocation();
     
     useEffect(() => {
@@ -139,86 +127,70 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
         ${isMobileMenuOpen ? 'fixed left-0 top-0 translate-x-0' : 'fixed -translate-x-full md:relative md:translate-x-0'}
     `;
 
-    const studentLinks = [
-        { label: 'Student List', to: '/dashboard/students', key: 'students' },
-        { label: 'Classroom', to: '/dashboard/classroom', key: 'classroom' },
-        { label: 'Student Groups', to: '/dashboard/student-groups', key: 'student_groups' },
-        { label: 'Admissions', to: '/dashboard/admissions', key: 'admissions' },
-        { label: 'Attendance', to: '/dashboard/attendance', key: 'attendance' },
-        { label: 'Guardians', to: '/dashboard/guardians', key: 'guardians' },
-    ];
-    const staffLinks = [
-        { label: 'Staff List', to: '/dashboard/staff', key: 'staff' },
-        { label: 'Attendance', to: '/dashboard/staff/attendance', key: 'staff_attendance' },
-        { label: 'Course Allocation', to: '/dashboard/staff/course-allocation', key: 'course_allocation' },
-        { label: 'Lesson Planner', to: '/dashboard/staff/lesson-planner', key: 'lesson_planner' },
-        { label: 'Timetables', to: '/dashboard/staff/timetables', key: 'timetables' },
-        { label: 'Online Campus ✨', to: '/dashboard/online-campus', key: 'online_campus' },
-        { label: 'Question Bank ✨', to: '/dashboard/question-bank', key: 'question_bank' },
-    ];
-    const examLinks = [
-        { label: 'Reports', to: '/dashboard/exams/reports', key: 'exam_reports' },
-        { label: 'Marks', to: '/dashboard/exams/marks', key: 'exam_marks' },
-        { label: 'Analytics', to: '/dashboard/exams/analytics', key: 'exam_analytics' },
-        { label: 'Exam Configuration', to: '/dashboard/exams/config', key: 'exam_config' },
-        { label: 'Exam Settings', to: '/dashboard/exams/settings', key: 'exam_settings' },
-    ];
-    const serviceLinks = [
-        { label: 'Calendar', to: '/dashboard/calendar', key: 'calendar' },
-        { label: 'Messages', to: '/dashboard/messages', key: 'messages' },
-        { label: 'Diary', to: '/dashboard/diary', key: 'diary' },
-        { label: 'Front desk', to: '/dashboard/front-desk', key: 'front_desk' },
-    ];
-
     useEffect(() => {
         const onDocClick = (e) => {
+            const sc = schoolRef.current;
             const el = studentsRef.current;
             const st = staffRef.current;
             const ex = examsRef.current;
             const sv = servicesRef.current;
+            const smenu = schoolMenuRef.current;
             const menu = submenuRef.current;
-            const smenu = staffMenuRef.current;
+            const stmenu = staffMenuRef.current;
             const emenu = examsMenuRef.current;
             const svmenu = servicesMenuRef.current;
 
             // Check if click was inside any toggle item
-            const clickedToggle = (el && el.contains(e.target)) || 
+            const clickedToggle = (sc && sc.contains(e.target)) ||
+                                (el && el.contains(e.target)) || 
                                 (st && st.contains(e.target)) || 
                                 (ex && ex.contains(e.target)) || 
                                 (sv && sv.contains(e.target));
             
             // Check if click was inside any portal menu
-            const clickedMenu = (menu && menu.contains(e.target)) || 
-                              (smenu && smenu.contains(e.target)) || 
+            const clickedMenu = (smenu && smenu.contains(e.target)) ||
+                              (menu && menu.contains(e.target)) || 
+                              (stmenu && stmenu.contains(e.target)) || 
                               (emenu && emenu.contains(e.target)) || 
                               (svmenu && svmenu.contains(e.target));
 
             if (clickedToggle || clickedMenu) return;
 
+            setShowSchool(false);
             setShowStudents(false);
             setShowStaff(false);
             setShowExams(false);
             setShowServices(false);
         };
         document.addEventListener('mousedown', onDocClick);
-        return () => document.removeEventListener('mousedown', onDocClick);
+        
+        const handlePermissionsUpdate = () => {
+            // Force re-render when permissions change
+            setAllowedFeatures(getPermissions());
+        };
+        window.addEventListener('admin:permissions:update', handlePermissionsUpdate);
+
+        return () => {
+            document.removeEventListener('mousedown', onDocClick);
+            window.removeEventListener('admin:permissions:update', handlePermissionsUpdate);
+        };
     }, []);
-    useEffect(() => {
-        if (role === 'teacher' && teacherId) {
-            fetch(`/api/teachers/${teacherId}/permissions`).then(r => r.ok ? r.json() : null).then(j => {
-                if (j && Array.isArray(j.allowedFeatures)) setAllowedFeatures(j.allowedFeatures);
-            }).catch(() => { });
-        }
-    }, [role, teacherId]);
 
     const isAllowed = (key) => {
-        if (role !== 'teacher') return true;
-        if (!allowedFeatures) return true;
-        return allowedFeatures.includes(key);
+        // Handle categories and specific keys
+        if (key === 'school') return true; // School is usually always visible
+        if (key === 'students') return hasPermission('view_students');
+        if (key === 'staff') return hasPermission('manage_staff');
+        if (key === 'assessments') return hasPermission('enter_marks');
+        if (key === 'finance') return hasPermission('fee_management');
+        if (key === 'ai_assistant') return true; // AI is common
+        if (key === 'inventory') return hasPermission('inventory_tracking');
+        if (key === 'services') return hasPermission('id_management');
+        return true;
     };
 
     const navItems = [
-        { icon: Home, label: 'School', to: '/dashboard', key: 'school' },
+        { icon: Home, label: 'School', to: '#', key: 'school' },
         { icon: Users, label: 'Students', to: '#', key: 'students' },
         { icon: UserSquare2, label: 'Staff', to: '/dashboard/staff', key: 'staff' },
         { icon: ClipboardList, label: 'Exams', to: '#', key: 'assessments' },
@@ -228,6 +200,48 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
         { icon: Wrench, label: 'Services', to: '#', key: 'services' },
     ].filter(item => isAllowed(item.key));
 
+    const schoolLinks = [
+        { label: 'Dashboard', to: '/dashboard', key: 'school_dashboard', perm: 'view_all_courses' },
+        { label: 'Admin Panel', to: '/dashboard/admin-settings', key: 'admin_panel', perm: 'super_admin' },
+        { label: 'Classes & Subjects', to: '/dashboard/staff/timetables', key: 'classes_subjects', perm: 'manage_classes' },
+        { label: 'App Preferences', to: '/dashboard/admin-settings?tab=preferences', key: 'app_preferences', perm: '*' },
+    ].filter(l => l.perm === '*' || hasPermission(l.perm));
+
+    const studentLinks = [
+        { label: 'Student List', to: '/dashboard/students', key: 'student_list', perm: 'view_students' },
+        { label: 'Groups', to: '/dashboard/students/groups', key: 'student_groups', perm: 'manage_groups' },
+        { label: 'Admissions', to: '/dashboard/students/admissions', key: 'admissions', perm: 'manage_admissions' },
+    ].filter(l => hasPermission(l.perm));
+
+    const staffLinks = [
+        { label: 'Staff List', to: '/dashboard/staff', key: 'staff_list', perm: 'manage_staff' },
+        { label: 'Allocations', to: '/dashboard/staff/allocations', key: 'allocations', perm: 'course_allocation' },
+        { label: 'Attendance', to: '/dashboard/staff/attendance', key: 'staff_attendance', perm: 'staff_attendance' },
+    ].filter(l => hasPermission(l.perm));
+
+    const examLinks = [
+        { label: 'Marks Entry', to: '/dashboard/exams/marks', key: 'marks_entry', perm: 'enter_marks' },
+        { label: 'Reports', to: '/dashboard/exams/reports', key: 'exam_reports', perm: 'publish_reports' },
+        { label: 'Settings', to: '/dashboard/exams/config', key: 'exam_config', perm: 'exam_config' },
+    ].filter(l => hasPermission(l.perm));
+
+    const serviceLinks = [
+        { label: 'ID Cards', to: '/dashboard/smart-id', key: 'id_cards', perm: 'id_management' },
+        { label: 'Canteen', to: '#', key: 'canteen', perm: 'canteen_collection' },
+        { label: 'Clinic', to: '/dashboard/safety', key: 'clinic', perm: 'health_records' },
+    ].filter(l => hasPermission(l.perm));
+
+    const toggleSchool = () => {
+        const el = schoolRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        setSchoolMenuPos({ top: rect.top, left: rect.right + 8 });
+        setShowSchool((v) => !v);
+        setShowStudents(false);
+        setShowStaff(false);
+        setShowExams(false);
+        setShowServices(false);
+    };
     const toggleStudents = () => {
         const el = studentsRef.current;
         if (!el) return;
@@ -285,10 +299,14 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
                 <div className="flex flex-col items-center pt-5 pb-3 px-2 border-b border-gray-50">
                     {collapsed ? (
                         <div className="w-10 h-10 rounded-xl bg-primary-teal flex items-center justify-center shadow-lg shadow-primary-teal/20">
-                            <GraduationCap size={22} className="text-white" />
+                            {schoolLogo ? (
+                                <img src={schoolLogo} alt="School Logo" className="w-full h-full object-contain p-1.5" />
+                            ) : (
+                                <GraduationCap size={22} className="text-white" />
+                            )}
                         </div>
                     ) : (
-                        <img src={SkullarLogo} alt="Skullar" className="w-[150px] h-auto flex-shrink-0 object-contain" />
+                        <img src={schoolLogo || SkullarLogo} alt="School Logo" className="w-[150px] max-h-[60px] flex-shrink-0 object-contain" />
                     )}
                     {/* Mobile close btn */}
                     <button
@@ -299,23 +317,54 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
                     </button>
                 </div>
 
-                {/* ── Academic Period Picker (Sidebar) ── */}
-                {!collapsed && (
-                    <div className="px-4 py-4 border-b border-gray-50 space-y-4">
-                        <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-muted-text uppercase tracking-[0.2em] px-1">Academic Year:</label>
-                            <YearTermPicker type="year" variant="sidebar" />
-                        </div>
-                        <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-muted-text uppercase tracking-[0.2em] px-1">Term:</label>
-                            <YearTermPicker type="term" variant="sidebar" />
-                        </div>
-                    </div>
-                )}
-
                 {/* ── Navigation ── */}
                 <nav className="flex-1 flex flex-col items-center gap-0.5 px-2 py-4 overflow-y-auto custom-scrollbar">
                     {navItems.map((item, index) => {
+                        if (item.label === 'School') {
+                            const isActive = location.pathname === '/dashboard' || location.pathname === '/dashboard/admin-settings' || location.pathname === '/dashboard/settings';
+                            return (
+                                <div key={index} className="relative w-full" ref={schoolRef}>
+                                    <SidebarItem
+                                        icon={item.icon}
+                                        to="#"
+                                        label={item.label}
+                                        active={isActive}
+                                        collapsed={collapsed}
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            toggleSchool();
+                                        }}
+                                    />
+                                    {showSchool && createPortal(
+                                        <div
+                                            ref={schoolMenuRef}
+                                            style={{ position: 'fixed', top: schoolMenuPos.top, left: schoolMenuPos.left }}
+                                            className="bg-white border border-gray-100 rounded-xl shadow-soft-sm p-2 z-[9999]"
+                                        >
+                                            <div className="min-w-[180px] flex flex-col">
+                                                <div className="px-3 py-2 text-[10px] font-black text-muted-text uppercase tracking-[0.2em] border-b border-gray-50 mb-1 text-center">
+                                                    School
+                                                </div>
+                                                {schoolLinks.map((l, i) => (
+                                                    <Link
+                                                        key={i}
+                                                        to={l.to}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-bold no-underline ${location.pathname === l.to ? 'bg-primary-teal text-white' : 'text-dark-text hover:bg-light-bg'}`}
+                                                        onClick={() => {
+                                                            setIsMobileMenuOpen(false);
+                                                            setShowSchool(false);
+                                                        }}
+                                                    >
+                                                        {l.label}
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        </div>,
+                                        document.body
+                                    )}
+                                </div>
+                            );
+                        }
                         if (item.label === 'Students') {
                             const isActive = location.pathname.startsWith('/dashboard/student') || location.pathname === '/dashboard/admissions' || location.pathname === '/dashboard/attendance' || location.pathname === '/dashboard/guardians';
                             return (

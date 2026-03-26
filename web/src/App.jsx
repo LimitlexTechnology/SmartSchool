@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { hasPermission } from './utils/permissionUtils'
 
 // Layouts
 import DashboardLayout from './layouts/DashboardLayout'
@@ -64,9 +65,12 @@ const ComingSoon = () => (
 )
 
 // Protected school route
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, perm }) => {
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
   if (!isLoggedIn) return <Navigate to="/login" replace />
+  if (perm && !hasPermission(perm)) {
+    return <Navigate to="/dashboard" replace />
+  }
   return children
 }
 
@@ -125,15 +129,32 @@ const App = () => {
           <Route path="online-campus/:subjectId" element={<SubjectDetails />} />
           <Route path="online-campus/create-assignment" element={<CreateAssignment />} />
           <Route path="ai-assistant" element={<AIAssistant />} />
+          <Route path="inventory" element={
+            <ProtectedRoute perm="inventory_tracking">
+              <ComingSoon />
+            </ProtectedRoute>
+          } />
           <Route path="question-bank" element={<QuestionPaperDashboard />} />
           <Route path="question-bank/:paperId" element={<QuestionPaperEditor />} />
           <Route path="exams/reports" element={<ExamReports />} />
-          <Route path="exams/marks" element={<ExamMarks />} />
+          <Route path="exams/marks" element={
+            <ProtectedRoute perm="enter_marks">
+              <ExamMarks />
+            </ProtectedRoute>
+          } />
           <Route path="exams/analytics" element={<ExamAnalytics />} />
           <Route path="exams/config" element={<ExamConfiguration />} />
           <Route path="exams/settings" element={<ExamSettings />} />
-          <Route path="students" element={<StudentsList />} />
-          <Route path="staff" element={<StaffList />} />
+          <Route path="students" element={
+            <ProtectedRoute perm="view_students">
+              <StudentsList />
+            </ProtectedRoute>
+          } />
+          <Route path="staff" element={
+            <ProtectedRoute perm="manage_staff">
+              <StaffList />
+            </ProtectedRoute>
+          } />
           <Route path="staff/course-allocation" element={<CourseAllocation />} />
           <Route path="staff/lesson-planner" element={<LessonPlanner />} />
           <Route path="staff/timetables" element={<Timetables />} />
@@ -143,8 +164,17 @@ const App = () => {
           <Route path="virtual-class" element={<VirtualClass />} />
           <Route path="safety" element={<Safety />} />
           <Route path="security" element={<Security />} />
-          <Route path="finance" element={<Finance />} />
-          <Route path="settings" element={<UserSettings />} />
+          <Route path="finance" element={
+            <ProtectedRoute perm="fee_management">
+              <Finance />
+            </ProtectedRoute>
+          } />
+          <Route path="admin-settings" element={
+            <ProtectedRoute perm="super_admin">
+              <AdminSettings />
+            </ProtectedRoute>
+          } />
+          <Route path="settings" element={<Navigate to="/dashboard/admin-settings?tab=preferences" replace />} />
           <Route path="*" element={<ComingSoon />} />
         </Route>
 

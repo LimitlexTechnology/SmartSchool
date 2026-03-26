@@ -116,10 +116,21 @@ const Login = () => {
         navigate('/teacher');
         return
       }
-      const t = await r.json().catch(() => ({}))
-      throw new Error(t.error || 'Login failed')
+
+      // If we reach here, all login attempts failed
+      let errorMessage = 'Login failed. Please check your credentials.';
+      
+      // Try to get a specific error message from the last attempt (teacher login)
+      try {
+        const errorData = await rt.json();
+        if (errorData && errorData.error) errorMessage = errorData.error;
+      } catch (e) {
+        // Fallback to generic message if JSON parsing fails
+      }
+
+      throw new Error(errorMessage);
     } catch (error) {
-      alert(error.message || 'Login failed. Please check your credentials.');
+      alert(error.message);
     } finally {
       setIsLoading(false);
     }
