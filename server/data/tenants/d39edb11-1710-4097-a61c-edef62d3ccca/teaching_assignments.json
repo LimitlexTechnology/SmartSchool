@@ -1,0 +1,32 @@
+{
+  "assignments": [
+    {
+      "id": "4b87dfb7-110c-4189-a613-d9471cbde01e",
+      "teacherId": "9382bc4f-13b5-4328-ae72-bc3790308c1d",
+      "classId": "a9a3fc37-0f89-4b3d-a746-50beea6f662f",
+      "subjectId": "a0d16e16-1ee2-4851-8483-db0c9502881a",
+      "createdAt": "2026-03-24T17:43:09.748Z"
+    },
+    {
+      "id": "190a9f71-e895-4ef4-bb21-479c4a27baef",
+      "teacherId": "9382bc4f-13b5-4328-ae72-bc3790308c1d",
+      "classId": "108cd125-8374-4f65-85c9-bad44fa1bf0c",
+      "subjectId": "a0d16e16-1ee2-4851-8483-db0c9502881a",
+      "createdAt": "2026-03-24T17:43:09.748Z"
+    },
+    {
+      "id": "bd8c8f0a-e727-475a-a238-359fd8d26b5e",
+      "teacherId": "c95d4fb1-c980-4d3d-9641-b5134d41871c",
+      "classId": "a9a3fc37-0f89-4b3d-a746-50beea6f662f",
+      "subjectId": "3f63fa73-4033-4647-ba3b-56b00cf4aa5f",
+      "createdAt": "2026-03-24T17:43:28.325Z"
+    },
+    {
+      "id": "e57e7b65-fa38-42a4-9776-2bde3d95350a",
+      "teacherId": "c95d4fb1-c980-4d3d-9641-b5134d41871c",
+      "classId": "108cd125-8374-4f65-85c9-bad44fa1bf0c",
+      "subjectId": "3f63fa73-4033-4647-ba3b-56b00cf4aa5f",
+      "createdAt": "2026-03-24T17:43:28.325Z"
+    }
+  ]
+}

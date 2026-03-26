@@ -14,7 +14,9 @@ import {
     ChevronRight,
     X,
     GraduationCap,
-    Sparkles
+    Megaphone,
+    Sparkles,
+    Settings
 } from 'lucide-react';
 import SkullarLogo from '../../assets/SkullarLogo.png';
 import { hasPermission, getPermissions } from '../../utils/permissionUtils';
@@ -127,6 +129,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
         ${isMobileMenuOpen ? 'fixed left-0 top-0 translate-x-0' : 'fixed -translate-x-full md:relative md:translate-x-0'}
     `;
 
+
     useEffect(() => {
         const onDocClick = (e) => {
             const sc = schoolRef.current;
@@ -209,27 +212,39 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
 
     const studentLinks = [
         { label: 'Student List', to: '/dashboard/students', key: 'student_list', perm: 'view_students' },
+        { label: 'Classroom', to: '/dashboard/classroom', key: 'classroom', perm: 'view_all_courses' },
         { label: 'Groups', to: '/dashboard/students/groups', key: 'student_groups', perm: 'manage_groups' },
         { label: 'Admissions', to: '/dashboard/students/admissions', key: 'admissions', perm: 'manage_admissions' },
-    ].filter(l => hasPermission(l.perm));
+        { label: 'Attendance', to: '/dashboard/attendance', key: 'attendance', perm: 'student_attendance' },
+        { label: 'Guardians', to: '/dashboard/guardians', key: 'guardians', perm: 'guardians_info' },
+    ].filter(l => l.perm === '*' || hasPermission(l.perm));
 
     const staffLinks = [
         { label: 'Staff List', to: '/dashboard/staff', key: 'staff_list', perm: 'manage_staff' },
         { label: 'Allocations', to: '/dashboard/staff/allocations', key: 'allocations', perm: 'course_allocation' },
         { label: 'Attendance', to: '/dashboard/staff/attendance', key: 'staff_attendance', perm: 'staff_attendance' },
-    ].filter(l => hasPermission(l.perm));
+        { label: 'Lesson Planner', to: '/dashboard/staff/lesson-planner', key: 'lesson_planner', perm: 'edit_planner' },
+        { label: 'Timetables', to: '/dashboard/staff/timetables', key: 'timetables', perm: 'edit_schedules' },
+        { label: 'Online Campus ✨', to: '/dashboard/online-campus', key: 'online_campus', perm: '*' },
+        { label: 'Question Bank ✨', to: '/dashboard/question-bank', key: 'question_bank', perm: '*' },
+    ].filter(l => l.perm === '*' || hasPermission(l.perm));
 
     const examLinks = [
         { label: 'Marks Entry', to: '/dashboard/exams/marks', key: 'marks_entry', perm: 'enter_marks' },
         { label: 'Reports', to: '/dashboard/exams/reports', key: 'exam_reports', perm: 'publish_reports' },
         { label: 'Settings', to: '/dashboard/exams/config', key: 'exam_config', perm: 'exam_config' },
-    ].filter(l => hasPermission(l.perm));
+        { label: 'Analytics', to: '/dashboard/exams/analytics', key: 'exam_analytics', perm: 'publish_reports' },
+    ].filter(l => l.perm === '*' || hasPermission(l.perm));
 
     const serviceLinks = [
         { label: 'ID Cards', to: '/dashboard/smart-id', key: 'id_cards', perm: 'id_management' },
         { label: 'Canteen', to: '#', key: 'canteen', perm: 'canteen_collection' },
         { label: 'Clinic', to: '/dashboard/safety', key: 'clinic', perm: 'health_records' },
-    ].filter(l => hasPermission(l.perm));
+        { label: 'Calendar', to: '/dashboard/calendar', key: 'calendar', perm: '*' },
+        { label: 'Messages', to: '/dashboard/messages', key: 'messages', perm: 'view_messages' },
+        { label: 'Skullar Connect', to: '/dashboard/skullar-connect', key: 'skullar_connect', perm: '*' },
+        { label: 'Front desk', to: '/dashboard/front-desk', key: 'front_desk', perm: 'security_logs' },
+    ].filter(l => l.perm === '*' || hasPermission(l.perm));
 
     const toggleSchool = () => {
         const el = schoolRef.current;
@@ -298,7 +313,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
                 {/* ── School Logo / Crest ── */}
                 <div className="flex flex-col items-center pt-5 pb-3 px-2 border-b border-gray-50">
                     {collapsed ? (
-                        <div className="w-10 h-10 rounded-xl bg-primary-teal flex items-center justify-center shadow-lg shadow-primary-teal/20">
+                        <div onClick={() => window.location.reload()} className="w-10 h-10 rounded-xl bg-primary-teal flex items-center justify-center shadow-lg shadow-primary-teal/20 cursor-pointer">
                             {schoolLogo ? (
                                 <img src={schoolLogo} alt="School Logo" className="w-full h-full object-contain p-1.5" />
                             ) : (
@@ -306,7 +321,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
                             )}
                         </div>
                     ) : (
-                        <img src={schoolLogo || SkullarLogo} alt="School Logo" className="w-[150px] max-h-[60px] flex-shrink-0 object-contain" />
+                        <img src={schoolLogo || SkullarLogo} alt="School Logo" onClick={() => window.location.reload()} className="w-[150px] max-h-[60px] flex-shrink-0 object-contain cursor-pointer" />
                     )}
                     {/* Mobile close btn */}
                     <button
@@ -561,14 +576,8 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
                         className="flex flex-col items-center gap-1 py-2 rounded-xl hover:bg-light-bg transition-colors no-underline group"
                         title="Settings"
                     >
-                        <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-gray-100 group-hover:border-primary-teal transition-colors flex items-center justify-center bg-gray-50 shrink-0">
-                            {userAvatar ? (
-                                <img src={userAvatar} alt="User" className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-gray-400">
-                                    <Home size={18} />
-                                </div>
-                            )}
+                        <div className="w-10 h-10 rounded-xl border-2 border-gray-100 group-hover:border-primary-teal group-hover:bg-primary-teal/5 transition-all flex items-center justify-center text-gray-400 group-hover:text-primary-teal shrink-0">
+                            <Settings size={20} />
                         </div>
                         {!collapsed && <span className="text-[9px] font-black text-muted-text uppercase tracking-widest group-hover:text-primary-teal transition-colors">Settings</span>}
                     </Link>

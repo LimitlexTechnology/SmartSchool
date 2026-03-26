@@ -1,0 +1,100 @@
+{
+  "marks": [
+    {
+      "examId": "ca-marks",
+      "classId": "108cd125-8374-4f65-85c9-bad44fa1bf0c",
+      "subject": "SCIENCE",
+      "studentId": "ee516107-a78f-4b6a-bc9b-e625aa5f267f",
+      "score": 15,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "ca",
+      "elementName": "MID-TERM",
+      "updatedAt": "2026-03-24T17:47:36.978Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "108cd125-8374-4f65-85c9-bad44fa1bf0c",
+      "subject": "SCIENCE",
+      "studentId": "ee516107-a78f-4b6a-bc9b-e625aa5f267f",
+      "score": 8,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "ca",
+      "elementName": "PROJECT",
+      "updatedAt": "2026-03-24T17:47:52.877Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "108cd125-8374-4f65-85c9-bad44fa1bf0c",
+      "subject": "SCIENCE",
+      "studentId": "ee516107-a78f-4b6a-bc9b-e625aa5f267f",
+      "score": 7,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "ca",
+      "elementName": "GROUP WORK",
+      "updatedAt": "2026-03-24T17:48:01.504Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "108cd125-8374-4f65-85c9-bad44fa1bf0c",
+      "subject": "SCIENCE",
+      "studentId": "ee516107-a78f-4b6a-bc9b-e625aa5f267f",
+      "score": 5,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "ca",
+      "elementName": "HOMEWORK",
+      "updatedAt": "2026-03-24T17:48:12.252Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "108cd125-8374-4f65-85c9-bad44fa1bf0c",
+      "subject": "SCIENCE",
+      "studentId": "ee516107-a78f-4b6a-bc9b-e625aa5f267f",
+      "score": 4,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "ca",
+      "elementName": "CLASS EXERCISE",
+      "updatedAt": "2026-03-24T17:48:21.497Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "108cd125-8374-4f65-85c9-bad44fa1bf0c",
+      "subject": "SCIENCE",
+      "studentId": "ee516107-a78f-4b6a-bc9b-e625aa5f267f",
+      "score": 9,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "ca",
+      "elementName": "CLASS TEST",
+      "updatedAt": "2026-03-24T17:48:30.251Z"
+    },
+    {
+      "examId": "ca-marks",
+      "classId": "108cd125-8374-4f65-85c9-bad44fa1bf0c",
+      "subject": "SCIENCE",
+      "studentId": "ee516107-a78f-4b6a-bc9b-e625aa5f267f",
+      "score": 5,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "ca",
+      "elementName": "E-LEARNING",
+      "updatedAt": "2026-03-24T17:48:38.009Z"
+    },
+    {
+      "examId": "3d0291f5-a2f6-401f-9755-7fe3966d8509",
+      "classId": "108cd125-8374-4f65-85c9-bad44fa1bf0c",
+      "subject": "SCIENCE",
+      "studentId": "ee516107-a78f-4b6a-bc9b-e625aa5f267f",
+      "score": 76,
+      "comment": "",
+      "synopsis": "",
+      "assessmentType": "exam",
+      "elementName": null,
+      "updatedAt": "2026-03-24T17:49:04.775Z"
+    }
+  ]
+}
