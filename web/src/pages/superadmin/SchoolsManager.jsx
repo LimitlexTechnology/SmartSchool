@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Plus, Search, Building2, Eye, EyeOff, Ban, Trash2, X, ChevronDown, Pencil, LogIn } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Plus, Search, Building2, Eye, EyeOff, Ban, Trash2, X, Pencil, LogIn } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const planBadge = { Premium: 'bg-amber-100 text-amber-700', Basic: 'bg-blue-100 text-blue-700', Free: 'bg-gray-100 text-gray-500' };
@@ -49,17 +49,20 @@ const SchoolsManager = () => {
         setShowCreds(true);
         setForm({ name: '', address: '', adminName: '', adminPhone: '', adminTempPassword: '', plan: 'Basic' });
         await load()
+        window.dispatchEvent(new CustomEvent('superadmin:schools:update'))
     };
 
     const handleSuspend = async (id) => {
         const r = await fetch(`/api/admin/schools/${id}/suspend`, { method:'PUT' })
         if (!r.ok) { const t=await r.json().catch(()=>({})); alert(t.error||'Failed'); return }
         await load()
+        window.dispatchEvent(new CustomEvent('superadmin:schools:update'))
     }
     const handleDelete = async (id) => {
         const r = await fetch(`/api/admin/schools/${id}`, { method:'DELETE' })
         if (!r.ok) { const t=await r.json().catch(()=>({})); alert(t.error||'Failed'); return }
         await load()
+        window.dispatchEvent(new CustomEvent('superadmin:schools:update'))
     }
 
     const handleImpersonate = async (schoolId) => {
@@ -120,6 +123,7 @@ const SchoolsManager = () => {
         setShowEdit(false)
         setEditingId('')
         await load()
+        window.dispatchEvent(new CustomEvent('superadmin:schools:update'))
     }
 
     return (
@@ -193,9 +197,11 @@ const SchoolsManager = () => {
                                         <div className="flex items-center gap-2">
                                             <button title="View" className="p-1.5 text-gray-400 hover:text-primary-teal transition"><Eye size={16} /></button>
                                             {s.id !== 'local' && (
+                                              <button title="Login as Admin" onClick={() => handleImpersonate(s.id)} className="p-1.5 text-gray-400 hover:text-primary-teal transition"><LogIn size={16} /></button>
+                                            )}
+                                            <button title="Edit" onClick={() => openEdit(s)} className="p-1.5 text-gray-400 hover:text-blue-400 transition"><Pencil size={16} /></button>
+                                            {s.id !== 'local' && (
                                               <>
-                                                <button title="Login as Admin" onClick={() => handleImpersonate(s.id)} className="p-1.5 text-gray-400 hover:text-primary-teal transition"><LogIn size={16} /></button>
-                                                <button title="Edit" onClick={() => openEdit(s)} className="p-1.5 text-gray-400 hover:text-blue-400 transition"><Pencil size={16} /></button>
                                                 <button title={s.status === 'suspended' ? 'Reactivate' : 'Suspend'} onClick={() => handleSuspend(s.id)} className="p-1.5 text-gray-400 hover:text-amber-400 transition"><Ban size={16} /></button>
                                                 <button title="Delete" onClick={() => handleDelete(s.id)} className="p-1.5 text-gray-400 hover:text-rose-400 transition"><Trash2 size={16} /></button>
                                               </>

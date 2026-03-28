@@ -1,6 +1,13 @@
 {
   "teachers": [
     {
+      "id": "40e87a8d-ae1e-4865-b6bf-ae4d70ba3481",
+      "name": "Super Admin",
+      "email": "superadmin@skullar",
+      "subject": "System Administration",
+      "createdAt": "2026-03-27T13:57:53.707Z"
+    },
+    {
       "id": "a5415486-7e18-4932-8624-586cf07e4beb",
       "name": "Admin B",
       "email": "adminB @gmail.com",

@@ -640,6 +640,37 @@ function writeSuperAdminProfile(p) {
   return next
 }
 
+const LOCAL_SCHOOL_FILE = path.join(__dirname, '..', 'data', 'local-school.json')
+function ensureLocalSchoolFile() {
+  const dir = path.dirname(LOCAL_SCHOOL_FILE)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  if (!fs.existsSync(LOCAL_SCHOOL_FILE)) {
+    const def = {
+      name: process.env.SCHOOL_NAME || 'Skullar Local',
+      address: process.env.SCHOOL_ADDRESS || '',
+      admin: process.env.SCHOOL_ADMIN || 'Admin',
+      phone: process.env.SCHOOL_PHONE || '',
+      plan: process.env.SUBSCRIPTION_PLAN || 'Free'
+    }
+    fs.writeFileSync(LOCAL_SCHOOL_FILE, JSON.stringify(def, null, 2))
+  }
+}
+function readLocalSchool() {
+  try {
+    ensureLocalSchoolFile()
+    return JSON.parse(fs.readFileSync(LOCAL_SCHOOL_FILE, 'utf8'))
+  } catch {
+    return null
+  }
+}
+function writeLocalSchool(p) {
+  ensureLocalSchoolFile()
+  const cur = readLocalSchool() || {}
+  const next = { ...cur, ...p }
+  fs.writeFileSync(LOCAL_SCHOOL_FILE, JSON.stringify(next, null, 2))
+  return next
+}
+
 // Ensure Group tables exist when migrations are unavailable
 let groupsSchemaReady = false
 let groupsMode = (process.env.GROUPS_MODE || 'auto').toLowerCase() // 'auto' | 'file' | 'prisma'
@@ -1975,16 +2006,14 @@ app.delete('/api/timetables/:id', auth, async (req, res) => {
 // ============== Super Admin: Schools ==============
 app.get('/api/admin/schools', auth, superAdminAuth, async (_req, res) => {
   try {
-    const name = process.env.SCHOOL_NAME || 'Skullar Local'
-    const admin = process.env.SCHOOL_ADMIN || 'Admin'
-    const phone = process.env.SCHOOL_PHONE || ''
+    const ov = readLocalSchool()
+    const name = (ov && ov.name) || process.env.SCHOOL_NAME || 'Skullar Local'
+    const admin = (ov && ov.admin) || process.env.SCHOOL_ADMIN || 'Admin'
+    const phone = (ov && ov.phone) || process.env.SCHOOL_PHONE || ''
     
     let studentsCount = 0
     if (isDBConnected) {
-      const [count] = await Promise.all([
-        prisma.student.count({ where: { status: { not: 'archived' } } })
-      ])
-      studentsCount = count
+      studentsCount = await prisma.student.count({ where: { status: { not: 'archived' } } })
     } else {
       const { students } = readTenantStudents('local')
       studentsCount = students.length
@@ -1993,10 +2022,10 @@ app.get('/api/admin/schools', auth, superAdminAuth, async (_req, res) => {
     const local = {
       id: 'local',
       name,
-      address: process.env.SCHOOL_ADDRESS || '',
+      address: (ov && ov.address) || process.env.SCHOOL_ADDRESS || '',
       admin,
       phone,
-      plan: process.env.SUBSCRIPTION_PLAN || 'Free',
+      plan: (ov && ov.plan) || process.env.SUBSCRIPTION_PLAN || 'Free',
       status: 'active',
       expiry: 'N/A',
       students: studentsCount
@@ -2075,17 +2104,24 @@ app.get('/api/admin/schools/:id', auth, superAdminAuth, async (req, res) => {
   try {
     const id = req.params.id
     if (id === 'local') {
-      const name = process.env.SCHOOL_NAME || 'Skullar Local'
-      const admin = process.env.SCHOOL_ADMIN || 'Admin'
-      const phone = process.env.SCHOOL_PHONE || ''
-      const studentsCount = await prisma.student.count({ where: { status: { not: 'archived' } } })
+      const ov = readLocalSchool()
+      const name = (ov && ov.name) || process.env.SCHOOL_NAME || 'Skullar Local'
+      const admin = (ov && ov.admin) || process.env.SCHOOL_ADMIN || 'Admin'
+      const phone = (ov && ov.phone) || process.env.SCHOOL_PHONE || ''
+      let studentsCount = 0
+      if (isDBConnected) {
+        studentsCount = await prisma.student.count({ where: { status: { not: 'archived' } } })
+      } else {
+        const { students } = readTenantStudents('local')
+        studentsCount = students.length
+      }
       return res.json({
         id: 'local',
         name,
-        address: process.env.SCHOOL_ADDRESS || '',
+        address: (ov && ov.address) || process.env.SCHOOL_ADDRESS || '',
         admin,
         phone,
-        plan: process.env.SUBSCRIPTION_PLAN || 'Free',
+        plan: (ov && ov.plan) || process.env.SUBSCRIPTION_PLAN || 'Free',
         status: 'active',
         expiry: 'N/A',
         students: studentsCount
@@ -2103,7 +2139,24 @@ app.get('/api/admin/schools/:id', auth, superAdminAuth, async (req, res) => {
 app.put('/api/admin/schools/:id', auth, superAdminAuth, async (req, res) => {
   try {
     const id = req.params.id
-    if (id === 'local') return res.status(400).json({ error: 'cannot edit local school' })
+    if (id === 'local') {
+      const { name, address, adminName, adminPhone, plan, adminTempPassword } = req.body || {}
+      const patch = {}
+      if (name !== undefined) patch.name = String(name)
+      if (address !== undefined) patch.address = String(address)
+      if (adminName !== undefined) patch.admin = String(adminName)
+      if (adminPhone !== undefined) patch.phone = String(adminPhone)
+      if (plan !== undefined) patch.plan = String(plan)
+      if (adminTempPassword && adminTempPassword.trim()) {
+        const crypto = require('crypto')
+        const salt = crypto.randomBytes(16).toString('hex')
+        const hash = crypto.scryptSync(adminTempPassword.trim(), salt, 64).toString('hex')
+        patch.adminPassSalt = salt
+        patch.adminPassHash = hash
+      }
+      const updated = writeLocalSchool(patch)
+      return res.json({ id: 'local', status: 'ok', updated })
+    }
     const { name, address, adminName, adminPhone, plan, adminTempPassword } = req.body || {}
     const patch = {}
     if (name !== undefined) patch.name = name
@@ -2159,9 +2212,21 @@ app.post('/api/school-auth/login', async (req, res) => {
   try {
     const { phone, password } = req.body || {}
     if (!phone || !password) return res.status(400).json({ error: 'phone and password are required' })
+    const inputPhone = String(phone).trim()
     const items = schoolsStore.list()
-    const school = items.find(s => (s.phone || '').trim() === phone.trim())
-    if (!school || !school.adminPassSalt || !school.adminPassHash) return res.status(401).json({ error: 'invalid credentials' })
+    let school = items.find(s => (s.phone || '').trim() === inputPhone)
+    if (!school) {
+      const local = readLocalSchool()
+      if (local && (local.phone || '').trim() === inputPhone) {
+        if (!local.adminPassSalt || !local.adminPassHash) return res.status(401).json({ error: 'invalid credentials' })
+        const crypto = require('crypto')
+        const hash = crypto.scryptSync(password.trim(), local.adminPassSalt, 64).toString('hex')
+        if (hash !== local.adminPassHash) return res.status(401).json({ error: 'invalid credentials' })
+        return res.json({ schoolId: 'local', name: local.name || 'Skullar Local', plan: local.plan || 'Free', status: 'active' })
+      }
+      return res.status(401).json({ error: 'invalid credentials' })
+    }
+    if (!school.adminPassSalt || !school.adminPassHash) return res.status(401).json({ error: 'invalid credentials' })
     const crypto = require('crypto')
     const hash = crypto.scryptSync(password.trim(), school.adminPassSalt, 64).toString('hex')
     if (hash !== school.adminPassHash) return res.status(401).json({ error: 'invalid credentials' })
@@ -2276,11 +2341,12 @@ app.post('/api/superadmin/impersonate/:schoolId', superAdminAuth, async (req, re
     const schoolId = req.params.schoolId
     if (!schoolId) return res.status(400).json({ error: 'schoolId is required' })
     
-    // Validate school exists
-    const schools = schoolsStore.list()
-    const targetSchool = schools.find(s => s.id === schoolId)
-    if (!targetSchool) {
-      return res.status(404).json({ error: 'School not found' })
+    if (schoolId !== 'local') {
+      const schools = schoolsStore.list()
+      const targetSchool = schools.find(s => s.id === schoolId)
+      if (!targetSchool) {
+        return res.status(404).json({ error: 'School not found' })
+      }
     }
     
     const profile = readSuperAdminProfile()
