@@ -38,4 +38,14 @@ function upsert(id, patch) {
   return store.profiles[id]
 }
 
-module.exports = { get, upsert, list }
+function remove(id) {
+  const store = read()
+  if (store.profiles[id]) {
+    delete store.profiles[id]
+    write(store)
+    return true
+  }
+  return false
+}
+
+module.exports = { get, upsert, list, remove }

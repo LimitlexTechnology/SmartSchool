@@ -98,7 +98,7 @@ const StudentsList = () => {
     const query = new URLSearchParams({ page: String(p), pageSize: String(pageSize), q })
     setLoading(true)
     try {
-      const res = await fetch(`/api/students?${query.toString()}`)
+      const res = await fetch(`/api/students?${query.toString()}`, { headers: { 'x-school-id': localStorage.getItem('schoolId') || 'local' } })
       const json = await res.json()
       setData(json)
       setPage(json.page)
@@ -287,7 +287,7 @@ const StudentsList = () => {
                   try {
                     await fetch('/api/students', {
                       method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
+                      headers: { 'Content-Type': 'application/json', 'x-school-id': localStorage.getItem('schoolId') || 'local' },
                       body: JSON.stringify({
                         firstName: form.firstName.trim(),
                         lastName: form.lastName.trim(),
@@ -579,7 +579,7 @@ const StudentsDrawer = ({ id, onClose, initial, classes = [] }) => {
                       }
                       await fetch(`/api/students/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
                         .then(async r => { if (!r.ok) { const t = await r.json().catch(() => ({})); throw new Error(t.error || 'Failed') } return r.json() })
-                      const d = await fetch(`/api/students/${id}`).then(r => r.json())
+                      const d = await fetch(`/api/students/${id}`, { headers: { 'x-school-id': localStorage.getItem('schoolId') || 'local' } }).then(r => r.json())
                       setDetail(d)
                       setEdit(false)
                       window.dispatchEvent(new CustomEvent('students:refresh'))

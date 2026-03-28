@@ -198,13 +198,13 @@ const Dashboard = () => {
                 // Fetch Profile
                 const role = localStorage.getItem('userRole') || 'admin';
                 let endpoint = '/api/school-auth/profile';
-                if (role === 'superadmin') endpoint = '/api/superadmin-auth/profile';
+                if (role === 'superadmin') endpoint = '/api/superadmin/profile';
                 
                 const profRes = await fetch(endpoint).then(r => r.ok ? r.json() : null).catch(() => null);
                 if (profRes) {
                     setProfile({
                         name: profRes.adminName || profRes.name || 'Admin',
-                        role: role === 'admin' ? 'School Admin' : (profRes.role || 'Super Admin'),
+                        role: (role === 'admin' || role === 'systemadmin') ? 'School Admin' : 'Super Admin',
                         profilePicture: profRes.adminProfilePicture || profRes.profilePicture || null,
                         schoolName: profRes.schoolName || 'SmartSchool',
                         schoolLogo: profRes.schoolLogo || null

@@ -244,11 +244,12 @@ const StaffList = () => {
                 <th className="text-left px-4 py-3 w-64">Email</th>
                 <th className="text-left px-4 py-3 w-32">Type</th>
                 <th className="text-left px-4 py-3 w-40">Subject</th>
+                <th className="text-left px-4 py-3 w-48">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading && <tr><td className="px-4 py-6 text-muted-text" colSpan={5}>Loading…</td></tr>}
-              {!loading && data.data.length === 0 && <tr><td className="px-4 py-6 text-muted-text" colSpan={5}>No staff found</td></tr>}
+              {!loading && data.data.length === 0 && <tr><td className="px-4 py-6 text-muted-text" colSpan={6}>No staff found</td></tr>}
               {!loading && data.data.map((t) => (
                 <tr key={t.id} className="border-t border-gray-50">
                   <td className="px-4 py-3 text-muted-text">{t.index}</td>
@@ -265,6 +266,40 @@ const StaffList = () => {
                     </span>
                   </td>
                   <td className="px-4 py-3">{t.subject || '—'}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${t.status === 'suspended' ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                        {t.status === 'suspended' ? 'Suspended' : 'Active'}
+                      </span>
+                      <button
+                        onClick={async ()=>{
+                          try{
+                            const r = await fetch(`/api/teachers/${t.id}/suspend`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action: 'toggle' }) })
+                            const j = await r.json()
+                            if (!r.ok) throw new Error(j.error || 'Failed')
+                            await load({ page })
+                          } catch(e){ alert(e.message) }
+                        }}
+                        className="px-2 py-1 rounded-lg border border-gray-200 text-[11px] font-bold"
+                      >
+                        Toggle
+                      </button>
+                      <button
+                        onClick={async ()=>{
+                          if (!window.confirm('Delete this staff member?')) return
+                          try{
+                            const r = await fetch(`/api/teachers/${t.id}`, { method:'DELETE' })
+                            const j = await r.json()
+                            if (!r.ok) throw new Error(j.error || 'Failed')
+                            await load({ page: 1 })
+                          } catch(e){ alert(e.message) }
+                        }}
+                        className="px-2 py-1 rounded-lg border border-rose-200 text-rose-600 text-[11px] font-bold"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -411,6 +446,34 @@ const TeacherDrawer = ({ id, onClose, initial, classes = [] }) => {
           </div>
           <div className="flex items-center gap-2">
             {!edit && <button onClick={()=>setEdit(true)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold">Edit</button>}
+            {!edit && (
+              <>
+                <button
+                  onClick={async ()=>{
+                    try{
+                      const r = await fetch(`/api/teachers/${id}/suspend`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action: 'toggle' }) })
+                      const j = await r.json()
+                      if (!r.ok) throw new Error(j.error || 'Failed')
+                      const d = await fetch(`/api/teachers/${id}`).then(r=>r.json())
+                      setDetail(d)
+                    } catch(e){ alert(e.message) }
+                  }}
+                  className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold"
+                >Suspend/Activate</button>
+                <button
+                  onClick={async ()=>{
+                    if (!window.confirm('Delete this staff member?')) return
+                    try{
+                      const r = await fetch(`/api/teachers/${id}`, { method:'DELETE' })
+                      const j = await r.json()
+                      if (!r.ok) throw new Error(j.error || 'Failed')
+                      onClose()
+                    } catch(e){ alert(e.message) }
+                  }}
+                  className="px-3 py-1.5 rounded-lg border border-rose-200 text-xs font-bold text-rose-600"
+                >Delete</button>
+              </>
+            )}
             {edit && (
               <>
                 <button

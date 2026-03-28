@@ -891,13 +891,14 @@ app.put('/api/students/:id', auth, async (req, res) => {
 });
 app.get('/api/students', auth, async (req, res) => {
   try {
-    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
+    const currentSchoolId = req.schoolId || req.headers['x-school-id'] || null
+    if (currentSchoolId) {
       const page = Math.max(parseInt(req.query.page || '1', 10), 1)
       const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '20', 10), 1), 100)
       const q = (req.query.q || '').toString().trim().toLowerCase()
       const classIdFilter = (req.query.classId || '').toString().trim()
-      const store = readTenantStudents(req.schoolId)
-      const classesStore = readTenantClasses(req.schoolId)
+      const store = readTenantStudents(currentSchoolId)
+      const classesStore = readTenantClasses(currentSchoolId)
       const all = Array.isArray(store.students) ? store.students : []
       let filtered = all
       if (q) {
@@ -997,7 +998,7 @@ app.get('/api/students', auth, async (req, res) => {
 });
 app.get('/api/classes', auth, async (req, res) => {
   try {
-    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
+    if (req.schoolId && (req.schoolId === 'local' || !isDBConnected)) {
       const { classes } = readTenantClasses(req.schoolId)
       const { students } = readTenantStudents(req.schoolId)
       const { teachers } = readTenantTeachers(req.schoolId)
@@ -1038,7 +1039,7 @@ app.post('/api/classes', auth, async (req, res) => {
     const { name, grade } = req.body
     if (!grade) return res.status(400).json({ error: 'Grade is required' })
 
-    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
+    if (req.schoolId && (req.schoolId === 'local' || !isDBConnected)) {
       const store = readTenantClasses(req.schoolId)
       const newClass = {
         id: randomUUID(),
@@ -1062,7 +1063,7 @@ app.put('/api/classes/:id/assign-teacher', auth, async (req, res) => {
   try {
     const id = req.params.id
     const { teacherId } = req.body
-    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
+    if (req.schoolId && (req.schoolId === 'local' || !isDBConnected)) {
       const store = readTenantClasses(req.schoolId)
       const cIdx = store.classes.findIndex(c => c.id === id)
       if (cIdx < 0) return res.status(404).json({ error: 'Class not found' })
@@ -1084,7 +1085,7 @@ app.put('/api/classes/:id/assign-teacher', auth, async (req, res) => {
 app.delete('/api/classes/:id', auth, async (req, res) => {
   try {
     const id = req.params.id
-    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
+    if (req.schoolId && (req.schoolId === 'local' || !isDBConnected)) {
       const store = readTenantClasses(req.schoolId)
       store.classes = store.classes.filter(c => c.id !== id)
       writeTenantClasses(req.schoolId, store)
@@ -1630,7 +1631,7 @@ app.post('/api/students/:id/behavior', auth, async (req, res) => {
 // Teachers (Staff)
 app.get('/api/teachers', auth, async (req, res) => {
   try {
-    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
+    if (req.schoolId && (req.schoolId === 'local' || !isDBConnected)) {
       const page = Math.max(parseInt(req.query.page || '1', 10), 1)
       const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || '20', 10), 1), 100)
       const q = (req.query.q || '').toString().trim().toLowerCase()
@@ -1652,6 +1653,7 @@ app.get('/api/teachers', auth, async (req, res) => {
           email: t.email,
           subject: t.subject || '',
           profilePicture: p.profilePicture || null,
+           status: p.status || 'active',
           index: (page - 1) * pageSize + i + 1,
         }
       })
@@ -1684,7 +1686,8 @@ app.get('/api/teachers', auth, async (req, res) => {
       name: t.name,
       email: t.email,
       subject: t.subject,
-      profilePicture: t.profile?.profilePicture || null,
+        profilePicture: t.profile?.profilePicture || null,
+        status: (staffStore.get(t.id) || {}).status || 'active',
       index: (page - 1) * pageSize + i + 1,
     }))
     res.json({ total, page, pageSize, data })
@@ -1699,10 +1702,21 @@ app.get('/api/allocations', auth, async (req, res) => {
     if (req.schoolId && req.schoolId !== 'local') {
       return res.json({ classes: [], teachers: [], assignments: [] })
     }
-    const [classes, teachers] = await Promise.all([
-      prisma.class.findMany({ orderBy: [{ grade: 'asc' }, { name: 'asc' }] }),
-      prisma.teacher.findMany({ orderBy: { name: 'asc' } })
-    ])
+    let classes = []
+    let teachers = []
+    try {
+      const fetched = await Promise.all([
+        prisma.class.findMany({ orderBy: [{ grade: 'asc' }, { name: 'asc' }] }),
+        prisma.teacher.findMany({ orderBy: { name: 'asc' } })
+      ])
+      classes = fetched[0]
+      teachers = fetched[1]
+    } catch (_) {
+      const cs = readTenantClasses('local')
+      const ts = readTenantTeachers('local')
+      classes = (cs.classes || []).map(c => ({ id: c.id, name: c.name, grade: c.grade }))
+      teachers = (ts.teachers || []).map(t => ({ id: t.id, name: t.name, email: t.email, subject: t.subject || '' }))
+    }
     try {
       const assigns = await prisma.teachingAssignment.findMany()
       return res.json({
@@ -2011,13 +2025,8 @@ app.get('/api/admin/schools', auth, superAdminAuth, async (_req, res) => {
     const admin = (ov && ov.admin) || process.env.SCHOOL_ADMIN || 'Admin'
     const phone = (ov && ov.phone) || process.env.SCHOOL_PHONE || ''
     
-    let studentsCount = 0
-    if (isDBConnected) {
-      studentsCount = await prisma.student.count({ where: { status: { not: 'archived' } } })
-    } else {
-      const { students } = readTenantStudents('local')
-      studentsCount = students.length
-    }
+    const { students } = readTenantStudents('local')
+    const studentsCount = students.length
 
     const local = {
       id: 'local',
@@ -2108,13 +2117,8 @@ app.get('/api/admin/schools/:id', auth, superAdminAuth, async (req, res) => {
       const name = (ov && ov.name) || process.env.SCHOOL_NAME || 'Skullar Local'
       const admin = (ov && ov.admin) || process.env.SCHOOL_ADMIN || 'Admin'
       const phone = (ov && ov.phone) || process.env.SCHOOL_PHONE || ''
-      let studentsCount = 0
-      if (isDBConnected) {
-        studentsCount = await prisma.student.count({ where: { status: { not: 'archived' } } })
-      } else {
-        const { students } = readTenantStudents('local')
-        studentsCount = students.length
-      }
+      const { students } = readTenantStudents('local')
+      const studentsCount = students.length
       return res.json({
         id: 'local',
         name,
@@ -2431,7 +2435,19 @@ app.put('/api/school-auth/password', auth, async (req, res) => {
 app.get('/api/school-auth/profile', auth, async (req, res) => {
   try {
     const schoolId = req.schoolId
-    if (!schoolId || schoolId === 'local') return res.status(400).json({ error: 'not allowed' })
+    if (!schoolId) return res.status(400).json({ error: 'not allowed' })
+    if (schoolId === 'local') {
+      const ov = readLocalSchool()
+      return res.json({
+        schoolId: 'local',
+        schoolName: (ov && ov.name) || 'Skullar Local',
+        schoolLogo: (ov && ov.logo) || '',
+        adminName: (ov && ov.admin) || '',
+        adminPhone: (ov && ov.phone) || '',
+        adminEmail: (ov && ov.adminEmail) || '',
+        adminProfilePicture: (ov && ov.adminProfilePicture) || ''
+      })
+    }
     const s = schoolsStore.list().find(x => x.id === schoolId)
     if (!s) return res.status(404).json({ error: 'school not found' })
     res.json({
@@ -2451,8 +2467,19 @@ app.get('/api/school-auth/profile', auth, async (req, res) => {
 app.put('/api/school-auth/profile', auth, async (req, res) => {
   try {
     const schoolId = req.schoolId
-    if (!schoolId || schoolId === 'local') return res.status(400).json({ error: 'not allowed' })
+    if (!schoolId) return res.status(400).json({ error: 'not allowed' })
     const { schoolName, adminName, adminPhone, adminEmail, schoolLogo, adminProfilePicture } = req.body || {}
+    if (schoolId === 'local') {
+      const patch = {}
+      if (schoolName !== undefined) patch.name = String(schoolName).trim()
+      if (adminName !== undefined) patch.admin = String(adminName).trim()
+      if (adminPhone !== undefined) patch.phone = String(adminPhone).trim()
+      if (adminEmail !== undefined) patch.adminEmail = String(adminEmail).trim()
+      if (schoolLogo !== undefined) patch.logo = schoolLogo
+      if (adminProfilePicture !== undefined) patch.adminProfilePicture = adminProfilePicture
+      writeLocalSchool(patch)
+      return res.json({ status: 'ok' })
+    }
     const patch = {}
     if (schoolName !== undefined) patch.name = String(schoolName).trim()
     if (adminName !== undefined) patch.admin = String(adminName).trim()
@@ -2580,7 +2607,7 @@ app.post('/api/teachers', auth, async (req, res) => {
   try {
     const { name, email, subject, phone, tempPassword, type = 'teaching' } = req.body || {}
     if (!name || !email) return res.status(400).json({ error: 'name and email are required' })
-    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
+    if (req.schoolId && (req.schoolId === 'local' || !isDBConnected)) {
       const store = readTenantTeachers(req.schoolId)
       const id = randomUUID()
       const obj = { id, name: name.trim(), email: String(email).trim(), subject: subject || '', type, createdAt: new Date().toISOString() }
@@ -2627,17 +2654,17 @@ app.post('/api/teachers', auth, async (req, res) => {
 app.get('/api/teachers/:id', auth, async (req, res) => {
   try {
     const id = req.params.id
-    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
+    if (req.schoolId && (req.schoolId === 'local' || !isDBConnected)) {
       const store = readTenantTeachers(req.schoolId)
       const t = (store.teachers || []).find(x => x.id === id)
       if (!t) return res.status(404).json({ error: 'not found' })
       const prof = staffStore.get(id) || {}
-      return res.json({ id: t.id, name: t.name, email: t.email, subject: t.subject, phone: prof.phone || '' })
+      return res.json({ id: t.id, name: t.name, email: t.email, subject: t.subject, phone: prof.phone || '', status: prof.status || 'active', type: t.type || 'teaching' })
     } else {
       const t = await prisma.teacher.findUnique({ where: { id } })
       if (!t) return res.status(404).json({ error: 'not found' })
       const prof = staffStore.get(id) || {}
-      return res.json({ id: t.id, name: t.name, email: t.email, subject: t.subject, phone: prof.phone || '' })
+      return res.json({ id: t.id, name: t.name, email: t.email, subject: t.subject, phone: prof.phone || '', status: (prof.status || 'active'), type: t.type })
     }
   } catch (e) {
     console.error('Teacher detail error:', e)
@@ -2650,7 +2677,7 @@ app.put('/api/teachers/:id', auth, async (req, res) => {
   try {
     const id = req.params.id
     const { name, email, subject, type, tempPassword } = req.body || {}
-    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
+    if (req.schoolId && (req.schoolId === 'local' || !isDBConnected)) {
       const store = readTenantTeachers(req.schoolId)
       const idx = (store.teachers || []).findIndex(t => t.id === id)
       if (idx === -1) return res.status(404).json({ error: 'not found' })
@@ -2690,6 +2717,62 @@ app.put('/api/teachers/:id', auth, async (req, res) => {
   } catch (e) {
     if (e.code === 'P2002') return res.status(409).json({ error: 'Unique constraint failed' })
     console.error(`Update teacher ${id} error:`, e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.put('/api/teachers/:id/suspend', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    const action = (req.body?.action || '').toLowerCase() // 'suspend' | 'activate'
+    if (!['suspend', 'activate', 'toggle'].includes(action)) return res.status(400).json({ error: 'action must be suspend|activate|toggle' })
+    let next = action
+    if (action === 'toggle') {
+      const cur = (staffStore.get(id) || {}).status || 'active'
+      next = cur === 'active' ? 'suspend' : 'activate'
+    }
+    const status = next === 'suspend' ? 'suspended' : 'active'
+    staffStore.upsert(id, { status })
+    if (req.schoolId && (req.schoolId === 'local' || !isDBConnected)) {
+      const store = readTenantTeachers(req.schoolId)
+      const idx = (store.teachers || []).findIndex(t => t.id === id)
+      if (idx !== -1) {
+        store.teachers[idx].status = status
+        writeTenantTeachers(req.schoolId, store)
+      }
+      return res.json({ id, status })
+    }
+    try {
+      await prisma.teacher.update({ where: { id }, data: {} })
+    } catch (_) {}
+    res.json({ id, status })
+  } catch (e) {
+    console.error('Suspend teacher error:', e)
+    res.status(500).json({ error: e?.message || 'unknown' })
+  }
+})
+
+app.delete('/api/teachers/:id', auth, async (req, res) => {
+  try {
+    const id = req.params.id
+    if (req.schoolId && (req.schoolId === 'local' || !isDBConnected)) {
+      const store = readTenantTeachers(req.schoolId)
+      const before = (store.teachers || []).length
+      store.teachers = (store.teachers || []).filter(t => t.id !== id)
+      writeTenantTeachers(req.schoolId, store)
+      staffStore.remove(id)
+      const removed = before - (store.teachers || []).length
+      return res.json({ status: removed > 0 ? 'deleted' : 'not_found' })
+    }
+    try {
+      await prisma.teacher.delete({ where: { id } })
+    } catch (e) {
+      console.warn('DB delete failed, removing from staff store only', e?.message || e)
+    }
+    staffStore.remove(id)
+    res.json({ status: 'deleted' })
+  } catch (e) {
+    console.error('Delete teacher error:', e)
     res.status(500).json({ error: e?.message || 'unknown' })
   }
 })
@@ -3196,9 +3279,10 @@ app.post('/api/students', auth, async (req, res) => {
     if (!firstName || !lastName || !email) {
       return res.status(400).json({ error: 'firstName, lastName and email are required' })
     }
-    if (req.schoolId && req.schoolId !== 'local') {
-      const store = readTenantStudents(req.schoolId)
-      const classesStore = readTenantClasses(req.schoolId)
+    const currentSchoolId = req.schoolId || req.headers['x-school-id'] || 'local'
+    if (currentSchoolId) {
+      const store = readTenantStudents(currentSchoolId)
+      const classesStore = readTenantClasses(currentSchoolId)
       const exists = (store.students || []).some(s => (s.email || '').toLowerCase() === email.toLowerCase())
       if (exists) return res.status(409).json({ error: `A student with email ${email} already exists.` })
 
@@ -3240,7 +3324,7 @@ app.post('/api/students', auth, async (req, res) => {
       }
       store.students = Array.isArray(store.students) ? store.students : []
       store.students.unshift(obj)
-      writeTenantStudents(req.schoolId, store)
+      writeTenantStudents(currentSchoolId, store)
       const c = classesStore.classes.find(cx => cx.id === obj.classId)
       return res.status(201).json({
         id: obj.id,
@@ -3308,14 +3392,15 @@ app.post('/api/students', auth, async (req, res) => {
 app.get('/api/students/:id', auth, async (req, res) => {
   try {
     const id = req.params.id
-    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
-      let store = readTenantStudents(req.schoolId || 'local')
+    const currentSchoolId = req.schoolId || req.headers['x-school-id'] || 'local'
+    if (currentSchoolId) {
+      let store = readTenantStudents(currentSchoolId || 'local')
       let s = (store.students || []).find(x => x.id === id)
-      let currentSchoolId = req.schoolId || 'local'
+      let activeSchoolId = currentSchoolId || 'local'
 
       // Global search if not found in current school tenant
       if (!s) {
-        const schools = schoolsStore.list().filter(sc => sc.id !== req.schoolId)
+        const schools = schoolsStore.list().filter(sc => sc.id !== currentSchoolId)
         for (const school of schools) {
           try {
             const tempStore = readTenantStudents(school.id)
@@ -3323,7 +3408,7 @@ app.get('/api/students/:id', auth, async (req, res) => {
             if (found) {
               s = found
               store = tempStore
-              currentSchoolId = school.id
+              activeSchoolId = school.id
               break
             }
           } catch (e) { }
@@ -3332,7 +3417,7 @@ app.get('/api/students/:id', auth, async (req, res) => {
 
       if (!s) return res.status(404).json({ error: 'not found' })
       
-      const classesStore = readTenantClasses(currentSchoolId)
+      const classesStore = readTenantClasses(activeSchoolId)
       const c = (classesStore.classes || []).find(cx => cx.id === s.classId)
       return res.json({
         ...s,
