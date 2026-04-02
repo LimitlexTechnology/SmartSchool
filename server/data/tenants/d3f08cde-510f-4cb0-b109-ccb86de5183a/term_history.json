@@ -1,0 +1,22 @@
+{
+  "history": [
+    {
+      "id": "985f672d-90eb-479d-8748-d03deff73a7b",
+      "term": "First Term",
+      "year": "2026/2027",
+      "timestamp": "2026-03-30T09:17:30.985Z",
+      "action": "move_to_next_term",
+      "nextTerm": "Second Term",
+      "nextYear": "2026/2027"
+    },
+    {
+      "id": "40180153-08c6-4697-9b69-c07e4b706f58",
+      "term": "First Term",
+      "year": "2026/2027",
+      "timestamp": "2026-03-30T09:46:05.510Z",
+      "action": "move_to_next_term",
+      "nextTerm": "Second Term",
+      "nextYear": "2026/2027"
+    }
+  ]
+}

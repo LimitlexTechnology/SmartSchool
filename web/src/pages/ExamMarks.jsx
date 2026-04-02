@@ -210,14 +210,20 @@ const ExamMarks = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
+        const term = localStorage.getItem('academicTermLabel') || '';
+        const year = localStorage.getItem('academicYearLabel') || '';
+        const termParam = term ? `&term=${encodeURIComponent(term)}` : '';
+        const yearParam = year ? `&year=${encodeURIComponent(year)}` : '';
+        const contextParams = `${termParam}${yearParam}`;
+
         let query = '';
         if (activeTab === 'exams') {
-          query = `examId=${encodeURIComponent(selectedExam)}&classId=${encodeURIComponent(selectedClass)}&subject=${encodeURIComponent(selectedSubject)}`;
+          query = `examId=${encodeURIComponent(selectedExam)}&classId=${encodeURIComponent(selectedClass)}&subject=${encodeURIComponent(selectedSubject)}${contextParams}`;
         } else if (isCaOverviewMode) {
-          query = `classId=${encodeURIComponent(selectedClass)}&subject=${encodeURIComponent(selectedSubject)}&assessmentType=ca`;
+          query = `classId=${encodeURIComponent(selectedClass)}&subject=${encodeURIComponent(selectedSubject)}&assessmentType=ca${contextParams}`;
         } else {
           // Ensure selectedElement is included, otherwise use a generic CA query
-          query = `classId=${encodeURIComponent(selectedClass)}&subject=${encodeURIComponent(selectedSubject)}&assessmentType=ca${selectedElement ? `&elementName=${encodeURIComponent(selectedElement)}` : ''}`;
+          query = `classId=${encodeURIComponent(selectedClass)}&subject=${encodeURIComponent(selectedSubject)}&assessmentType=ca${selectedElement ? `&elementName=${encodeURIComponent(selectedElement)}` : ''}${contextParams}`;
         }
 
         console.log('Fetching marks with query:', query);
@@ -230,7 +236,7 @@ const ExamMarks = () => {
         if (activeTab === 'exams' || (activeTab === 'ca' && isCaOverviewMode)) {
           // If we are in CA overview mode, the second promise already fetched all CA marks
           if (activeTab === 'exams') {
-            promises.push(fetch(`/api/marks?classId=${selectedClass}&subject=${selectedSubject}&assessmentType=ca`));
+            promises.push(fetch(`/api/marks?classId=${encodeURIComponent(selectedClass)}&subject=${encodeURIComponent(selectedSubject)}&assessmentType=ca${contextParams}`));
           }
         }
 
@@ -284,7 +290,11 @@ const ExamMarks = () => {
     const fetchCaStatus = async () => {
       setCaLoading(true);
       try {
-        const res = await fetch(`/api/ca-status?classId=${selectedClass}&subject=${selectedSubject}`);
+        const term = localStorage.getItem('academicTermLabel') || '';
+        const year = localStorage.getItem('academicYearLabel') || '';
+        const termParam = term ? `&term=${encodeURIComponent(term)}` : '';
+        const yearParam = year ? `&year=${encodeURIComponent(year)}` : '';
+        const res = await fetch(`/api/ca-status?classId=${encodeURIComponent(selectedClass)}&subject=${encodeURIComponent(selectedSubject)}${termParam}${yearParam}`);
         const data = await res.json();
         
         // If the API returns no elements, try to populate from Exam Config assessment type
@@ -366,7 +376,9 @@ const ExamMarks = () => {
         subject: selectedSubject,
         entries,
         assessmentType: activeTab === 'exams' ? 'exam' : 'ca',
-        examId: effectiveExamId
+        examId: effectiveExamId,
+        term: localStorage.getItem('academicTermLabel') || '',
+        year: localStorage.getItem('academicYearLabel') || ''
       };
       
       if (activeTab === 'ca') {
@@ -385,9 +397,14 @@ const ExamMarks = () => {
         setStudents(prev => prev.map(s => s.status === 'Draft' ? { ...s, status: 'Graded', source: 'Manual Entry' } : s));
         
         // Refresh CA status and all CA marks after saving
+        const term = localStorage.getItem('academicTermLabel') || '';
+        const year = localStorage.getItem('academicYearLabel') || '';
+        const termParam = term ? `&term=${encodeURIComponent(term)}` : '';
+        const yearParam = year ? `&year=${encodeURIComponent(year)}` : '';
+        
         const [caStatusRes, allCaMarksRes] = await Promise.all([
-          fetch(`/api/ca-status?classId=${selectedClass}&subject=${selectedSubject}`),
-          fetch(`/api/marks?classId=${selectedClass}&subject=${selectedSubject}&assessmentType=ca`)
+          fetch(`/api/ca-status?classId=${encodeURIComponent(selectedClass)}&subject=${encodeURIComponent(selectedSubject)}${termParam}${yearParam}`),
+          fetch(`/api/marks?classId=${encodeURIComponent(selectedClass)}&subject=${encodeURIComponent(selectedSubject)}&assessmentType=ca${termParam}${yearParam}`)
         ]);
         
         const caData = await caStatusRes.json();
@@ -486,7 +503,7 @@ const ExamMarks = () => {
         })
       );
     }
-    
+  
     // We still want to compute basic CA sums even if config is missing
     let scale;
     let assessment;

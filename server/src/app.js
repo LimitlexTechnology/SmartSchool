@@ -150,6 +150,53 @@ const superAdminAuth = (req, res, next) => {
   next()
 }
 
+function ensureTenantHistoryFile(schoolId) {
+  if (!fs.existsSync(TENANT_DIR)) fs.mkdirSync(TENANT_DIR, { recursive: true })
+  const dir = path.join(TENANT_DIR, schoolId)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'term_history.json')
+  if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify({ history: [] }, null, 2))
+  return file
+}
+function readTenantHistory(schoolId) {
+  const file = ensureTenantHistoryFile(schoolId)
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return { history: [] } }
+}
+function writeTenantHistory(schoolId, data) {
+  const file = ensureTenantHistoryFile(schoolId)
+  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
+app.post('/api/admin/schools/move-term', auth, async (req, res) => {
+  try {
+    const { currentTerm, currentYear, nextTerm, nextYear } = req.body
+    const schoolId = req.schoolId || 'local'
+    
+    // Store current state snapshot in term history
+    const historyStore = readTenantHistory(schoolId)
+    const snapshot = {
+      id: randomUUID(),
+      term: currentTerm,
+      year: currentYear,
+      timestamp: new Date().toISOString(),
+      action: 'move_to_next_term',
+      nextTerm,
+      nextYear
+    }
+    historyStore.history.push(snapshot)
+    writeTenantHistory(schoolId, historyStore)
+    
+    // Also update any school-wide metadata if needed
+    // In this JSON-based setup, we'll let the frontend handle the active context via localStorage for now, 
+    // but we've successfully persisted the "closing" of the previous term.
+    
+    res.json({ success: true, snapshotId: snapshot.id })
+  } catch (e) {
+    console.error('Move term error:', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
 app.get('/api/admin/marks/summary', auth, async (req, res) => {
   try {
     const schoolId = req.schoolId || 'local'
@@ -213,7 +260,7 @@ app.get('/api/admin/marks/summary', auth, async (req, res) => {
 
 app.get('/api/marks', auth, async (req, res) => {
   try {
-    const { examId, classId, subject, assessmentType, elementName } = req.query
+    const { examId, classId, subject, assessmentType, elementName, term, year } = req.query
     console.log('GET /api/marks query received:', req.query);
     
     const schoolId = req.schoolId || 'local'
@@ -248,6 +295,14 @@ app.get('/api/marks', auth, async (req, res) => {
     
     if (elementName) {
       filtered = filtered.filter(m => (m.elementName || '').toLowerCase().trim() === elementName.toLowerCase().trim())
+    }
+
+    if (term) {
+      filtered = filtered.filter(m => (m.term || '').toLowerCase().trim() === term.toLowerCase().trim())
+    }
+
+    if (year) {
+      filtered = filtered.filter(m => (m.year || '').toLowerCase().trim() === year.toLowerCase().trim())
     }
     
     return res.json(filtered)
@@ -2912,7 +2967,7 @@ app.post('/api/exam-settings', auth, async (req, res) => {
 
 app.get('/api/ca-status', auth, async (req, res) => {
   try {
-    const { classId, subject } = req.query
+    const { classId, subject, term, year } = req.query
     if (!classId || !subject) return res.status(400).json({ error: 'classId and subject are required' })
     
     const schoolId = req.schoolId || 'local'
@@ -2952,7 +3007,9 @@ app.get('/api/ca-status', auth, async (req, res) => {
         (m.classId === canonicalClassId || (targetClass && (m.classId === targetClass.name || m.classId === targetClass.grade))) && 
         m.subject === subject && 
         m.assessmentType === 'ca' && 
-        m.elementName === item.name
+        m.elementName === item.name &&
+        (!term || (m.term || '').toLowerCase() === term.toLowerCase()) &&
+        (!year || (m.year || '').toLowerCase() === year.toLowerCase())
       )
       
       return {
@@ -2979,7 +3036,7 @@ app.get('/api/ca-status', auth, async (req, res) => {
 
 app.post('/api/marks', auth, async (req, res) => {
   try {
-    const { examId, classId, subject, entries, assessmentType, elementName } = req.body
+    const { examId, classId, subject, entries, assessmentType, elementName, term, year } = req.body
     
     const isCa = (assessmentType || '').toLowerCase().includes('ca') || (assessmentType || '').toLowerCase().includes('continuous');
     const effectiveExamId = examId || (isCa ? 'ca-marks' : null);
@@ -3019,7 +3076,9 @@ app.post('/api/marks', auth, async (req, res) => {
             (m.classId === canonicalClassId || (targetClass && (m.classId === targetClass.name || m.classId === targetClass.grade))) && 
             m.subject === subject && 
             m.assessmentType === 'ca' && 
-            m.elementName === item.name
+            m.elementName === item.name &&
+            (!term || (m.term || '').toLowerCase() === term.toLowerCase()) &&
+            (!year || (m.year || '').toLowerCase() === year.toLowerCase())
           )
           return existingMarks.length === 0
         })
@@ -3055,9 +3114,13 @@ app.post('/api/marks', auth, async (req, res) => {
     store.marks = store.marks.filter(m => {
       const classMatch = m.classId === canonId || (tClass && (m.classId === tClass.name || m.classId === tClass.grade))
       const targetExamId = assessmentType === 'ca' ? 'ca-marks' : examId
+      const termMatch = !term || (m.term || '').toLowerCase() === term.toLowerCase()
+      const yearMatch = !year || (m.year || '').toLowerCase() === year.toLowerCase()
+      
       return !(m.examId === targetExamId && classMatch && m.subject === subject &&
               (!assessmentType || m.assessmentType === assessmentType) &&
-              (!elementName || m.elementName === elementName))
+              (!elementName || m.elementName === elementName) &&
+              termMatch && yearMatch)
     })
     
     // Add new marks
@@ -3072,6 +3135,8 @@ app.post('/api/marks', auth, async (req, res) => {
       synopsis: e.synopsis || '',
       assessmentType: assessmentType || 'exam',
       elementName: elementName || null,
+      term: term || '',
+      year: year || '',
       updatedAt: now
     }))
     
