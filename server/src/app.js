@@ -13,8 +13,7 @@ const staffStore = require('./staffStore')
 const allocationsStore = require('./allocationsStore')
 const timetableStore = require('./timetableStore')
 const schoolsStore = require('./schoolsStore')
-const { generateQuestions, evaluateShortAnswer } = require('./services/gemini');
-const { generateQuestionsDS, evaluateShortAnswerDS, isDSAvailable } = require('./services/deepseek');
+const { generateQuestions, evaluateShortAnswer, isAvailable } = require('./services/ai');
 
 // Global DB health flag
 let isDBConnected = false;
@@ -4649,22 +4648,9 @@ app.post('/api/ai/generate-questions', auth, async (req, res) => {
     const { topic, instructions, count } = req.body;
     if (!topic) return res.status(400).json({ error: 'topic is required' });
 
-    // Try Gemini first
-    try {
-      console.log(`[AI] Attempting Gemini for topic: ${topic}`);
-      const questions = await generateQuestions(topic, instructions, count || 5);
-      return res.json(questions);
-    } catch (geminiError) {
-      console.warn('[AI] Gemini failed, checking DeepSeek fallback...', geminiError.message);
-      
-      // If Gemini has quota issues (429) and DeepSeek is configured, switch to DeepSeek
-      if ((geminiError.message.includes('429') || geminiError.message.includes('limit')) && isDSAvailable) {
-        console.log('[AI] Gemini quota exceeded. Using DeepSeek fallback.');
-        const questions = await generateQuestionsDS(topic, instructions, count || 5);
-        return res.json(questions);
-      }
-      throw geminiError; // Re-throw if DeepSeek not available or other error
-    }
+    console.log(`[AI] Generating questions for topic: ${topic}`);
+    const questions = await generateQuestions(topic, instructions, count || 5);
+    return res.json(questions);
   } catch (e) {
     console.error('[AI] Question Generation Error:', e);
     res.status(500).json({ 
@@ -4679,21 +4665,9 @@ app.post('/api/ai/evaluate-answer', auth, async (req, res) => {
     const { question, studentAnswer, maxMarks } = req.body;
     if (!question || !studentAnswer) return res.status(400).json({ error: 'question and studentAnswer are required' });
 
-    // Try Gemini first
-    try {
-      console.log(`[AI] Attempting Gemini evaluation...`);
-      const evaluation = await evaluateShortAnswer(question, studentAnswer, maxMarks || 10);
-      return res.json(evaluation);
-    } catch (geminiError) {
-      console.warn('[AI] Gemini evaluation failed, checking DeepSeek fallback...', geminiError.message);
-      
-      if ((geminiError.message.includes('429') || geminiError.message.includes('limit')) && isDSAvailable) {
-        console.log('[AI] Gemini quota exceeded. Using DeepSeek for evaluation.');
-        const evaluation = await evaluateShortAnswerDS(question, studentAnswer, maxMarks || 10);
-        return res.json(evaluation);
-      }
-      throw geminiError;
-    }
+    console.log(`[AI] Evaluating student answer...`);
+    const evaluation = await evaluateShortAnswer(question, studentAnswer, maxMarks || 10);
+    return res.json(evaluation);
   } catch (e) {
     console.error('[AI] Evaluation Error:', e);
     res.status(500).json({ 
@@ -4714,9 +4688,9 @@ app.use((err, req, res, next) => {
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
-  if (!process.env.GEMINI_API_KEY) {
-    console.warn('⚠️ WARNING: GEMINI_API_KEY is not set in .env. AI features will fail.');
+  if (!process.env.OPENAI_API_KEY) {
+    console.warn('⚠️ WARNING: OPENAI_API_KEY is not set in .env. AI features will fail.');
   } else {
-    console.log('✅ Gemini AI service initialized.');
+    console.log('✅ AI service initialized using OpenAI/OpenRouter.');
   }
 });

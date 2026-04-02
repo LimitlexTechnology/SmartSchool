@@ -1,20 +1,24 @@
 const OpenAI = require("openai");
 require('dotenv').config();
 
-let openai = null;
-
-if (process.env.DEEPSEEK_API_KEY) {
-  openai = new OpenAI({
-    baseURL: 'https://api.deepseek.com',
-    apiKey: process.env.DEEPSEEK_API_KEY,
-  });
-}
+// Since the API key provided starts with 'sk-or-v1-', it's an OpenRouter key.
+// We use OpenRouter's base URL and a standard model like GPT-4o-mini or Gemini Flash.
+const openai = new OpenAI({
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENAI_API_KEY,
+  defaultHeaders: {
+    "HTTP-Referer": "https://smartschool.edu", // Optional, for OpenRouter rankings
+    "X-Title": "SmartSchool", // Optional
+  }
+});
 
 /**
- * Generates questions using DeepSeek.
+ * Generates questions using the configured AI service.
  */
-async function generateQuestionsDS(topic, instructions = "", count = 5) {
-  if (!openai) throw new Error("DEEPSEEK_API_KEY is not configured.");
+async function generateQuestions(topic, instructions = "", count = 5) {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("OPENAI_API_KEY is not configured.");
+  }
 
   const prompt = `
     You are an expert teacher. Generate ${count} exam questions about "${topic}".
@@ -32,31 +36,33 @@ async function generateQuestionsDS(topic, instructions = "", count = 5) {
 
   try {
     const response = await openai.chat.completions.create({
-      model: "deepseek-chat",
+      model: "openai/gpt-4o-mini", // Using GPT-4o-mini via OpenRouter
       messages: [
         { role: "system", content: "You are a professional educational content creator. Always return valid JSON." },
         { role: "user", content: prompt },
       ],
-      response_format: { type: 'json_object' } // DeepSeek supports JSON mode
+      response_format: { type: 'json_object' }
     });
 
     const text = response.choices[0].message.content;
-    console.log("[DeepSeek] Raw Response:", text);
+    console.log("[AI Service] Raw Response:", text);
     
-    // Some models wrap the array in an object even if asked for an array
     const parsed = JSON.parse(text);
+    // OpenRouter models might return the array directly or wrapped in an object
     return Array.isArray(parsed) ? parsed : (parsed.questions || Object.values(parsed)[0]);
   } catch (error) {
-    console.error("DeepSeek Question Generation Error:", error);
+    console.error("AI Question Generation Error:", error);
     throw error;
   }
 }
 
 /**
- * Evaluates short answers using DeepSeek.
+ * Evaluates short answers using the configured AI service.
  */
-async function evaluateShortAnswerDS(question, studentAnswer, maxMarks) {
-  if (!openai) throw new Error("DEEPSEEK_API_KEY is not configured.");
+async function evaluateShortAnswer(question, studentAnswer, maxMarks) {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("OPENAI_API_KEY is not configured.");
+  }
 
   const prompt = `
     Question: "${question}"
@@ -76,7 +82,7 @@ async function evaluateShortAnswerDS(question, studentAnswer, maxMarks) {
 
   try {
     const response = await openai.chat.completions.create({
-      model: "deepseek-chat",
+      model: "openai/gpt-4o-mini",
       messages: [
         { role: "system", content: "You are an expert examiner. Always return valid JSON." },
         { role: "user", content: prompt },
@@ -86,13 +92,13 @@ async function evaluateShortAnswerDS(question, studentAnswer, maxMarks) {
 
     return JSON.parse(response.choices[0].message.content);
   } catch (error) {
-    console.error("DeepSeek Evaluation Error:", error);
+    console.error("AI Evaluation Error:", error);
     throw error;
   }
 }
 
 module.exports = {
-  generateQuestionsDS,
-  evaluateShortAnswerDS,
-  isDSAvailable: !!openai
+  generateQuestions,
+  evaluateShortAnswer,
+  isAvailable: !!process.env.OPENAI_API_KEY
 };
