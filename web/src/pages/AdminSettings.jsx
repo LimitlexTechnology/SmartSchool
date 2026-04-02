@@ -37,7 +37,10 @@ import {
   Moon,
   Sun,
   Eye,
-  EyeOff
+  EyeOff,
+  Key,
+  Hash,
+  ChevronDown
 } from 'lucide-react'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
@@ -241,6 +244,11 @@ const AdminSettings = () => {
   const [staffList, setStaffList] = useState([])
   const [permSearch, setPermSearch] = useState('')
   const [expandedCategory, setExpandedCategory] = useState('general')
+
+  // Administrative Tasks Selectors
+  const [selectedStaffForPin, setSelectedStaffForPin] = useState('')
+  const [selectedStaffForPriv, setSelectedStaffForPriv] = useState('')
+  const [selectedPrivilege, setSelectedPrivilege] = useState('')
 
   const crestInputRef = useRef(null)
   const bannerInputRef = useRef(null)
@@ -517,6 +525,54 @@ const AdminSettings = () => {
   }
   const releaseHistory = () => {
     alert('Release history is not set up yet.')
+  }
+
+  const handleMoveTerm = async () => {
+    const currentYear = localStorage.getItem('academicYearLabel') || `${new Date().getFullYear()}/${new Date().getFullYear()+1}`
+    const currentTerm = localStorage.getItem('academicTermLabel') || 'First Term'
+    
+    let nextTerm = 'First Term'
+    let nextYear = currentYear
+    
+    if (currentTerm === 'First Term') nextTerm = 'Second Term'
+    else if (currentTerm === 'Second Term') nextTerm = 'Third Term'
+    else if (currentTerm === 'Third Term') {
+      nextTerm = 'First Term'
+      const startYear = parseInt(currentYear.split('/')[0], 10)
+      nextYear = `${startYear + 1}/${startYear + 2}`
+    }
+
+    const confirmMsg = `Are you sure you want to move to the next term?\n\nCurrent: ${currentTerm} (${currentYear})\nNext: ${nextTerm} (${nextYear})\n\nThis will snapshot current data for this term.`
+    if (!window.confirm(confirmMsg)) return
+
+    setIsSaving(true)
+    try {
+      const res = await fetch('/api/admin/schools/move-term', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentTerm, currentYear, nextTerm, nextYear })
+      })
+      
+      if (!res.ok) throw new Error('Failed to move term in backend')
+      
+      // Update global context
+      const startYear = parseInt(nextYear.split('/')[0], 10)
+      localStorage.setItem('academicBaseYear', String(startYear))
+      localStorage.setItem('academicYearLabel', nextYear)
+      localStorage.setItem('academicTermLabel', nextTerm)
+      
+      window.dispatchEvent(new CustomEvent('academicPeriod:change', { 
+        detail: { year: nextYear, term: nextTerm } 
+      }))
+
+      alert(`Successfully moved to ${nextTerm} (${nextYear})!`)
+      setHasChanges(false)
+    } catch (error) {
+      console.error('Move term failed:', error)
+      alert('Failed to move to next term. Please try again.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -862,24 +918,135 @@ const AdminSettings = () => {
         )}
 
         {activeTab === 'tasks' && (
-          <div className="p-10 space-y-6">
-            <div className="text-center py-20 space-y-4">
-              <div className="w-16 h-16 bg-primary-teal/5 text-primary-teal rounded-3xl flex items-center justify-center mx-auto">
-                <Shield size={32} />
+          <div className="space-y-10 pb-10">
+            {/* Banner Section */}
+            <div className="relative h-48 w-full bg-[#F0F7F7] rounded-xl overflow-hidden group/banner">
+              <div className="absolute inset-0 opacity-40">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-primary-teal/10 rounded-full -mr-20 -mt-20 blur-3xl"></div>
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-secondary-teal/10 rounded-full -ml-16 -mb-16 blur-2xl"></div>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-dark-text">Administrative Tasks</h3>
-                <p className="text-sm text-muted-text font-medium">Perform system maintenance and sync actions</p>
+              <div className="absolute top-4 left-10 flex gap-4 opacity-20">
+                <div className="w-8 h-32 bg-primary-teal/20 rounded-full rotate-12"></div>
+                <div className="w-6 h-24 bg-secondary-teal/20 rounded-full -rotate-12 mt-8"></div>
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+                <div className="relative w-full max-w-lg">
+                  <div className="absolute top-0 left-0 transform -rotate-12">
+                    <svg width="100" height="100" viewBox="0 0 100 100" fill="currentColor" className="text-primary-teal">
+                      <path d="M50 0 C60 20 80 30 100 30 C80 40 70 60 70 80 C50 70 30 80 10 70 C30 60 20 40 0 30 C20 30 40 20 50 0" />
+                    </svg>
+                  </div>
+                  <div className="absolute bottom-0 right-0 transform rotate-45">
+                    <svg width="120" height="120" viewBox="0 0 100 100" fill="currentColor" className="text-secondary-teal">
+                      <path d="M50 0 C60 20 80 30 100 30 C80 40 70 60 70 80 C50 70 30 80 10 70 C30 60 20 40 0 30 C20 30 40 20 50 0" />
+                    </svg>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="divide-y divide-gray-50 border-t border-gray-50">
-              <ActionRow icon={RefreshCw} title="Update my permissions" desc="Use this if your permissions have changed but are not reflecting" button="Update Permissions" onClick={updatePermissions} />
-              <ActionRow icon={RotateCcw} title="Deep Refresh" desc="Pulls in data from a longer period and clears stale caches" button="Deep Refresh" onClick={deepRefresh} />
-              <ActionRow icon={Database} title="Sync All Data" desc="Completely sync all data from the server" button="Sync All Data" onClick={syncAll} />
-              <ActionRow icon={Database} title="Complete Reset" desc="Completely reset the application. Use only as a last resort" button="Reset App" onClick={resetApp} tone="danger" />
-              <ActionRow icon={Download} title="Install SchoolDesk" desc="Install as a desktop app for quicker access" button="Install" onClick={installApp} />
-              <ActionRow icon={History} title="Release History" desc="View release notes for recent versions" button="View" onClick={releaseHistory} />
+            <div className="px-10 -mt-10 relative z-10 space-y-12">
+              <h2 className="text-2xl font-bold text-dark-text tracking-tight">Administrative Tasks</h2>
+
+              {/* Term/Semester Actions */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
+                  <div className="p-2 rounded-lg bg-light-bg text-primary-teal">
+                    <Hash size={18} strokeWidth={3} />
+                  </div>
+                  <h3 className="text-sm font-black text-dark-text uppercase tracking-widest">Term/Semester Actions</h3>
+                </div>
+
+                <div className="flex items-center justify-between py-2">
+                  <div className="text-sm font-medium text-dark-text">Start a new term or semester</div>
+                  <button 
+                    onClick={handleMoveTerm}
+                    disabled={isSaving}
+                    className="px-6 py-2 bg-error text-white rounded-lg text-xs font-black shadow-lg shadow-error/20 hover:scale-105 transition-transform active:scale-95 disabled:opacity-50"
+                  >
+                    {isSaving ? 'Moving...' : 'Move Now'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Security Section */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
+                  <div className="p-2 rounded-lg bg-light-bg text-primary-teal">
+                    <Key size={18} strokeWidth={3} />
+                  </div>
+                  <h3 className="text-sm font-black text-dark-text uppercase tracking-widest">Security</h3>
+                </div>
+
+                <div className="space-y-6 max-w-xl">
+                  {/* Reset PIN */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-muted-text">Reset staff PIN</label>
+                    <div className="relative group">
+                      <select 
+                        value={selectedStaffForPin}
+                        onChange={(e) => setSelectedStaffForPin(e.target.value)}
+                        className="w-full h-12 pl-4 pr-10 rounded-xl border-2 border-gray-50 bg-white text-sm font-bold text-dark-text focus:border-primary-teal focus:outline-none transition-all appearance-none cursor-pointer"
+                      >
+                        <option value="">Select staff</option>
+                        {staffList.map(s => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-text pointer-events-none group-focus-within:text-primary-teal transition-colors" size={16} />
+                    </div>
+                  </div>
+
+                  {/* Update Privileges */}
+                  <div className="space-y-4">
+                    <label className="text-xs font-bold text-muted-text">Update Staff Privileges</label>
+                    <div className="space-y-3">
+                      <div className="relative group">
+                        <select 
+                          value={selectedStaffForPriv}
+                          onChange={(e) => setSelectedStaffForPriv(e.target.value)}
+                          className="w-full h-12 pl-4 pr-10 rounded-xl border-2 border-gray-50 bg-white text-sm font-bold text-dark-text focus:border-primary-teal focus:outline-none transition-all appearance-none cursor-pointer"
+                        >
+                          <option value="">Select staff</option>
+                          {staffList.map(s => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-text pointer-events-none group-focus-within:text-primary-teal transition-colors" size={16} />
+                      </div>
+
+                      <div className="relative group">
+                        <select 
+                          value={selectedPrivilege}
+                          onChange={(e) => setSelectedPrivilege(e.target.value)}
+                          className="w-full h-12 pl-4 pr-10 rounded-xl border-2 border-gray-50 bg-white text-sm font-bold text-dark-text focus:border-primary-teal focus:outline-none transition-all appearance-none cursor-pointer"
+                        >
+                          <option value="">Select Staff privilege</option>
+                          {PERMISSION_CATEGORIES.map(cat => (
+                            <optgroup key={cat.id} label={cat.title}>
+                              {cat.permissions.map(p => (
+                                <option key={p.id} value={p.id}>{p.label}</option>
+                              ))}
+                            </optgroup>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-text pointer-events-none group-focus-within:text-primary-teal transition-colors" size={16} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Save Button */}
+              <div className="flex justify-end pt-8">
+                <button 
+                  onClick={handleSave}
+                  className="flex items-center gap-2 px-10 py-3 bg-primary-teal/20 text-primary-teal border-2 border-primary-teal/20 rounded-xl text-sm font-black hover:bg-primary-teal hover:text-white transition-all shadow-lg shadow-primary-teal/10"
+                >
+                  <Save size={18} />
+                  Save
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -1,0 +1,171 @@
+{
+  "papers": [
+    {
+      "id": "5a54e4ae-22c8-4df0-b96a-c4f154973a47",
+      "title": "FRENCH QUESTIONS",
+      "createdAt": "2026-04-02T19:42:30.839Z",
+      "status": "Draft"
+    }
+  ],
+  "sections": [
+    {
+      "id": "b7c91f12-91d8-4c0c-b11a-f9f3552542ce",
+      "paperId": "5a54e4ae-22c8-4df0-b96a-c4f154973a47",
+      "title": "ARTICLE PARTITIF",
+      "description": "REPONDEZ AU QUESTION EN-DESSOUS",
+      "order": 0
+    }
+  ],
+  "questions": [
+    {
+      "id": "d2cfc227-7686-4b2e-8b33-b55128f649f8",
+      "sectionId": "b7c91f12-91d8-4c0c-b11a-f9f3552542ce",
+      "text": "Which of the following is an example of a partitive article in French?",
+      "type": "Multiple Choice",
+      "marks": 1,
+      "options": [
+        "la",
+        "des",
+        "une",
+        "le"
+      ],
+      "correctAnswer": "des",
+      "order": 0
+    },
+    {
+      "id": "06e90921-037b-4180-a8a4-b127a295f12b",
+      "sectionId": "b7c91f12-91d8-4c0c-b11a-f9f3552542ce",
+      "text": "What does the partitive article 'du' indicate?",
+      "type": "Multiple Choice",
+      "marks": 1,
+      "options": [
+        "A specific quantity of masculine singular items",
+        "A specific item",
+        "A place",
+        "All items"
+      ],
+      "correctAnswer": "A specific quantity of masculine singular items",
+      "order": 1
+    },
+    {
+      "id": "222b18a6-7b38-4402-874a-4ce8c1b74dcc",
+      "sectionId": "b7c91f12-91d8-4c0c-b11a-f9f3552542ce",
+      "text": "In which situation would you use the partitive article 'de la'?",
+      "type": "Multiple Choice",
+      "marks": 1,
+      "options": [
+        "With masculine nouns",
+        "With feminine nouns that are uncountable",
+        "With plural nouns",
+        "With singular countable nouns"
+      ],
+      "correctAnswer": "With feminine nouns that are uncountable",
+      "order": 2
+    },
+    {
+      "id": "a10d1d5e-1c9a-49d7-829f-77295165e856",
+      "sectionId": "b7c91f12-91d8-4c0c-b11a-f9f3552542ce",
+      "text": "What is the partitive article for plural nouns in French?",
+      "type": "Multiple Choice",
+      "marks": 1,
+      "options": [
+        "le",
+        "la",
+        "les",
+        "des"
+      ],
+      "correctAnswer": "des",
+      "order": 3
+    },
+    {
+      "id": "854b7177-a915-47ef-bb62-5a38cbbdeedd",
+      "sectionId": "b7c91f12-91d8-4c0c-b11a-f9f3552542ce",
+      "text": "Which sentence correctly uses the partitive article?",
+      "type": "Multiple Choice",
+      "marks": 1,
+      "options": [
+        "Je mange du pain.",
+        "Je mange le pain.",
+        "Je mange un pain.",
+        "Je mange les pains."
+      ],
+      "correctAnswer": "Je mange du pain.",
+      "order": 4
+    },
+    {
+      "id": "46c065b6-b40c-4c56-b893-79618cd05d8d",
+      "sectionId": "b7c91f12-91d8-4c0c-b11a-f9f3552542ce",
+      "text": "Which of the following sentences does NOT use a partitive article?",
+      "type": "Multiple Choice",
+      "marks": 1,
+      "options": [
+        "Je veux du chocolat.",
+        "Je veux la voiture.",
+        "Il y a des pommes.",
+        "Je prends de l'eau."
+      ],
+      "correctAnswer": "Je veux la voiture.",
+      "order": 5
+    },
+    {
+      "id": "b414a2dd-d7cb-4cc4-9740-b34e565c09ab",
+      "sectionId": "b7c91f12-91d8-4c0c-b11a-f9f3552542ce",
+      "text": "How do partitive articles generally relate to quantity?",
+      "type": "Multiple Choice",
+      "marks": 1,
+      "options": [
+        "They refer to a whole item",
+        "They indicate specific quantities",
+        "They refer to an unspecified quantity",
+        "They indicate the absence of quantity"
+      ],
+      "correctAnswer": "They refer to an unspecified quantity",
+      "order": 6
+    },
+    {
+      "id": "2a35e91e-b444-4fdf-88c0-3a3b51ffd9ee",
+      "sectionId": "b7c91f12-91d8-4c0c-b11a-f9f3552542ce",
+      "text": "Identify the partitive article in the sentence: 'Je bois du lait.'",
+      "type": "Multiple Choice",
+      "marks": 1,
+      "options": [
+        "Je",
+        "bois",
+        "du",
+        "lait"
+      ],
+      "correctAnswer": "du",
+      "order": 7
+    },
+    {
+      "id": "e712b73c-9404-4cca-90e3-bf559d95e3ff",
+      "sectionId": "b7c91f12-91d8-4c0c-b11a-f9f3552542ce",
+      "text": "Which partitive article would you use with 'eau'?",
+      "type": "Multiple Choice",
+      "marks": 1,
+      "options": [
+        "du",
+        "de la",
+        "des",
+        "le"
+      ],
+      "correctAnswer": "de la",
+      "order": 8
+    },
+    {
+      "id": "f719b441-7489-4b00-8767-0f3121e110d6",
+      "sectionId": "b7c91f12-91d8-4c0c-b11a-f9f3552542ce",
+      "text": "What is the French partitive article for 'some bread'?",
+      "type": "Multiple Choice",
+      "marks": 1,
+      "options": [
+        "le pain",
+        "du pain",
+        "des pains",
+        "la pain"
+      ],
+      "correctAnswer": "du pain",
+      "order": 9
+    }
+  ]
+}
