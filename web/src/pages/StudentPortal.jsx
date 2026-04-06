@@ -244,7 +244,7 @@ const StudentPortal = () => {
             {/* Sub Navigation Tabs - Desktop Only */}
             <nav className="bg-white border-b border-gray-200 px-6 overflow-x-auto sticky top-0 z-40 shadow-sm hidden lg:block">
                 <div className="max-w-[1200px] mx-auto flex items-center gap-8 py-1">
-                    {['Dashboard', 'Online Campus', 'Classroom', 'Accounts', 'Messages', 'Exams', 'Student Records', 'Parent Settings'].map((tab) => (
+                    {['Dashboard', 'Online Campus', 'Classroom', 'Accounts', 'Skullar Connect', 'Messages', 'Exams', 'Student Records', 'Parent Settings'].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => {
@@ -253,6 +253,8 @@ const StudentPortal = () => {
                                     navigate('/portal/online-campus')
                                 } else if (tab === 'Dashboard') {
                                     navigate('/portal')
+                                } else if (tab === 'Skullar Connect') {
+                                    navigate('/skullar-connect')
                                 } else if (tab === 'Messages') {
                                     // Mark as read
                                     localStorage.setItem('student_inbox_last_seen', Date.now().toString())
@@ -506,6 +508,13 @@ const StudentPortal = () => {
                                 color="#F4ECFF" 
                                 textColor="#A855F7" 
                                 onClick={() => navigate('/portal/online-campus')}
+                            />
+                            <QuickAction 
+                                icon={Activity} 
+                                label="Skullar Connect" 
+                                color="#F5F3FF" 
+                                textColor="#7C3AED" 
+                                onClick={() => navigate('/skullar-connect')}
                             />
                             <QuickAction icon={CreditCard} label="Accounts" color="#F0FDF4" textColor="#22C55E" />
                             <QuickAction icon={MessageSquare} label="Messages" color="#EFF6FF" textColor="#3B82F6" onClick={() => setActiveTab('Messages')} />
@@ -823,6 +832,7 @@ const StudentPortal = () => {
                             {[
                                 { id: 'Dashboard', icon: LayoutDashboard },
                                 { id: 'Online Campus', icon: BookOpen },
+                                { id: 'Skullar Connect', icon: Activity },
                                 { id: 'Classroom', icon: Users },
                                 { id: 'Accounts', icon: CreditCard },
                                 { id: 'Messages', icon: MessageSquare },
@@ -837,6 +847,8 @@ const StudentPortal = () => {
                                         setIsSidebarOpen(false)
                                         if (item.id === 'Online Campus') {
                                             navigate('/portal/online-campus')
+                                        } else if (item.id === 'Skullar Connect') {
+                                            navigate('/skullar-connect')
                                         } else if (item.id === 'Dashboard') {
                                             navigate('/portal')
                                         }

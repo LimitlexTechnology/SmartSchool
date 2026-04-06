@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Heart, MessageSquare, Share2, Image as ImageIcon,
     Video, Smile, MapPin, Send, Trash2, Globe,
@@ -195,7 +196,7 @@ const ReshareModal = ({ isOpen, post, onReshare, onCancel }) => {
 };
 
 // Dynamic users loaded via state
-const PostItem = ({ post, userId, userName, userProfilePhoto, onLike, onComment, onShare, onDelete, onSave, isSaved, canDelete, onUpdate, onCommentAction }) => {
+const PostItem = ({ post, userId, userName, userProfilePhoto, onLike, onComment, onShare, onDelete, onSave, isSaved, canDelete, onUpdate, onCommentAction, users = [] }) => {
     const [commentText, setCommentText] = useState('');
     const [showComments, setShowComments] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
@@ -203,6 +204,10 @@ const PostItem = ({ post, userId, userName, userProfilePhoto, onLike, onComment,
     const [editContent, setEditContent] = useState(post.content);
     const [editingCommentId, setEditingCommentId] = useState(null);
     const [editCommentText, setEditCommentText] = useState('');
+
+    // Try to get latest author info from users list
+    const latestAuthor = users.find(u => u.name === post.authorName);
+    const authorPhoto = latestAuthor?.profilePhoto || post.authorPhoto;
 
     const liked = (post.likes || []).includes(userId);
     const isShort = post.content.length < 200 && !post.imageUrl;
@@ -219,7 +224,7 @@ const PostItem = ({ post, userId, userName, userProfilePhoto, onLike, onComment,
     };
 
     const handleCopyLink = () => {
-        navigator.clipboard.writeText(`${window.location.origin}/dashboard/skullar-connect?post=${post.id}`);
+        navigator.clipboard.writeText(`${window.location.origin}/skullar-connect?post=${post.id}`);
         setShowMenu(false);
     };
 
@@ -228,7 +233,7 @@ const PostItem = ({ post, userId, userName, userProfilePhoto, onLike, onComment,
             {/* Post Header */}
             <div className="flex items-start justify-between px-5 pt-4 pb-3">
                 <div className="flex items-center gap-3">
-                    <Avatar name={post.authorName} photo={post.authorPhoto} size={10} />
+                    <Avatar name={post.authorName} photo={authorPhoto} size={10} />
                     <div>
                         <div className="flex items-center gap-2 flex-wrap">
                             <p className="text-sm font-black text-dark-text">{post.authorName}</p>
@@ -409,13 +414,15 @@ const PostItem = ({ post, userId, userName, userProfilePhoto, onLike, onComment,
             {showComments && (
                 <div className="border-t border-purple-50 bg-gradient-to-b from-purple-50/40 to-white px-5 py-4 space-y-4">
                     {(post.comments || []).map(c => {
-                        const isCMe = c.fromId === userId;
-                        const cLiked = (c.likes || []).includes(userId);
-                        return (
-                            <div key={c.id} className="group/item">
-                                <div className="flex items-start gap-2.5">
-                                    <Avatar name={c.authorName} photo={c.authorPhoto} size={8} className="mt-1" />
-                                    <div className="flex-1 space-y-1">
+                            const isCMe = c.fromId === userId;
+                            const cLiked = (c.likes || []).includes(userId);
+                            const latestCAuthor = users.find(u => u.name === c.authorName);
+                            const cAuthorPhoto = latestCAuthor?.profilePhoto || c.authorPhoto;
+                            return (
+                                <div key={c.id} className="group/item">
+                                    <div className="flex items-start gap-2.5">
+                                        <Avatar name={c.authorName} photo={cAuthorPhoto} size={8} className="mt-1" />
+                                        <div className="flex-1 space-y-1">
                                         <div className="bg-white rounded-2xl px-4 py-2.5 border border-purple-100 shadow-sm relative group">
                                             <div className="flex items-center justify-between gap-2">
                                                 <p className="text-[11px] font-black text-dark-text">{c.authorName}</p>
@@ -457,21 +464,21 @@ const PostItem = ({ post, userId, userName, userProfilePhoto, onLike, onComment,
                     
                     {/* Input Field */}
                     <div className="flex items-center gap-2.5 pt-2 border-t border-purple-50/50">
-                        <Avatar name={userName} photo={userProfilePhoto} size={8} />
-                        <div className="flex-1 flex items-center gap-2 bg-white rounded-2xl border border-purple-100 pr-1.5 pl-4 py-1.5 focus-within:ring-4 focus-within:ring-violet-50 transition-all">
-                            <input
-                                type="text"
-                                value={commentText}
-                                onChange={e => setCommentText(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && handleComment()}
-                                placeholder="Add a brilliant comment..."
-                                className="flex-1 bg-transparent text-[13px] outline-none font-medium placeholder:text-purple-300"
-                            />
-                            <button onClick={handleComment} className="w-8 h-8 rounded-xl bg-violet-600 text-white flex items-center justify-center hover:bg-violet-700 transition shadow-lg shadow-violet-200">
-                                <Send size={14} />
-                            </button>
-                        </div>
-                    </div>
+                                <Avatar name={userName} photo={userProfilePhoto} size={8} />
+                                <div className="flex-1 flex items-center gap-2 bg-white rounded-2xl border border-purple-100 pr-1.5 pl-4 py-1.5 focus-within:ring-4 focus-within:ring-violet-50 transition-all">
+                                    <input
+                                        type="text"
+                                        value={commentText}
+                                        onChange={e => setCommentText(e.target.value)}
+                                        onKeyDown={e => e.key === 'Enter' && handleComment()}
+                                        placeholder="Add a brilliant comment..."
+                                        className="flex-1 bg-transparent text-[13px] outline-none font-medium placeholder:text-purple-300"
+                                    />
+                                    <button onClick={handleComment} className="w-8 h-8 rounded-xl bg-violet-600 text-white flex items-center justify-center hover:bg-violet-700 transition shadow-lg shadow-violet-200">
+                                        <Send size={14} />
+                                    </button>
+                                </div>
+                            </div>
                 </div>
             )}
         </div>
@@ -487,6 +494,10 @@ const DirectMessaging = ({ users, schoolId, userId, userRole, userName, userProf
     const [showActivity, setShowActivity] = useState(false);
     const [mutedUsers, setMutedUsers] = useState([]);
     const [blockedUsers, setBlockedUsers] = useState([]);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [filePreview, setFilePreview] = useState(null);
+    const [isUploading, setIsUploading] = useState(false);
     const msgsEndRef = React.useRef(null);
     const moreMenuRef = React.useRef(null);
 
@@ -512,15 +523,41 @@ const DirectMessaging = ({ users, schoolId, userId, userRole, userName, userProf
         return () => document.removeEventListener('mousedown', handler);
     }, []);
 
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) return alert("File is too large (max 5MB)");
+        
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setSelectedFile(file);
+            setFilePreview(reader.result);
+        };
+        reader.readAsDataURL(file);
+    };
+
     const handleSend = async () => {
-        if(!msgText.trim() || !activeTarget) return;
+        if((!msgText.trim() && !filePreview) || !activeTarget) return;
         const tempText = msgText;
+        const tempMedia = filePreview;
+        const fileName = selectedFile?.name;
+        
         setMsgText('');
+        setSelectedFile(null);
+        setFilePreview(null);
+        setShowEmojiPicker(false);
+        
         try {
             const res = await fetch(`/api/connect/chats/${activeTarget.id}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-user-id': userId, 'x-school-id': schoolId },
-                body: JSON.stringify({ text: tempText, authorName: userName, authorPhoto: userProfilePhoto })
+                body: JSON.stringify({ 
+                    text: tempText, 
+                    media: tempMedia,
+                    fileName: fileName,
+                    authorName: userName, 
+                    authorPhoto: userProfilePhoto 
+                })
             });
             if(res.ok) {
                 const sent = await res.json();
@@ -741,6 +778,11 @@ const DirectMessaging = ({ users, schoolId, userId, userRole, userName, userProf
                                                     ? 'bg-violet-600 text-white rounded-br-[4px]'
                                                     : 'bg-gray-100 text-gray-900 rounded-bl-[4px]'
                                             )}>
+                                                {c.media && (
+                                                    <div className="mb-2 rounded-lg overflow-hidden border border-white/10">
+                                                        <img src={c.media} alt="Sent media" className="max-w-full h-auto max-h-60 object-cover" />
+                                                    </div>
+                                                )}
                                                 {c.text}
                                             </div>
                                         </div>
@@ -750,21 +792,48 @@ const DirectMessaging = ({ users, schoolId, userId, userRole, userName, userProf
                             </div>
 
                             {/* Input bar */}
-                            <div className="px-4 py-3 bg-white border-t border-gray-100">
+                            <div className="px-4 py-3 bg-white border-t border-gray-100 relative">
+                                {/* Emoji Picker */}
+                                {showEmojiPicker && (
+                                    <div className="absolute bottom-full left-4 mb-2 p-3 bg-white border border-purple-100 rounded-3xl shadow-2xl z-50 grid grid-cols-8 gap-2 w-72 animate-in slide-in-from-bottom-2 duration-200">
+                                        {['😊', '😂', '🔥', '👍', '❤️', '🙌', '🎉', '💡', '🎓', '📚', '🚀', '✨', '💯', '🤔', '😎', '✍️', '🏀', '⚽', '🎨', '🎹', '🧬', '🌍', '🏠', '💻'].map(emoji => (
+                                            <button 
+                                                key={emoji} 
+                                                onClick={() => { setMsgText(t => t + emoji); setShowEmojiPicker(false); }}
+                                                className="w-7 h-7 flex items-center justify-center text-lg hover:bg-violet-50 rounded-lg transition active:scale-90"
+                                            >
+                                                {emoji}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Media Preview */}
+                                {filePreview && (
+                                    <div className="mx-2 mb-3 relative w-20 h-20 rounded-xl overflow-hidden border-2 border-violet-100 group">
+                                        <img src={filePreview} className="w-full h-full object-cover" alt="Preview" />
+                                        <button onClick={() => { setFilePreview(null); setSelectedFile(null); }} className="absolute top-1 right-1 w-5 h-5 bg-black/50 text-white rounded-full flex items-center justify-center text-[10px] hover:bg-rose-500 transition">✕</button>
+                                    </div>
+                                )}
+
                                 <div className="flex items-center gap-2">
-                                    <button className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center text-violet-500 transition shrink-0">
+                                    <input type="file" id="msg-file" hidden accept="image/*" onChange={handleFileChange} />
+                                    <label htmlFor="msg-file" className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center text-violet-500 transition shrink-0 cursor-pointer">
                                         <ImageIcon size={18} />
-                                    </button>
-                                    <button className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center text-violet-500 transition shrink-0">
+                                    </label>
+                                    <button 
+                                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                                        className={clx("w-9 h-9 rounded-full flex items-center justify-center transition shrink-0", showEmojiPicker ? "bg-violet-100 text-violet-600" : "hover:bg-gray-100 text-violet-500")}
+                                    >
                                         <Smile size={18} />
                                     </button>
-                                    <div className="flex-1 flex items-center bg-gray-100 rounded-full px-4 py-2.5 gap-2">
+                                    <div className="flex-1 flex items-center bg-gray-100 rounded-full px-4 py-2.5 gap-2 group-focus-within:bg-gray-200 transition-colors">
                                         <input
                                             type="text"
                                             value={msgText}
                                             onChange={e => setMsgText(e.target.value)}
                                             onKeyDown={e => e.key === 'Enter' && handleSend()}
-                                            placeholder="Aa"
+                                            placeholder="Type a message..."
                                             className="flex-1 bg-transparent text-[14px] outline-none font-medium placeholder-gray-400 text-gray-900"
                                         />
                                     </div>
@@ -772,12 +841,12 @@ const DirectMessaging = ({ users, schoolId, userId, userRole, userName, userProf
                                         onClick={handleSend}
                                         className={clx(
                                             "w-9 h-9 rounded-full flex items-center justify-center transition shrink-0",
-                                            msgText.trim()
+                                            (msgText.trim() || filePreview)
                                                 ? "bg-violet-600 text-white hover:bg-violet-700 shadow-md"
                                                 : "text-violet-400 hover:bg-gray-100"
                                         )}
                                     >
-                                        {msgText.trim() ? <Send size={16} className="ml-0.5" /> : <Heart size={18} />}
+                                        {(msgText.trim() || filePreview) ? <Send size={16} className="ml-0.5" /> : <Heart size={18} />}
                                     </button>
                                 </div>
                             </div>
@@ -861,7 +930,29 @@ const DirectMessaging = ({ users, schoolId, userId, userRole, userName, userProf
 
 
 export default function SkullarConnect() {
+    const schoolId = localStorage.getItem('schoolId') || 'local';
+    const rawRole = (localStorage.getItem('userRole') || 'student').toLowerCase();
+    const isSchoolAdmin = rawRole.includes('admin');
+    const isModerator = rawRole.includes('teacher') || rawRole.includes('staff') || rawRole.includes('moderator');
+    const sid = localStorage.getItem('schoolId') || 'local';
+    const userName = (isSchoolAdmin ? (localStorage.getItem(`adminName:${sid}`) || localStorage.getItem('adminName') || localStorage.getItem('fullname'))
+                   : isModerator ? (localStorage.getItem('teacherName') || localStorage.getItem('fullname') || localStorage.getItem('staffName'))
+                   : localStorage.getItem('studentName') || localStorage.getItem('fullname')) || 'Admin User';
+
+    const userProfilePhoto = isSchoolAdmin ? (localStorage.getItem(`adminPhoto:${sid}`) || localStorage.getItem('adminPhoto') || localStorage.getItem('userProfilePic'))
+                           : isModerator ? localStorage.getItem('teacherPhoto')
+                           : localStorage.getItem('studentPhoto') || null;
+
+    const userId = isSchoolAdmin ? (localStorage.getItem('userPhone') || 'admin')
+                : isModerator ? localStorage.getItem('teacherId')
+                : localStorage.getItem('studentId') || 'user';
+
+    const displayRole = isSchoolAdmin ? 'SCHOOL ADMIN'
+                      : isModerator ? 'MODERATOR' : 'STUDENT';
+    const userRole = isSchoolAdmin ? 'admin' : isModerator ? 'teacher' : 'student';
+
     const [posts, setPosts] = useState([]);
+    const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [posting, setPosting] = useState(false);
     const [draftContent, setDraftContent] = useState('');
@@ -870,7 +961,7 @@ export default function SkullarConnect() {
     const [commentInput, setCommentInput] = useState({});
     const [expandedComments, setExpandedComments] = useState({});
     const [activeNav, setActiveNav] = useState('Feed');
-    const [showSidebar, setShowSidebar] = useState(false);
+    const [showSidebar, setShowSidebar] = useState(userRole === 'student');
     
     // Composer Extras
     const [draftFeeling, setDraftFeeling] = useState('');
@@ -880,20 +971,86 @@ export default function SkullarConnect() {
     const [showLocationInput, setShowLocationInput] = useState(false);
     const [showStylePicker, setShowStylePicker] = useState(false);
 
-    const [users, setUsers] = useState([]);
+    const [currentUser, setCurrentUser] = useState(null);
 
-    // Stories API state
+    // Sync current user from fetched users list
+    useEffect(() => {
+        if (users.length > 0 && userId) {
+            const found = users.find(u => String(u.id) === String(userId));
+            if (found) {
+                setCurrentUser(found);
+                // Optional: sync back to localStorage for other pages
+                if (found.role === 'Student') localStorage.setItem('studentPhoto', found.profilePhoto || '');
+                else if (found.role === 'Teacher') localStorage.setItem('teacherPhoto', found.profilePhoto || '');
+            }
+        }
+    }, [users, userId]);
+
+    const displayUserName = currentUser?.name || userName;
+    const displayUserProfilePhoto = currentUser?.profilePhoto || userProfilePhoto;
     const [stories, setStories] = useState([]);
     const [showStoryModal, setShowStoryModal] = useState(false);
     const [storyContent, setStoryContent] = useState('');
     const [storyImageUrl, setStoryImageUrl] = useState('');
+    const [storyMediaType, setStoryMediaType] = useState('image'); // 'image' or 'video'
     const [storySong, setStorySong] = useState('None');
     const [viewingStoryIndex, setViewingStoryIndex] = useState(-1);
+    const [viewingAuthorName, setViewingAuthorName] = useState(null);
+    const [isPaused, setIsPaused] = useState(false);
+    const [storyProgress, setStoryProgress] = useState(0);
     const [postingStory, setPostingStory] = useState(false);
     const [storyReply, setStoryReply] = useState('');
     
+    // Group stories by author
+    const groupedStories = React.useMemo(() => {
+        const groups = {};
+        stories.forEach(s => {
+            if (!groups[s.authorName]) groups[s.authorName] = [];
+            groups[s.authorName].push(s);
+        });
+        return groups;
+    }, [stories]);
+
+    const activeUserStories = viewingAuthorName ? groupedStories[viewingAuthorName] || [] : [];
+
+    // Story Timer Effect
+    useEffect(() => {
+        let interval;
+        if (viewingAuthorName && !isPaused) {
+            interval = setInterval(() => {
+                setStoryProgress(prev => {
+                    if (prev >= 100) {
+                        // Advance to next story
+                        if (viewingStoryIndex < activeUserStories.length - 1) {
+                            setViewingStoryIndex(v => v + 1);
+                            return 0;
+                        } else {
+                            // End of user's stories
+                            setViewingAuthorName(null);
+                            setViewingStoryIndex(-1);
+                            return 0;
+                        }
+                    }
+                    return prev + (100 / (30 * 10)); // 30 seconds, 100ms steps
+                });
+            }, 100);
+        }
+        return () => clearInterval(interval);
+    }, [viewingAuthorName, isPaused, viewingStoryIndex, activeUserStories.length]);
+
+    // Reset progress when story changes
+    useEffect(() => {
+        setStoryProgress(0);
+    }, [viewingStoryIndex, viewingAuthorName]);
+    
     // Networking & Branding
-    const [schoolBranding, setSchoolBranding] = useState({ name: 'SmartSchool', logo: null });
+    const [schoolBranding, setSchoolBranding] = useState(() => {
+        const sid = localStorage.getItem('schoolId') || 'local';
+        return {
+            name: localStorage.getItem(`schoolName:${sid}`) || localStorage.getItem('schoolName') || 'SmartSchool',
+            logo: localStorage.getItem(`schoolLogo:${sid}`) || localStorage.getItem('schoolLogo') || null
+        };
+    });
     const [counts, setCounts] = useState({ notifications: 0, messages: 0 });
     const [connections, setConnections] = useState([]);
     const [notifications, setNotifications] = useState([]);
@@ -905,28 +1062,6 @@ export default function SkullarConnect() {
     const [reshareModal, setReshareModal] = useState({ isOpen: false, post: null });
 
     const TRENDING_SONGS = ['None', 'Afrobeats Mashup', 'Calm Down - Rema', 'Last Last - Burna Boy', 'Water - Tyla', 'Amapiano Mix', 'Rush - Ayra Starr'];
-
-    const schoolId = localStorage.getItem('schoolId') || 'local';
-    const rawRole = (localStorage.getItem('userRole') || 'student').toLowerCase();
-    const isSchoolAdmin = rawRole.includes('admin');
-    const isModerator = rawRole.includes('teacher') || rawRole.includes('staff') || rawRole.includes('moderator');
-
-    // Fix: Prioritize names and handle all admin variations
-    const userName = (isSchoolAdmin ? (localStorage.getItem('superAdminName') || localStorage.getItem('fullname') || localStorage.getItem('adminName'))
-                   : isModerator ? (localStorage.getItem('teacherName') || localStorage.getItem('fullname') || localStorage.getItem('staffName'))
-                   : localStorage.getItem('studentName') || localStorage.getItem('fullname')) || 'User';
-
-    const userProfilePhoto = isSchoolAdmin ? localStorage.getItem('superAdminPhoto')
-                          : isModerator ? localStorage.getItem('teacherPhoto')
-                          : localStorage.getItem('studentPhoto') || null;
-
-    const userId = isSchoolAdmin ? (localStorage.getItem('userPhone') || 'admin')
-                : isModerator ? localStorage.getItem('teacherId')
-                : localStorage.getItem('studentId') || 'user';
-
-    const displayRole = isSchoolAdmin ? 'School Admin'
-                      : isModerator ? 'Moderator' : 'Student';
-    const userRole = isSchoolAdmin ? 'admin' : isModerator ? 'teacher' : 'student';
 
     const NAV_ITEMS = [
         { icon: Globe, label: 'Feed', badge: null },
@@ -1081,8 +1216,8 @@ export default function SkullarConnect() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-school-id': schoolId, 'x-user-id': userId },
                 body: JSON.stringify({ 
-                    authorName: userName, 
-                    authorPhoto: userProfilePhoto, 
+                    authorName: displayUserName, 
+                    authorPhoto: displayUserProfilePhoto, 
                     role: userRole,
                     commentary 
                 })
@@ -1148,13 +1283,34 @@ export default function SkullarConnect() {
     const handleStoryFileChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        if (file.size > 5 * 1024 * 1024) {
-            alert("File is too large! Please choose media under 5MB.");
+        if (file.size > 20 * 1024 * 1024) { // Increased to 20MB for video
+            alert("File is too large! Please choose media under 20MB.");
             return;
         }
-        const reader = new FileReader();
-        reader.onloadend = () => setStoryImageUrl(reader.result);
-        reader.readAsDataURL(file);
+
+        const isVideo = file.type.startsWith('video/');
+        if (isVideo) {
+            const video = document.createElement('video');
+            video.preload = 'metadata';
+            video.onloadedmetadata = function() {
+                window.URL.revokeObjectURL(video.src);
+                if (video.duration > 30.5) { // 30.5 to account for minor rounding
+                    alert('Videos for stories are limited to 30 seconds. Please select a shorter video.');
+                    e.target.value = '';
+                    return;
+                }
+                setStoryMediaType('video');
+                const reader = new FileReader();
+                reader.onloadend = () => setStoryImageUrl(reader.result);
+                reader.readAsDataURL(file);
+            };
+            video.src = URL.createObjectURL(file);
+        } else {
+            setStoryMediaType('image');
+            const reader = new FileReader();
+            reader.onloadend = () => setStoryImageUrl(reader.result);
+            reader.readAsDataURL(file);
+        }
     };
 
     const handlePostFileChange = (e) => {
@@ -1191,9 +1347,10 @@ export default function SkullarConnect() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-school-id': schoolId },
                 body: JSON.stringify({
-                    authorName: userName,
+                    authorName: displayUserName,
                     content: storyContent,
                     imageUrl: storyImageUrl || null,
+                    mediaType: storyMediaType,
                     song: storySong === 'None' ? null : storySong
                 })
             });
@@ -1218,7 +1375,7 @@ export default function SkullarConnect() {
             const res = await fetch(`/api/connect/stories/${storyId}/reply`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-school-id': schoolId },
-                body: JSON.stringify({ authorName: userName, text: storyReply })
+                body: JSON.stringify({ authorName: displayUserName, text: storyReply })
             });
             if(res.ok) setStoryReply('');
         } catch(e){}
@@ -1229,7 +1386,7 @@ export default function SkullarConnect() {
             s.id === storyId ? { ...s, likes: s.likes?.includes(userId) ? s.likes.filter(x=>x!==userId) : [...(s.likes||[]), userId] } : s
         ));
         try {
-            await fetch(`/api/connect/stories/${storyId}/like`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-school-id': schoolId }, body: JSON.stringify({ userId }) });
+            await fetch(`/api/connect/stories/${storyId}/like`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-school-id': schoolId }, body: JSON.stringify({ userId, userName: displayUserName }) });
         } catch(e){}
     };
 
@@ -1241,8 +1398,8 @@ export default function SkullarConnect() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-school-id': schoolId },
                 body: JSON.stringify({
-                    authorName: userName,
-                    authorPhoto: userProfilePhoto,
+                    authorName: displayUserName,
+                    authorPhoto: displayUserProfilePhoto,
                     role: displayRole,
                     content: draftContent,
                     imageUrl: draftImageUrl || null,
@@ -1316,67 +1473,71 @@ export default function SkullarConnect() {
         } catch (e) { console.error(e); }
     };
 
-
+    const navigate = useNavigate();
+    const handleBack = () => {
+        if (userRole === 'student') {
+            navigate('/portal');
+        } else {
+            navigate('/dashboard');
+        }
+    };
 
     return (
-        <div className="min-h-screen -m-6 bg-[#FAF5FF] font-inter">
+        <div className="min-h-screen bg-[#FAF5FF] font-inter overflow-hidden">
             {/* ── Top Navbar ── */}
             <header className="sticky top-0 z-50 bg-white border-b border-purple-100 shadow-sm">
-                <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
-                    {/* Toggle & Logo */}
-                    <div className="flex items-center gap-4 shrink-0">
+                <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+                    {/* Logo & Back Button */}
+                    <div className="flex items-center gap-4">
                         <button 
                             onClick={() => setShowSidebar(!showSidebar)}
-                            className="p-2 -ml-2 rounded-xl text-purple-400 hover:bg-purple-50 transition-all active:scale-95"
-                            title="Toggle Menu"
+                            className="p-2.5 -ml-2 rounded-xl text-purple-400 hover:bg-purple-50 transition-all active:scale-95"
                         >
-                            {showSidebar ? <X size={20} /> : <Menu size={20} />}
+                            {showSidebar ? <X size={22} /> : <Menu size={22} />}
                         </button>
-                        <div className="flex items-center gap-2.5">
-                            {schoolBranding.logo ? (
-                                <img src={schoolBranding.logo} alt="School Logo" className="w-8 h-8 object-contain" />
-                            ) : (
-                                <img src={SkullarLogo} alt="Skullar" className="w-8 h-8 object-contain" />
-                            )}
-                            <div>
-                                <p className="text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-purple-800 leading-none">{schoolBranding.name}</p>
-                                <p className="text-[9px] font-bold text-purple-400 leading-none">Stay Connected</p>
+
+                        <div className="flex items-center gap-3">
+                            <img src={SkullarLogo} alt="Skullar" className="w-10 h-10 object-contain" />
+                            <div className="hidden sm:block">
+                                <p className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-purple-800 leading-none tracking-tight">Skullar Connect</p>
+                                <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mt-1">Community Network</p>
                             </div>
                         </div>
+                        
+                        <div className="h-8 w-px bg-purple-100 hidden sm:block mx-2" />
+
+                        <button 
+                            onClick={handleBack}
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-50 text-violet-600 text-[11px] font-black hover:bg-violet-600 hover:text-white transition-all active:scale-95 shadow-sm border border-purple-100/50"
+                        >
+                            <ChevronDown className="rotate-90" size={14} />
+                            {userRole === 'student' ? 'RETURN TO PORTAL' : 'RETURN TO DASHBOARD'}
+                        </button>
                     </div>
 
-                    {/* Search */}
-                    <div className="flex-1 max-w-xs">
-                        <div className="relative">
-                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-300" />
-                            <input
-                                type="text"
-                                placeholder={`Search ${schoolBranding.name}...`}
-                                className="w-full pl-9 pr-4 py-2 text-xs font-medium rounded-full bg-purple-50 border border-purple-100 focus:outline-none focus:border-violet-300 placeholder:text-purple-300 text-dark-text"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Right: Notification icons + user */}
+                    {/* Right: Quick Stats/Actions only */}
                     <div className="flex items-center gap-3 shrink-0">
-                        <button onClick={() => setActiveNav('Notifications')} className="relative p-2 rounded-full bg-purple-50 text-purple-400 hover:bg-purple-100 transition">
-                            <Bell size={16} />
+                        <div className="h-8 w-px bg-purple-100 mx-1 hidden md:block" />
+
+                        <button onClick={() => setActiveNav('Notifications')} className="relative p-2.5 rounded-full bg-purple-50 text-purple-400 hover:bg-purple-100 transition group">
+                            <Bell size={18} className="group-hover:rotate-12 transition-transform" />
                             {counts.notifications > 0 && (
-                                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-rose-500 text-white text-[8px] font-black rounded-full flex items-center justify-center">{counts.notifications}</span>
+                                <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1.5 bg-gradient-to-br from-rose-400 to-red-600 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-lg shadow-rose-500/40 border-2 border-white animate-bounce">
+                                    {counts.notifications > 9 ? '9+' : counts.notifications}
+                                </span>
                             )}
                         </button>
-                        <button onClick={() => setActiveNav('Messages')} className="relative p-2 rounded-full bg-purple-50 text-purple-400 hover:bg-purple-100 transition">
-                            <MessageSquare size={16} />
+                        <button onClick={() => setActiveNav('Messages')} className="relative p-2.5 rounded-full bg-purple-50 text-purple-400 hover:bg-purple-100 transition group">
+                            <MessageSquare size={18} className="group-hover:-translate-y-0.5 transition-transform" />
                             {counts.messages > 0 && (
-                                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-violet-500 text-white text-[8px] font-black rounded-full flex items-center justify-center">{counts.messages}</span>
+                                <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1.5 bg-gradient-to-br from-violet-400 to-indigo-600 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-lg shadow-violet-500/40 border-2 border-white animate-pulse">
+                                    {counts.messages > 9 ? '9+' : counts.messages}
+                                </span>
                             )}
                         </button>
-                        <div className="flex items-center gap-2.5 pl-3 border-l border-purple-100">
-                            <div className="text-right">
-                                <p className="text-xs font-black text-dark-text leading-none">{userName}</p>
-                                <p className="text-[10px] text-purple-400 font-bold">{displayRole}</p>
-                            </div>
-                            <Avatar name={userName} photo={userProfilePhoto} size={9} />
+
+                        <div className="ml-2 hidden sm:block">
+                            <Avatar name={displayUserName} photo={displayUserProfilePhoto} size={10} />
                         </div>
                     </div>
                 </div>
@@ -1384,43 +1545,127 @@ export default function SkullarConnect() {
 
             {/* ── Body ── */}
             <div className={clx(
-                "max-w-[1600px] mx-auto px-4 pt-0 pb-4 grid gap-4 transition-all duration-300",
+                "max-w-7xl mx-auto w-full px-4 pb-4 grid gap-6 transition-all duration-300",
+                "pt-6",
                 showSidebar 
-                    ? (activeNav === 'Messages' ? 'grid-cols-[240px_1fr]' : 'grid-cols-[240px_1fr_300px]')
-                    : 'grid-cols-1'
+                    ? "grid-cols-1 md:grid-cols-[280px_1fr]"
+                    : "grid-cols-1"
             )}>
 
                 {/* ── Left Sidebar ── */}
-                <aside className={clx(
-                    "sticky top-20 self-start transition-all duration-300 overflow-hidden",
-                    showSidebar ? "w-[240px] opacity-100" : "w-0 opacity-0 pointer-events-none"
-                )}>
-                    <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden p-2">
-                        {NAV_ITEMS.map(({ icon: Icon, label, badge }) => (
-                            <button
-                                key={label}
-                                onClick={() => setActiveNav(label)}
-                                className={clx(
-                                    'w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold transition-all group',
-                                    activeNav === label
-                                        ? 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-500/20'
-                                        : 'text-gray-600 hover:bg-purple-50 hover:text-violet-600'
+                {showSidebar && (
+                    <aside className="sticky top-24 self-start transition-all duration-300 w-full md:w-[280px] flex flex-col gap-6">
+                        {/* Section 1: Main Features (Matches Image 2) */}
+                        <div className="bg-white rounded-[32px] border border-purple-100 shadow-soft-sm overflow-hidden p-4">
+                            {NAV_ITEMS.map(({ icon: Icon, label, badge }) => (
+                                <button
+                                    key={label}
+                                    onClick={() => setActiveNav(label)}
+                                    className={clx(
+                                        'w-full flex items-center gap-4 px-5 py-4 rounded-[20px] text-sm font-bold transition-all group mb-1 last:mb-0',
+                                        activeNav === label
+                                            ? 'bg-[#9333EA] text-white shadow-lg shadow-purple-500/20'
+                                            : 'text-[#4B5563] hover:bg-purple-50 hover:text-[#9333EA]'
+                                    )}
+                                >
+                                    <Icon size={22} className={activeNav === label ? 'text-white' : 'text-[#9333EA] group-hover:text-[#9333EA] transition-colors'} strokeWidth={1.5} />
+                                    <span className="flex-1 text-left text-[15px] tracking-tight">{label}</span>
+                                    {badge && (
+                                        <span className={clx(
+                                            'min-w-[22px] h-5.5 px-2 rounded-full text-[10px] font-black flex items-center justify-center border-2 border-white shadow-sm',
+                                            activeNav === label 
+                                                ? 'bg-white text-violet-700' 
+                                                : label === 'Notifications' 
+                                                    ? 'bg-gradient-to-br from-rose-400 to-red-600 text-white animate-bounce' 
+                                                    : 'bg-gradient-to-br from-violet-400 to-indigo-600 text-white animate-pulse'
+                                        )}>
+                                            {badge > 9 ? '9+' : badge}
+                                        </span>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                        
+                        {/* Section 2: Suggested Connections (Matches Image 1) */}
+                        <div className="bg-white rounded-[32px] border border-purple-100 shadow-soft-sm p-6">
+                            <h3 className="text-[16px] font-black text-[#111827] mb-6">Suggested Connections</h3>
+                            <div className="space-y-5">
+                                {users
+                                    .filter(u => String(u.id) !== String(userId) && !connections.some(c => String(c.from) === String(u.id) || String(c.to) === String(u.id)))
+                                    .slice(0, 5)
+                                    .map(user => (
+                                        <div key={user.id} className="flex items-center justify-between group">
+                                            <div className="flex items-center gap-4">
+                                                <div className="relative">
+                                                    <Avatar name={user.name} photo={user.profilePhoto} size={12} className="border-none shadow-none" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-[14px] font-black text-[#111827] truncate leading-tight">{user.name}</p>
+                                                    <p className="text-[12px] font-bold text-[#A855F7] mt-1">{user.role || 'Student'}</p>
+                                                </div>
+                                            </div>
+                                            <button 
+                                                onClick={() => handleConnect(user.id)}
+                                                className="w-10 h-10 rounded-[14px] bg-[#F5F3FF] text-[#A855F7] flex items-center justify-center hover:bg-[#A855F7] hover:text-white transition-all active:scale-90"
+                                            >
+                                                <UserPlus size={18} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                {users.length === 0 && <p className="text-xs text-gray-400 text-center py-2">No suggestions</p>}
+                            </div>
+                        </div>
+
+                        {/* Section 3: Trending Posts */}
+                        <div className="bg-white rounded-[32px] border border-purple-100 shadow-soft-sm p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-[16px] font-black text-[#111827]">Trending Posts</h3>
+                                <TrendingUp size={18} className="text-[#A855F7]" />
+                            </div>
+                            <div className="space-y-6">
+                                {trendingPosts.slice(0, 3).map(post => (
+                                    <div key={post.id} className="group cursor-pointer">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="text-[10px] font-black text-[#9333EA] bg-purple-50 px-2.5 py-1 rounded-full uppercase tracking-wider">{timeAgo(post.createdAt)}</span>
+                                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400">
+                                                <Heart size={12} className="text-rose-400" fill="currentColor" /> {post.likes?.length || 0}
+                                            </div>
+                                        </div>
+                                        <p className="text-[13px] font-medium text-gray-600 line-clamp-2 group-hover:text-[#9333EA] transition-colors leading-relaxed">
+                                            {post.content}
+                                        </p>
+                                    </div>
+                                ))}
+                                {trendingPosts.length === 0 && (
+                                    <div className="space-y-4">
+                                        {TRENDING.slice(0, 3).map(t => (
+                                            <div key={t.tag} className="flex items-center justify-between group cursor-pointer">
+                                                <span className="text-[13px] font-bold text-gray-500 group-hover:text-[#9333EA] transition-colors">{t.tag}</span>
+                                                <span className="text-[11px] font-black text-purple-300">{t.posts} posts</span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 )}
-                            >
-                                <Icon size={17} className={activeNav === label ? 'text-white' : 'text-purple-400 group-hover:text-violet-500'} />
-                                <span className="flex-1 text-left text-[13px]">{label}</span>
-                                {badge && (
-                                    <span className={clx(
-                                        'min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center',
-                                        activeNav === label ? 'bg-white text-violet-700' : 'bg-violet-100 text-violet-600'
-                                    )}>
-                                        {badge}
-                                    </span>
-                                )}
-                            </button>
-                        ))}
-                    </div>
-                </aside>
+                            </div>
+                        </div>
+                        
+                        {/* Current User Card in Sidebar */}
+                        <div className="bg-gradient-to-br from-[#9333EA] to-[#6B21A8] rounded-[32px] p-6 text-white shadow-lg shadow-purple-200">
+                            <div className="flex items-center gap-4 mb-4">
+                                <Avatar name={displayUserName} photo={displayUserProfilePhoto} size={14} className="border-2 border-white/30" />
+                                <div className="min-w-0">
+                                    <p className="font-black text-[15px] truncate tracking-tight">{displayUserName}</p>
+                                    <p className="text-[11px] font-bold opacity-70 uppercase tracking-widest">{displayRole}</p>
+                                </div>
+                            </div>
+                            <div className="h-px bg-white/20 mb-4" />
+                            <div className="flex justify-between items-center text-[11px] font-black uppercase tracking-widest opacity-80">
+                                <span>Connections</span>
+                                <span className="bg-white/20 px-3 py-1 rounded-full">{connections.length}</span>
+                            </div>
+                        </div>
+                    </aside>
+                )}
 
                 {/* ── Dynamic Content ── */}
                 {activeNav === 'Messages' ? (
@@ -1489,8 +1734,8 @@ export default function SkullarConnect() {
                                         <PostItem
                                             post={post}
                                             userId={userId}
-                                            userName={userName}
-                                            userProfilePhoto={userProfilePhoto}
+                                            userName={displayUserName}
+                                            userProfilePhoto={displayUserProfilePhoto}
                                             onLike={handleLike}
                                             onComment={handleComment}
                                             onShare={handleShareRequest}
@@ -1499,7 +1744,8 @@ export default function SkullarConnect() {
                                             onUpdate={handleUpdatePost}
                                             onCommentAction={handleCommentAction}
                                             isSaved={savedPosts.some(p => p.id === post.id)}
-                                            canDelete={post.authorName === userName || userRole === 'admin'}
+                                            canDelete={post.authorName === displayUserName || userRole === 'admin'}
+                                            users={users}
                                         />
                                     </div>
                                 ))}
@@ -1528,8 +1774,8 @@ export default function SkullarConnect() {
                                         key={post.id}
                                         post={post}
                                         userId={userId}
-                                        userName={userName}
-                                        userProfilePhoto={userProfilePhoto}
+                                        userName={displayUserName}
+                                        userProfilePhoto={displayUserProfilePhoto}
                                         onLike={handleLike}
                                         onComment={handleComment}
                                         onShare={handleShareRequest}
@@ -1538,7 +1784,8 @@ export default function SkullarConnect() {
                                         onUpdate={handleUpdatePost}
                                         onCommentAction={handleCommentAction}
                                         isSaved={true}
-                                        canDelete={post.authorName === userName || userRole === 'admin'}
+                                        canDelete={post.authorName === displayUserName || userRole === 'admin'}
+                                        users={users}
                                     />
                                 ))}
                                 {savedPosts.length === 0 && (
@@ -1658,235 +1905,185 @@ export default function SkullarConnect() {
                         </div>
                     </main>
                 ) : (
-                <><main className="space-y-4 min-w-0">
-
-                    {/* Story Row */}
-                    <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-4">
-                        <div className="flex items-center gap-4 overflow-x-auto pb-1 custom-scrollbar">
-                            {/* Add Story */}
-                            <div className="flex flex-col items-center gap-2 shrink-0">
-                                <div onClick={() => setShowStoryModal(true)} className="w-14 h-14 rounded-full bg-gradient-to-br from-violet-100 to-purple-100 border-2 border-dashed border-violet-300 flex items-center justify-center cursor-pointer hover:from-violet-200 transition">
-                                    <Plus size={22} className="text-violet-500" />
-                                </div>
-                                <p className="text-[10px] font-bold text-gray-500">Add Story</p>
-                            </div>
-                            {/* Story avatars */}
-                            {stories.map((s, i) => (
-                                <div key={s.id || i} onClick={() => setViewingStoryIndex(i)} className="flex flex-col items-center gap-2 shrink-0">
-                                    <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${getGradient(s.authorName)} text-white flex items-center justify-center font-black text-xl border-3 border-white shadow-md ring-2 ring-violet-400 cursor-pointer`}>
-                                        {s.authorName[0]?.toUpperCase()}
+                    <main className="space-y-4 min-w-0">
+                        {/* Story Row */}
+                        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-4">
+                            <div className="flex items-center gap-4 overflow-x-auto pb-1 custom-scrollbar">
+                                {/* Add Story */}
+                                <div className="flex flex-col items-center gap-2 shrink-0">
+                                    <div onClick={() => setShowStoryModal(true)} className="w-14 h-14 rounded-full bg-gradient-to-br from-violet-100 to-purple-100 border-2 border-dashed border-violet-300 flex items-center justify-center cursor-pointer hover:from-violet-200 transition">
+                                        <Plus size={22} className="text-violet-500" />
                                     </div>
-                                    <p className="text-[10px] font-bold text-gray-500">{s.authorName.split(' ')[0]}</p>
+                                    <p className="text-[10px] font-bold text-gray-500">Add Story</p>
                                 </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Compose */}
-                    <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-4">
-                        <div className={clx("flex items-center gap-3 mb-4 p-4 rounded-2xl transition-all", draftStyle ? `${draftStyle.bg} min-h-[120px] shadow-inner` : "bg-purple-50")}>
-                            <Avatar name={userName} photo={userProfilePhoto} size={10} />
-                            <div className="flex-1 flex flex-col">
-                                {(draftFeeling || draftLocation) && (
-                                    <div className={clx("text-[10px] font-bold mb-1", draftStyle ? "text-white/80" : "text-purple-400")}>
-                                        {draftFeeling && <span>is feeling {draftFeeling} </span>}
-                                        {draftLocation && <span>at {draftLocation}</span>}
-                                    </div>
-                                )}
-                                <textarea
-                                    value={draftContent}
-                                    onChange={e => setDraftContent(e.target.value)}
-                                    placeholder={draftStyle ? "" : `What's on your mind, ${userName.split(' ')[0]}?`}
-                                    className={clx(
-                                        "w-full bg-transparent outline-none resize-none font-medium placeholder:text-purple-300",
-                                        draftStyle ? "text-white text-xl text-center placeholder:text-white/50" : "text-sm text-dark-text"
-                                    )}
-                                    rows={draftStyle ? 3 : 1}
-                                />
-                            </div>
-                        </div>
-
-                        {showStylePicker && (
-                            <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2 custom-scrollbar">
-                                <button onClick={() => setDraftStyle(null)} className="w-8 h-8 rounded-lg border-2 border-purple-100 flex items-center justify-center shrink-0 hover:bg-purple-50 transition"><Globe size={14} className="text-purple-300" /></button>
-                                {[
-                                    { bg: 'bg-gradient-to-r from-violet-600 to-indigo-600', text: 'white' },
-                                    { bg: 'bg-gradient-to-r from-rose-500 to-orange-500', text: 'white' },
-                                    { bg: 'bg-gradient-to-r from-emerald-500 to-teal-500', text: 'white' },
-                                    { bg: 'bg-gradient-to-r from-blue-600 to-cyan-500', text: 'white' },
-                                    { bg: 'bg-gradient-to-r from-fuchsia-600 to-purple-600', text: 'white' },
-                                    { bg: 'bg-gradient-to-r from-amber-500 to-rose-500', text: 'white' },
-                                    ...ACADEMIC_THEMES
-                                ].map((style, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => setDraftStyle(style)}
-                                        className={clx("w-8 h-8 rounded-lg shrink-0 transition-transform active:scale-90 border border-black/5", style.bg, draftStyle?.bg === style.bg && "ring-2 ring-violet-500 ring-offset-2 scale-110 shadow-lg")}
-                                        title={style.label || `Style ${i}`}
-                                    />
-                                ))}
-                            </div>
-                        )}
-
-                        {showFeelingPicker && (
-                            <div className="grid grid-cols-4 gap-2 mb-4">
-                                {['Happy', 'Excited', 'Focused', 'Blessed', 'Loved', 'Cool', 'Creative', 'Sleepy'].map(f => (
-                                    <button key={f} onClick={() => { setDraftFeeling(f); setShowFeelingPicker(false); }} className={clx("px-3 py-1.5 rounded-full text-[11px] font-bold transition-all", draftFeeling === f ? 'bg-violet-600 text-white' : 'bg-purple-50 text-purple-600 hover:bg-purple-100')}>
-                                        {f}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-
-                        {showLocationInput && (
-                            <div className="mb-4 relative">
-                                <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-300" />
-                                <input
-                                    type="text"
-                                    value={draftLocation}
-                                    onChange={e => setDraftLocation(e.target.value)}
-                                    placeholder="Where are you?"
-                                    className="w-full pl-9 pr-4 py-2 text-xs font-medium rounded-xl bg-purple-50 border border-purple-100 focus:outline-none focus:border-violet-300 placeholder:text-purple-300 text-dark-text"
-                                />
-                                <button onClick={() => { setDraftLocation(''); setShowLocationInput(false); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-rose-400">CLEAR</button>
-                            </div>
-                        )}
-
-                        {draftImageUrl && (
-                            <div className="mb-4 relative rounded-2xl overflow-hidden group">
-                                <img src={draftImageUrl} alt="Draft" className="w-full max-h-60 object-cover" />
-                                <button onClick={() => setDraftImageUrl('')} className="absolute top-3 right-3 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition"><Trash2 size={16} /></button>
-                            </div>
-                        )}
-
-                        <div className="flex items-center justify-between border-t border-purple-50 pt-3">
-                            <div className="flex items-center gap-1">
-                                <input type="file" id="post-file" hidden accept="image/*" onChange={handlePostFileChange} />
-                                <label
-                                    htmlFor="post-file"
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
-                                >
-                                    <ImageIcon size={15} /> Photo
-                                </label>
-                                <button onClick={() => setShowStylePicker(!showStylePicker)} className={clx("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition", showStylePicker ? "bg-violet-100 text-violet-600" : "text-violet-500 hover:bg-violet-50")}>
-                                    <Video size={15} /> Style
-                                </button>
-                                <button onClick={() => setShowFeelingPicker(!showFeelingPicker)} className={clx("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition", showFeelingPicker ? "bg-amber-100 text-amber-600" : "text-amber-500 hover:bg-amber-50")}>
-                                    <Smile size={15} /> Feeling
-                                </button>
-                                <button onClick={() => setShowLocationInput(!showLocationInput)} className={clx("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition", showLocationInput ? "bg-rose-100 text-rose-600" : "text-rose-500 hover:bg-rose-50")}>
-                                    <MapPin size={15} /> Location
-                                </button>
-                            </div>
-                            <button
-                                onClick={handlePost}
-                                disabled={posting || !draftContent.trim()}
-                                className="flex items-center gap-2 bg-gradient-to-r from-violet-500 to-purple-600 text-white px-5 py-2 rounded-full text-xs font-black shadow-lg shadow-violet-500/20 hover:opacity-90 transition active:scale-95 disabled:opacity-40"
-                            >
-                                {posting ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-                                Post
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Feed Posts */}
-                    {loading && posts.length === 0 ? (
-                        <div className="space-y-4">
-                            {[1,2,3].map(i => (
-                                <div key={i} className="bg-white rounded-2xl border border-purple-100 h-48 animate-pulse" />
-                            ))}
-                        </div>
-                    ) : posts.length === 0 ? (
-                        <div className="bg-white rounded-2xl border border-purple-100 p-16 text-center shadow-sm">
-                            <div className="w-14 h-14 mx-auto bg-violet-50 rounded-full flex items-center justify-center mb-4">
-                                <MessageSquare size={24} className="text-violet-300" />
-                            </div>
-                            <p className="text-sm font-black text-dark-text">No posts yet</p>
-                            <p className="text-xs text-muted-text mt-1">Be the first to share something!</p>
-                        </div>
-                    ) : (
-                        posts.map(post => (
-                            <PostItem
-                                key={post.id}
-                                post={post}
-                                userId={userId}
-                                userName={userName}
-                                userProfilePhoto={userProfilePhoto}
-                                onLike={handleLike}
-                                onComment={handleComment}
-                                onShare={handleShareRequest}
-                                onDelete={handleDeletePost}
-                                onSave={handleSavePost}
-                                onUpdate={handleUpdatePost}
-                                onCommentAction={handleCommentAction}
-                                isSaved={savedPosts.some(s => s.id === post.id)}
-                                canDelete={post.authorId === userId || userRole === 'admin'}
-                            />
-                        ))
-                    )}
-                </main>
-
-                {/* ── Right Sidebar ── */}
-                <aside className="sticky top-20 self-start space-y-4">
-                    {/* Suggested Connections */}
-                    <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-4">
-                        <h3 className="text-sm font-black text-dark-text mb-3">Suggested Connections</h3>
-                        <div className="space-y-3">
-                            {users.filter(u => u.id !== userId).slice(0, 5).map((u, i) => {
-                                const conn = connections.find(c => (c.from === userId && c.to === u.id) || (c.from === u.id && c.to === userId));
-                                const isPending = conn?.status === 'pending';
-                                const isConnected = conn?.status === 'accepted';
-                                
-                                return (
-                                    <div key={i} className="flex items-center gap-3">
-                                        <Avatar name={u.name} photo={u.profilePhoto} size={9} />
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-xs font-black text-dark-text truncate">{u.name}</p>
-                                            <p className="text-[10px] text-purple-400 font-medium">{u.role}</p>
-                                        </div>
-                                        {isConnected ? (
-                                            <button onClick={() => setActiveNav('Messages')} className="p-1.5 rounded-lg bg-emerald-50 text-emerald-500 hover:bg-emerald-100 transition">
-                                                <MessageSquare size={14} />
-                                            </button>
-                                        ) : isPending ? (
-                                            <div className="p-1.5 rounded-lg bg-amber-50 text-amber-500">
-                                                <Clock size={14} />
+                                {/* Story avatars */}
+                                {Object.entries(groupedStories).map(([authorName, userStories], i) => {
+                                    const authorUser = users.find(u => u.name === authorName);
+                                    const authorPhoto = authorUser?.profilePhoto;
+                                    
+                                    return (
+                                        <div key={authorName} onClick={() => { setViewingAuthorName(authorName); setViewingStoryIndex(0); }} className="flex flex-col items-center gap-2 shrink-0 group">
+                                            <div className={clx(
+                                                "w-14 h-14 rounded-full border-3 border-white shadow-md ring-2 ring-violet-400 cursor-pointer overflow-hidden transition-transform group-active:scale-95",
+                                                !authorPhoto && `bg-gradient-to-br ${getGradient(authorName)} text-white flex items-center justify-center font-black text-xl`
+                                            )}>
+                                                {authorPhoto ? (
+                                                    <img src={authorPhoto} alt={authorName} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    authorName[0]?.toUpperCase()
+                                                )}
                                             </div>
-                                        ) : (
-                                            <button onClick={() => handleConnect(u.id)} className="p-1.5 rounded-lg bg-violet-50 text-violet-500 hover:bg-violet-100 transition">
-                                                <UserPlus size={14} />
-                                            </button>
+                                            <p className="text-[10px] font-bold text-gray-500 group-hover:text-violet-600 transition-colors">{authorName.split(' ')[0]}</p>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Compose */}
+                        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-4">
+                            <div className={clx("flex items-center gap-3 mb-4 p-4 rounded-2xl transition-all", draftStyle ? `${draftStyle.bg} min-h-[120px] shadow-inner` : "bg-purple-50")}>
+                                <Avatar name={displayUserName} photo={displayUserProfilePhoto} size={10} />
+                                <div className="flex-1 flex flex-col">
+                                    {(draftFeeling || draftLocation) && (
+                                        <div className={clx("text-[10px] font-bold mb-1", draftStyle ? "text-white/80" : "text-purple-400")}>
+                                            {draftFeeling && <span>is feeling {draftFeeling} </span>}
+                                            {draftLocation && <span>at {draftLocation}</span>}
+                                        </div>
+                                    )}
+                                    <textarea
+                                        value={draftContent}
+                                        onChange={e => setDraftContent(e.target.value)}
+                                        placeholder={draftStyle ? "" : `What's on your mind, ${displayUserName.split(' ')[0]}?`}
+                                        className={clx(
+                                            "w-full bg-transparent outline-none resize-none font-medium placeholder:text-purple-300",
+                                            draftStyle ? "text-white text-xl text-center placeholder:text-white/50" : "text-sm text-dark-text"
                                         )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Trending Topics */}
-                    <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-4">
-                        <h3 className="text-sm font-black text-dark-text mb-3">Trending Topics</h3>
-                        <div className="space-y-2">
-                            {TRENDING.map((t, i) => (
-                                <div key={i} className="flex items-center justify-between py-1.5 px-2 rounded-xl hover:bg-purple-50 cursor-pointer transition group">
-                                    <div>
-                                        <p className="text-xs font-black text-dark-text group-hover:text-violet-600">{t.tag}</p>
-                                        <p className="text-[10px] text-muted-text font-medium">{t.posts} posts</p>
-                                    </div>
-                                    <div className={`w-2 h-2 rounded-full ${t.color}`} />
+                                        rows={draftStyle ? 3 : 1}
+                                    />
                                 </div>
-                            ))}
-                        </div>
-                    </div>
+                            </div>
 
-                    {/* School Badge */}
-                    <div className="bg-gradient-to-br from-violet-500 to-purple-700 rounded-2xl p-4 text-white">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/60 mb-1">Community</p>
-                        <p className="text-sm font-black">{schoolBranding.name}</p>
-                        <p className="text-[10px] text-white/70 mt-1 flex items-center gap-1"><Lock size={10} />Intra-school only</p>
-                    </div>
-                </aside>
-                </>
+                            {showStylePicker && (
+                                <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2 custom-scrollbar">
+                                    <button onClick={() => setDraftStyle(null)} className="w-8 h-8 rounded-lg border-2 border-purple-100 flex items-center justify-center shrink-0 hover:bg-purple-50 transition"><Globe size={14} className="text-purple-300" /></button>
+                                    {[
+                                        { bg: 'bg-gradient-to-r from-violet-600 to-indigo-600', text: 'white' },
+                                        { bg: 'bg-gradient-to-r from-rose-500 to-orange-500', text: 'white' },
+                                        { bg: 'bg-gradient-to-r from-emerald-500 to-teal-500', text: 'white' },
+                                        { bg: 'bg-gradient-to-r from-blue-600 to-cyan-500', text: 'white' },
+                                        { bg: 'bg-gradient-to-r from-fuchsia-600 to-purple-600', text: 'white' },
+                                        { bg: 'bg-gradient-to-r from-amber-500 to-rose-500', text: 'white' },
+                                        ...ACADEMIC_THEMES
+                                    ].map((style, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => setDraftStyle(style)}
+                                            className={clx("w-8 h-8 rounded-lg shrink-0 transition-transform active:scale-90 border border-black/5", style.bg, draftStyle?.bg === style.bg && "ring-2 ring-violet-500 ring-offset-2 scale-110 shadow-lg")}
+                                            title={style.label || `Style ${i}`}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+
+                            {showFeelingPicker && (
+                                <div className="grid grid-cols-4 gap-2 mb-4">
+                                    {['Happy', 'Excited', 'Focused', 'Blessed', 'Loved', 'Cool', 'Creative', 'Sleepy'].map(f => (
+                                        <button key={f} onClick={() => { setDraftFeeling(f); setShowFeelingPicker(false); }} className={clx("px-3 py-1.5 rounded-full text-[11px] font-bold transition-all", draftFeeling === f ? 'bg-violet-600 text-white' : 'bg-purple-50 text-purple-600 hover:bg-purple-100')}>
+                                            {f}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
+                            {showLocationInput && (
+                                <div className="mb-4 relative">
+                                    <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-300" />
+                                    <input
+                                        type="text"
+                                        value={draftLocation}
+                                        onChange={e => setDraftLocation(e.target.value)}
+                                        placeholder="Where are you?"
+                                        className="w-full pl-9 pr-4 py-2 text-xs font-medium rounded-xl bg-purple-50 border border-purple-100 focus:outline-none focus:border-violet-300 placeholder:text-purple-300 text-dark-text"
+                                    />
+                                    <button onClick={() => { setDraftLocation(''); setShowLocationInput(false); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-rose-400">CLEAR</button>
+                                </div>
+                            )}
+
+                            {draftImageUrl && (
+                                <div className="mb-4 relative rounded-2xl overflow-hidden group">
+                                    <img src={draftImageUrl} alt="Draft" className="w-full max-h-60 object-cover" />
+                                    <button onClick={() => setDraftImageUrl('')} className="absolute top-3 right-3 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition"><Trash2 size={16} /></button>
+                                </div>
+                            )}
+
+                            <div className="flex items-center justify-between border-t border-purple-50 pt-3">
+                                <div className="flex items-center gap-1">
+                                    <input type="file" id="post-file" hidden accept="image/*" onChange={handlePostFileChange} />
+                                    <label
+                                        htmlFor="post-file"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
+                                    >
+                                        <ImageIcon size={15} /> Photo
+                                    </label>
+                                    <button onClick={() => setShowStylePicker(!showStylePicker)} className={clx("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition", showStylePicker ? "bg-violet-100 text-violet-600" : "text-violet-500 hover:bg-violet-50")}>
+                                        <Video size={15} /> Style
+                                    </button>
+                                    <button onClick={() => setShowFeelingPicker(!showFeelingPicker)} className={clx("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition", showFeelingPicker ? "bg-amber-100 text-amber-600" : "text-amber-500 hover:bg-amber-50")}>
+                                        <Smile size={15} /> Feeling
+                                    </button>
+                                    <button onClick={() => setShowLocationInput(!showLocationInput)} className={clx("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition", showLocationInput ? "bg-rose-100 text-rose-600" : "text-rose-500 hover:bg-rose-50")}>
+                                        <MapPin size={15} /> Location
+                                    </button>
+                                </div>
+                                <button
+                                    onClick={handlePost}
+                                    disabled={posting || !draftContent.trim()}
+                                    className="flex items-center gap-2 bg-gradient-to-r from-violet-500 to-purple-600 text-white px-5 py-2 rounded-full text-xs font-black shadow-lg shadow-violet-500/20 hover:opacity-90 transition active:scale-95 disabled:opacity-40"
+                                >
+                                    {posting ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                                    Post
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Feed Posts */}
+                        {loading && posts.length === 0 ? (
+                            <div className="space-y-4">
+                                {[1,2,3].map(i => (
+                                    <div key={i} className="bg-white rounded-2xl border border-purple-100 h-48 animate-pulse" />
+                                ))}
+                            </div>
+                        ) : posts.length === 0 ? (
+                            <div className="bg-white rounded-2xl border border-purple-100 p-16 text-center shadow-sm">
+                                <div className="w-14 h-14 mx-auto bg-violet-50 rounded-full flex items-center justify-center mb-4">
+                                    <MessageSquare size={24} className="text-violet-300" />
+                                </div>
+                                <p className="text-sm font-black text-dark-text">No posts yet</p>
+                                <p className="text-xs text-muted-text mt-1">Be the first to share something!</p>
+                            </div>
+                        ) : (
+                            posts.map(post => (
+                                <PostItem
+                                    key={post.id}
+                                    post={post}
+                                    userId={userId}
+                                    userName={displayUserName}
+                                    userProfilePhoto={displayUserProfilePhoto}
+                                    onLike={handleLike}
+                                    onComment={handleComment}
+                                    onShare={handleShareRequest}
+                                    onDelete={handleDeletePost}
+                                    onSave={handleSavePost}
+                                    onUpdate={handleUpdatePost}
+                                    onCommentAction={handleCommentAction}
+                                    isSaved={savedPosts.some(s => s.id === post.id)}
+                                    canDelete={post.authorId === userId || userRole === 'admin'}
+                                    users={users}
+                                />
+                            ))
+                        )}
+                    </main>
                 )}
             </div>
 
@@ -1950,13 +2147,13 @@ export default function SkullarConnect() {
             )}
 
             {/* Instagram Style Story Carousel */}
-            {viewingStoryIndex !== -1 && (
+            {viewingAuthorName && viewingStoryIndex !== -1 && (
                 <div className="fixed inset-0 z-[100] bg-[#1a1a1a] flex items-center justify-center overflow-hidden font-inter touch-none">
                     
                     {/* Background Blur */}
-                    {stories[viewingStoryIndex]?.imageUrl && (
+                    {activeUserStories[viewingStoryIndex]?.imageUrl && (
                         <div className="absolute inset-0 z-0">
-                            <img src={stories[viewingStoryIndex].imageUrl} className="w-full h-full object-cover opacity-20 blur-3xl scale-125" alt="" />
+                            <img src={activeUserStories[viewingStoryIndex].imageUrl} className="w-full h-full object-cover opacity-20 blur-3xl scale-125" alt="" />
                         </div>
                     )}
 
@@ -1966,20 +2163,20 @@ export default function SkullarConnect() {
                             <ChevronDown size={24} className="rotate-90 ml-0.5 mt-0.5" />
                         </button>
                     )}
-                    {viewingStoryIndex < stories.length - 1 && (
+                    {viewingStoryIndex < activeUserStories.length - 1 && (
                         <button onClick={() => setViewingStoryIndex(i => i + 1)} className="absolute right-4 md:right-8 z-[110] w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-md transition shadow-xl hidden md:flex">
                             <ChevronDown size={24} className="-rotate-90 mr-0.5 mt-0.5" />
                         </button>
                     )}
 
                     {/* Close */}
-                    <button onClick={() => setViewingStoryIndex(-1)} className="absolute top-4 right-4 md:top-8 md:right-8 z-[110] text-white hover:bg-white/10 p-3 rounded-full backdrop-blur-sm transition font-black">
+                    <button onClick={() => { setViewingAuthorName(null); setViewingStoryIndex(-1); }} className="absolute top-4 right-4 md:top-8 md:right-8 z-[110] text-white hover:bg-white/10 p-3 rounded-full backdrop-blur-sm transition font-black">
                         ✕
                     </button>
 
                     {/* Main Track */}
                     <div className="relative flex items-center justify-center w-full h-[100dvh] md:h-[90vh] md:gap-8">
-                        {stories.map((story, i) => {
+                        {activeUserStories.map((story, i) => {
                             const isCenter = i === viewingStoryIndex;
                             const isLeft = i === viewingStoryIndex - 1;
                             const isRight = i === viewingStoryIndex + 1;
@@ -1996,16 +2193,47 @@ export default function SkullarConnect() {
                                         isCenter ? "w-full max-w-[420px] h-full z-50 md:ring-1 md:ring-white/10" : "hidden md:flex w-[280px] h-[75vh] opacity-30 scale-[0.8] blur-[2px] cursor-pointer hover:opacity-50 z-30"
                                     )}
                                     // Touch areas for mobile navigation
+                                    onMouseDown={() => setIsPaused(true)}
+                                    onMouseUp={() => setIsPaused(false)}
+                                    onTouchStart={() => setIsPaused(true)}
+                                    onTouchEnd={() => setIsPaused(false)}
                                     onClick={(e) => {
                                         if (isLeft) setViewingStoryIndex(i);
                                         if (isRight) setViewingStoryIndex(i);
-                                        if (isCenter && e.clientX > window.innerWidth / 2) setViewingStoryIndex(prev => Math.min(stories.length - 1, prev + 1));
-                                        if (isCenter && e.clientX <= window.innerWidth / 2) setViewingStoryIndex(prev => Math.max(0, prev - 1));
+                                        if (isCenter) {
+                                            const rect = e.currentTarget.getBoundingClientRect();
+                                            const clickX = e.clientX - rect.left;
+                                            if (clickX > rect.width / 2) {
+                                                // Next
+                                                if (viewingStoryIndex < activeUserStories.length - 1) setViewingStoryIndex(v => v + 1);
+                                                else { setViewingAuthorName(null); setViewingStoryIndex(-1); }
+                                            } else {
+                                                // Prev
+                                                if (viewingStoryIndex > 0) setViewingStoryIndex(v => v - 1);
+                                            }
+                                        }
                                     }}
                                 >
                                     {/* Visual Content */}
                                     <div className="absolute inset-0 bg-[#0f0f0f] pointer-events-none overflow-hidden">
-                                        {story.imageUrl && <img src={story.imageUrl} className="absolute inset-0 w-full h-full object-cover" alt="" onError={e=>e.target.style.display='none'} />}
+                                        {story.imageUrl && (
+                                            story.mediaType === 'video' || story.imageUrl.startsWith('data:video/') ? (
+                                                <video 
+                                                    src={story.imageUrl} 
+                                                    className="absolute inset-0 w-full h-full object-cover" 
+                                                    autoPlay 
+                                                    muted 
+                                                    playsInline 
+                                                    onPlay={() => setIsPaused(false)}
+                                                    onEnded={() => {
+                                                        if (viewingStoryIndex < activeUserStories.length - 1) setViewingStoryIndex(v => v + 1);
+                                                        else { setViewingAuthorName(null); setViewingStoryIndex(-1); }
+                                                    }}
+                                                />
+                                            ) : (
+                                                <img src={story.imageUrl} className="absolute inset-0 w-full h-full object-cover" alt="" onError={e=>e.target.style.display='none'} />
+                                            )
+                                        )}
                                         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80" />
                                     </div>
 
@@ -2014,17 +2242,35 @@ export default function SkullarConnect() {
                                         <div className="absolute top-0 inset-x-0 p-3 pt-6 md:pt-4 z-20 flex flex-col gap-3 pointer-events-none text-white">
                                             {/* Segmented Progress */}
                                             <div className="flex gap-1.5 shadow-sm">
-                                                {stories.map((_, idx) => (
+                                                {activeUserStories.map((_, idx) => (
                                                     <div key={idx} className="h-0.5 flex-1 bg-white/30 rounded-full overflow-hidden">
-                                                        {idx <= viewingStoryIndex && <div className="h-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)] w-full" />}
+                                                        <div 
+                                                            className="h-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)] transition-all duration-100 ease-linear" 
+                                                            style={{ 
+                                                                width: idx === viewingStoryIndex ? `${storyProgress}%` : idx < viewingStoryIndex ? '100%' : '0%' 
+                                                            }} 
+                                                        />
                                                     </div>
                                                 ))}
                                             </div>
                                             {/* Header */}
                                             <div className="flex items-center gap-3">
-                                                <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${getGradient(story.authorName)} flex items-center justify-center font-black text-[11px] shadow-lg border-2 border-white/90 pointer-events-auto`}>
-                                                    {story.authorName[0]?.toUpperCase()}
-                                                </div>
+                                                {(() => {
+                                                    const storyAuthor = users.find(u => u.name === story.authorName);
+                                                    const storyPhoto = storyAuthor?.profilePhoto;
+                                                    return (
+                                                        <div className={clx(
+                                                            "w-9 h-9 rounded-full shadow-lg border-2 border-white/90 pointer-events-auto overflow-hidden",
+                                                            !storyPhoto && `bg-gradient-to-br ${getGradient(story.authorName)} flex items-center justify-center font-black text-[11px]`
+                                                        )}>
+                                                            {storyPhoto ? (
+                                                                <img src={storyPhoto} alt={story.authorName} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                story.authorName[0]?.toUpperCase()
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
                                                 <div className="flex-1 drop-shadow-md">
                                                     <div className="flex items-baseline gap-2">
                                                         <p className="text-[13px] font-bold">{story.authorName}</p>
@@ -2034,6 +2280,9 @@ export default function SkullarConnect() {
                                                         <p className="text-[10px] flex items-center gap-1 opacity-90 mt-0.5 max-w-[200px] truncate"><Video size={10} className="shrink-0"/> {story.song}</p>
                                                     )}
                                                 </div>
+                                                {isPaused && (
+                                                    <span className="text-[10px] font-black bg-white/20 px-2 py-0.5 rounded-full uppercase tracking-widest">Paused</span>
+                                                )}
                                                 <button className="pointer-events-auto p-1 hover:bg-white/10 rounded-full transition mr-8 md:mr-0">
                                                     <MoreHorizontal size={20} />
                                                 </button>
@@ -2065,6 +2314,8 @@ export default function SkullarConnect() {
                                                     onKeyDown={e => {
                                                         if(e.key === 'Enter') handleReplyStory(story.id);
                                                     }}
+                                                    onFocus={() => setIsPaused(true)}
+                                                    onBlur={() => setIsPaused(false)}
                                                     className="bg-transparent outline-none flex-1 text-[13px] font-medium text-white placeholder:text-white/70"
                                                 />
                                             </div>

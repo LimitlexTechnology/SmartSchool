@@ -891,7 +891,7 @@ app.get('/api/connect/stories', auth, async (req, res) => {
 
 app.post('/api/connect/stories', auth, async (req, res) => {
   try {
-    const { authorName, content, imageUrl, song } = req.body;
+    const { authorName, content, imageUrl, mediaType, song } = req.body;
     
     // AI Content Moderation Check
     if (content) {
@@ -911,6 +911,7 @@ app.post('/api/connect/stories', auth, async (req, res) => {
       authorName: authorName || 'Unknown',
       content: content || '',
       imageUrl: imageUrl || null,
+      mediaType: mediaType || 'image',
       song: song || null,
       likes: [],
       replies: [],
@@ -1003,16 +1004,18 @@ app.post('/api/connect/chats/:targetId', auth, async (req, res) => {
     const senderId = req.headers['x-user-id'];
     if(!senderId) return res.status(401).json({error: 'Unauthorized user marker'});
     const targetId = req.params.targetId;
-    const { text, authorName, authorPhoto } = req.body;
+    const { text, authorName, authorPhoto, media, fileName } = req.body;
     
-    if(!text) return res.status(400).json({error: 'Message text is required'});
+    if(!text && !media) return res.status(400).json({error: 'Message text or media is required'});
     
-    const moderation = await moderateContent(text);
-    if (!moderation.passed) {
-      return res.status(400).json({ 
-        error: 'Message violates community guidelines.',
-        reason: moderation.reason
-      });
+    if (text) {
+      const moderation = await moderateContent(text);
+      if (!moderation.passed) {
+        return res.status(400).json({ 
+          error: 'Message violates community guidelines.',
+          reason: moderation.reason
+        });
+      }
     }
 
     const store = readTenantChats(req.schoolId || 'local');
@@ -1022,7 +1025,9 @@ app.post('/api/connect/chats/:targetId', auth, async (req, res) => {
       id: randomUUID(),
       fromId: senderId,
       toId: targetId,
-      text,
+      text: text || '',
+      media: media || null,
+      fileName: fileName || null,
       authorName,
       authorPhoto: authorPhoto || null,
       createdAt: new Date().toISOString()
@@ -1135,16 +1140,18 @@ app.get('/api/connect/counts', auth, async (req, res) => {
     const userId = req.headers['x-user-id'] || req.studentId || req.teacherId;
     const schoolId = req.schoolId || 'local';
     
+    if (!userId) return res.json({ notifications: 0, messages: 0 });
+
     const notifStore = readTenantNotifications(schoolId);
     const unreadNotifs = (notifStore.notifications || []).filter(n => n.recipientId === userId && !n.read).length;
     
     const chatStore = readTenantChats(schoolId);
-    // Simple unread count for chats (Task 2): count messages since last fetch or just any if they haven't seen them
-    // For now, let's just count total messages in active sessions involving user (mocked)
-    const messages = (chatStore.chats || []).filter(c => c.toId === userId).length; 
-    // In a real app, you'd track 'lastRead' timestamp per chat
+    // Count messages where recipient is current user and status is 'unread'
+    const unreadMessages = (chatStore.chats || []).filter(c => 
+      c.toId === userId && c.status === 'unread'
+    ).length;
     
-    res.json({ notifications: unreadNotifs, messages: 0 }); // Hardcoding 0 messages for now as per Task 2 fix goal
+    res.json({ notifications: unreadNotifs, messages: unreadMessages });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -1224,11 +1231,14 @@ app.get('/api/connect/school-info', auth, async (req, res) => {
   try {
     const schoolId = req.schoolId || 'local';
     const schools = schoolsStore.list();
-    const school = schools.find(s => s.id === schoolId);
+    let school = schools.find(s => s.id === schoolId);
+    if (!school && schoolId === 'local') {
+      school = readLocalSchool();
+    }
     if (!school) {
       return res.json({ name: 'SmartSchool', logo: null });
     }
-    res.json({ name: school.name, logo: school.logo });
+    res.json({ name: school.name || 'SmartSchool', logo: school.logo || null });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -1575,7 +1585,7 @@ app.put('/api/students/:id', auth, async (req, res) => {
       profilePicture, password, profilePhoto, guardianPhoto,
     } = req.body || {}
 
-    if (req.schoolId && (req.schoolId !== 'local' || !isDBConnected)) {
+    if (req.schoolId) {
       const store = readTenantStudents(req.schoolId || 'local')
       const classesStore = readTenantClasses(req.schoolId || 'local')
       const idx = store.students.findIndex(s => s.id === id)
@@ -1648,8 +1658,6 @@ app.put('/api/students/:id', auth, async (req, res) => {
     if (guardianRelationship !== undefined) data.guardianRelationship = guardianRelationship
     if (guardianContact !== undefined) data.guardianContact = guardianContact
     if (profilePicture !== undefined) data.profilePicture = profilePicture
-    if (profilePhoto !== undefined) data.profilePhoto = profilePhoto
-    if (guardianPhoto !== undefined) data.guardianPhoto = guardianPhoto
     if (password && password.trim()) {
       const crypto = require('crypto')
       const salt = crypto.randomBytes(16).toString('hex')
@@ -2899,7 +2907,6 @@ app.get('/api/admin/dashboard/stats', auth, async (req, res) => {
   }
 })
 
-<<<<<<< HEAD
 app.get('/api/admin/lookup-enrollment', auth, async (req, res) => {
   try {
     const { phone } = req.query;
@@ -2935,10 +2942,7 @@ app.get('/api/admin/lookup-enrollment', auth, async (req, res) => {
   }
 });
 
-app.post('/api/admin/schools', auth, async (req, res) => {
-=======
 app.post('/api/admin/schools', auth, superAdminAuth, async (req, res) => {
->>>>>>> origin/main
   try {
     const { name, address, adminName, adminPhone, adminTempPassword, plan = 'Basic' } = req.body || {}
     if (!name) return res.status(400).json({ error: 'name is required' })
@@ -3100,30 +3104,36 @@ app.post('/api/student-auth/login', async (req, res) => {
 
     const sid = studentId.trim()
     const headerSchoolId = req.headers['x-school-id'] || 'local'
+    const matchesStudent = (s) =>
+      (s.wristbandId && s.wristbandId.toUpperCase() === sid.toUpperCase()) ||
+      (s.id && s.id.slice(0, 8).toUpperCase() === sid.toUpperCase()) ||
+      ((s.email || '').trim().toLowerCase() === sid.toLowerCase())
 
     // Check tenant mode
     let student = null
     let targetSchoolId = headerSchoolId
 
-    if (headerSchoolId && headerSchoolId !== 'local') {
-      // Specific school given in header - search that school's file
+    if (headerSchoolId) {
       const store = readTenantStudents(headerSchoolId)
-      student = (store.students || []).find(s =>
-        (s.wristbandId && s.wristbandId.toUpperCase() === sid.toUpperCase()) ||
-        (s.id && s.id.slice(0, 8).toUpperCase() === sid.toUpperCase())
-      )
+      student = (store.students || []).find(matchesStudent)
     }
 
-    // Global search across all tenant schools if not found yet
+    if (!student && headerSchoolId !== 'local') {
+      const localStore = readTenantStudents('local')
+      const localStudent = (localStore.students || []).find(matchesStudent)
+      if (localStudent) {
+        student = localStudent
+        targetSchoolId = 'local'
+      }
+    }
+
     if (!student) {
       const schools = schoolsStore.list()
       for (const s of schools) {
+        if (s.id === headerSchoolId) continue
         try {
           const store = readTenantStudents(s.id)
-          const found = (store.students || []).find(x =>
-            (x.wristbandId && x.wristbandId.toUpperCase() === sid.toUpperCase()) ||
-            (x.id && x.id.slice(0, 8).toUpperCase() === sid.toUpperCase())
-          )
+          const found = (store.students || []).find(matchesStudent)
           if (found) {
             student = found
             targetSchoolId = s.id
@@ -5491,3 +5501,4 @@ app.listen(port, () => {
     console.log('✅ AI service initialized using OpenAI/OpenRouter.');
   }
 });
+

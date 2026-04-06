@@ -35,8 +35,6 @@ model Student {
   archiveReason String?
   walletBalance Float        @default(0.0)
   behaviorPoints Int         @default(100)
-  profilePhoto   String?     // Base64 encoded student photo
-  guardianPhoto  String?     // Base64 encoded guardian photo
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   class         Class?       @relation(fields: [classId], references: [id])

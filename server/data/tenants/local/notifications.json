@@ -1,0 +1,14 @@
+{
+  "notifications": [
+    {
+      "id": "bfc7acf8-65b1-48f8-9f2b-a8bd3054585d",
+      "recipientId": "d32277f4-b712-43b6-b5d9-98ceef75001c",
+      "read": false,
+      "createdAt": "2026-04-06T11:28:49.781Z",
+      "type": "like",
+      "fromId": "0543131455",
+      "postId": "7e84cd9c-088e-49bf-b4e2-84868b01d9d3",
+      "message": "Someone liked your post."
+    }
+  ]
+}

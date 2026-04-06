@@ -142,7 +142,7 @@ const TakeTest = () => {
         })
       });
 
-      if (response.ok) {
+      if (r.ok) {
         setScore(totalScore);
         setIsFinished(true);
       }
