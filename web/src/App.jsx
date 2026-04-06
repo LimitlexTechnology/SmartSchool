@@ -123,7 +123,6 @@ const App = () => {
           <Route path="diary" element={<Diary />} />
           <Route path="calendar" element={<Calendar />} />
           <Route path="messages" element={<Messages />} />
-          <Route path="skullar-connect" element={<SkullarConnect />} />
           <Route path="front-desk" element={<ComingSoon />} />
           <Route path="attendance" element={<Attendance />} />
           <Route path="classroom" element={<Classroom />} />
@@ -180,6 +179,10 @@ const App = () => {
           <Route path="settings" element={<Navigate to="/dashboard/admin-settings?tab=preferences" replace />} />
           <Route path="*" element={<ComingSoon />} />
         </Route>
+
+        <Route path="/skullar-connect" element={
+          <ProtectedRoute><SkullarConnect /></ProtectedRoute>
+        } />
 
         {/* SuperAdmin Control Room */}
         <Route path="/superadmin" element={

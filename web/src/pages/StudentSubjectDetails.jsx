@@ -17,7 +17,10 @@ import {
   Upload,
   CheckCircle2,
   Clock,
-  Play
+  Play,
+  X,
+  Circle,
+  AlertCircle
 } from 'lucide-react'
 
 const StudentSubjectDetails = () => {

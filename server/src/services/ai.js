@@ -3,14 +3,14 @@ require('dotenv').config();
 
 // Since the API key provided starts with 'sk-or-v1-', it's an OpenRouter key.
 // We use OpenRouter's base URL and a standard model like GPT-4o-mini or Gemini Flash.
-const openai = new OpenAI({
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
   apiKey: process.env.OPENAI_API_KEY,
   defaultHeaders: {
-    "HTTP-Referer": "https://smartschool.edu", // Optional, for OpenRouter rankings
-    "X-Title": "SmartSchool", // Optional
+    "HTTP-Referer": "https://smartschool.edu", 
+    "X-Title": "SmartSchool",
   }
-});
+}) : null;
 
 /**
  * Generates questions using the configured AI service.

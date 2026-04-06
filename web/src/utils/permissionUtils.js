@@ -9,7 +9,7 @@ export const getPermissions = () => {
   const teacherId = localStorage.getItem('teacherId');
   
   // Grant full access to all admin-level roles
-  const fullAccessRoles = ['superadmin', 'admin', 'systemadmin', 'system_admin', 'administrator'];
+  const fullAccessRoles = ['superadmin', 'admin', 'systemadmin', 'system_admin', 'administrator', 'sch', 'schooladmin'];
   if (fullAccessRoles.includes(role)) return ['*'];
   
   // Load roles from storage

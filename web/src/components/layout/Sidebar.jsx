@@ -181,14 +181,13 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
 
     const isAllowed = (key) => {
         // Handle categories and specific keys
-        if (key === 'school') return true; // School is usually always visible
+        if (key === 'school' || key === 'services' || key === 'skullar_connect' || key === 'diary') return true; 
         if (key === 'students') return hasPermission('view_students');
         if (key === 'staff') return hasPermission('manage_staff');
         if (key === 'assessments') return hasPermission('enter_marks');
         if (key === 'finance') return hasPermission('fee_management');
         if (key === 'ai_assistant') return true; // AI is common
         if (key === 'inventory') return hasPermission('inventory_tracking');
-        if (key === 'services') return hasPermission('id_management');
         return true;
     };
 
@@ -242,7 +241,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
         { label: 'Clinic', to: '/dashboard/safety', key: 'clinic', perm: 'health_records' },
         { label: 'Calendar', to: '/dashboard/calendar', key: 'calendar', perm: '*' },
         { label: 'Messages', to: '/dashboard/messages', key: 'messages', perm: 'view_messages' },
-        { label: 'Skullar Connect', to: '/dashboard/skullar-connect', key: 'skullar_connect', perm: '*' },
+        { label: 'Skullar Connect', to: '/skullar-connect', key: 'skullar_connect', perm: '*' },
         { label: 'Front desk', to: '/dashboard/front-desk', key: 'front_desk', perm: 'security_logs' },
     ].filter(l => l.perm === '*' || hasPermission(l.perm));
 
@@ -511,7 +510,7 @@ const Sidebar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
                         }
                         if (item.label === 'Services') {
                             const isActive = location.pathname.startsWith('/dashboard/services') || 
-                                           ['/dashboard/calendar', '/dashboard/messages', '/dashboard/diary', '/dashboard/front-desk'].includes(location.pathname);
+                                           ['/dashboard/calendar', '/dashboard/messages', '/dashboard/diary', '/dashboard/front-desk', '/skullar-connect'].includes(location.pathname);
                             return (
                                 <div key={index} className="relative w-full" ref={servicesRef}>
                                     <SidebarItem

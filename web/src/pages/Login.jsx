@@ -153,8 +153,13 @@ const Login = () => {
           loop
           muted
           playsInline
+          onError={(e) => {
+            console.warn('Video failed to load, showing static background');
+            e.target.style.display = 'none';
+          }}
           className="absolute inset-0 w-full h-full object-cover"
         />
+        <div className="absolute inset-0 bg-[#003a5f]" /> {/* Fallback solid color */}
 
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent z-10" />
