@@ -55,7 +55,7 @@ const StaffList = () => {
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState({ total: 0, page: 1, pageSize: 20, data: [] })
   const [showAdd, setShowAdd] = useState(false)
-  const [form, setForm] = useState({ name: '', email: '', subject: '', phone: '', tempPassword: '' })
+  const [form, setForm] = useState({ name: '', email: '', subject: '', type: 'teaching', phone: '', tempPassword: '' })
   const [showPass, setShowPass] = useState(false)
   const [saving, setSaving] = useState(false)
   const [classes, setClasses] = useState([])
@@ -127,6 +127,31 @@ const StaffList = () => {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
+                <label className="text-xs font-bold text-muted-text">Staff Type</label>
+                <div className="flex gap-4 mt-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="radio" 
+                      name="staffType" 
+                      checked={form.type === 'teaching'} 
+                      onChange={() => setForm({...form, type: 'teaching'})} 
+                      className="accent-primary-teal"
+                    />
+                    <span className="text-sm font-medium text-dark-text">Teaching</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="radio" 
+                      name="staffType" 
+                      checked={form.type === 'non-teaching'} 
+                      onChange={() => setForm({...form, type: 'non-teaching', subject: ''})} 
+                      className="accent-primary-teal"
+                    />
+                    <span className="text-sm font-medium text-dark-text">Non-teaching</span>
+                  </label>
+                </div>
+              </div>
+              <div className="col-span-2">
                 <label className="text-xs font-bold text-muted-text">Full Name</label>
                 <input value={form.name} onChange={e=>setForm({...form, name: e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
               </div>
@@ -158,10 +183,12 @@ const StaffList = () => {
                   </div>
                 </div>
               </div>
-              <div className="col-span-2">
-                <label className="text-xs font-bold text-muted-text">Subject</label>
-                <input value={form.subject} onChange={e=>setForm({...form, subject: e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
-              </div>
+              {form.type === 'teaching' && (
+                <div className="col-span-2">
+                  <label className="text-xs font-bold text-muted-text">Subject</label>
+                  <input value={form.subject} onChange={e=>setForm({...form, subject: e.target.value})} className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" placeholder="e.g. Mathematics" />
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-end gap-2 mt-5">
               <button onClick={()=>setShowAdd(false)} className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-bold">Cancel</button>
@@ -173,10 +200,17 @@ const StaffList = () => {
                     await fetch('/api/teachers',{
                       method:'POST',
                       headers:{'Content-Type':'application/json'},
-                      body: JSON.stringify({ name: form.name.trim(), email: form.email.trim(), subject: form.subject.trim(), phone: (form.phone||'').trim(), tempPassword: (form.tempPassword||'').trim() })
+                      body: JSON.stringify({ 
+                        name: form.name.trim(), 
+                        email: form.email.trim(), 
+                        subject: form.type === 'teaching' ? form.subject.trim() : '', 
+                        type: form.type,
+                        phone: (form.phone||'').trim(), 
+                        tempPassword: (form.tempPassword||'').trim() 
+                      })
                     }).then(async r=>{ if(!r.ok){ const t=await r.json().catch(()=>({})); throw new Error(t.error || 'Failed') } return r.json() })
                     setShowAdd(false)
-                    setForm({ name:'', email:'', subject:'', phone:'', tempPassword:'' })
+                    setForm({ name:'', email:'', subject:'', phone:'', tempPassword:'', type: 'teaching' })
                     await load({ page: 1 })
                   }catch(e){ alert(e.message) }finally{ setSaving(false) }
                 }}
@@ -208,12 +242,14 @@ const StaffList = () => {
                 <th className="text-left px-4 py-3 w-12">#</th>
                 <th className="text-left px-4 py-3">Name</th>
                 <th className="text-left px-4 py-3 w-64">Email</th>
+                <th className="text-left px-4 py-3 w-32">Type</th>
                 <th className="text-left px-4 py-3 w-40">Subject</th>
+                <th className="text-left px-4 py-3 w-48">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td className="px-4 py-6 text-muted-text" colSpan={4}>Loading…</td></tr>}
-              {!loading && data.data.length === 0 && <tr><td className="px-4 py-6 text-muted-text" colSpan={4}>No staff found</td></tr>}
+              {loading && <tr><td className="px-4 py-6 text-muted-text" colSpan={5}>Loading…</td></tr>}
+              {!loading && data.data.length === 0 && <tr><td className="px-4 py-6 text-muted-text" colSpan={6}>No staff found</td></tr>}
               {!loading && data.data.map((t) => (
                 <tr key={t.id} className="border-t border-gray-50">
                   <td className="px-4 py-3 text-muted-text">{t.index}</td>
@@ -224,7 +260,46 @@ const StaffList = () => {
                     </button>
                   </td>
                   <td className="px-4 py-3">{t.email}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${t.type === 'teaching' ? 'bg-primary-teal/10 text-primary-teal' : 'bg-orange-100 text-orange-600'}`}>
+                      {t.type || 'teaching'}
+                    </span>
+                  </td>
                   <td className="px-4 py-3">{t.subject || '—'}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${t.status === 'suspended' ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                        {t.status === 'suspended' ? 'Suspended' : 'Active'}
+                      </span>
+                      <button
+                        onClick={async ()=>{
+                          try{
+                            const r = await fetch(`/api/teachers/${t.id}/suspend`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action: 'toggle' }) })
+                            const j = await r.json()
+                            if (!r.ok) throw new Error(j.error || 'Failed')
+                            await load({ page })
+                          } catch(e){ alert(e.message) }
+                        }}
+                        className="px-2 py-1 rounded-lg border border-gray-200 text-[11px] font-bold"
+                      >
+                        Toggle
+                      </button>
+                      <button
+                        onClick={async ()=>{
+                          if (!window.confirm('Delete this staff member?')) return
+                          try{
+                            const r = await fetch(`/api/teachers/${t.id}`, { method:'DELETE' })
+                            const j = await r.json()
+                            if (!r.ok) throw new Error(j.error || 'Failed')
+                            await load({ page: 1 })
+                          } catch(e){ alert(e.message) }
+                        }}
+                        className="px-2 py-1 rounded-lg border border-rose-200 text-rose-600 text-[11px] font-bold"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -286,7 +361,7 @@ const TeacherDrawer = ({ id, onClose, initial, classes = [] }) => {
   const [loading, setLoading] = useState(false)
   const [edit, setEdit] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState(initial ? { name: initial.name || '', email: initial.email || '', subject: initial.subject || '', tempPassword: '' } : null)
+  const [form, setForm] = useState(initial ? { name: initial.name || '', email: initial.email || '', subject: initial.subject || '', type: initial.type || 'teaching', tempPassword: '' } : null)
   const [showPass, setShowPass] = useState(false)
   const [profile, setProfile] = useState({
     gender: '', phone: '', staffId: '', dateEmployed: '', ssn: '', nationalId: '', dob: '',
@@ -323,7 +398,7 @@ const TeacherDrawer = ({ id, onClose, initial, classes = [] }) => {
         const d = await r.json()
         if (!mounted) return
         setDetail(d)
-        setForm({ name: d.name || '', email: d.email || '', subject: d.subject || '' })
+        setForm({ name: d.name || '', email: d.email || '', subject: d.subject || '', type: d.type || 'teaching' })
         const p = await fetch(`/api/teachers/${id}/profile`).then(r=>r.json()).catch(()=>({}))
         if (!mounted) return
         setProfile({
@@ -371,6 +446,34 @@ const TeacherDrawer = ({ id, onClose, initial, classes = [] }) => {
           </div>
           <div className="flex items-center gap-2">
             {!edit && <button onClick={()=>setEdit(true)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold">Edit</button>}
+            {!edit && (
+              <>
+                <button
+                  onClick={async ()=>{
+                    try{
+                      const r = await fetch(`/api/teachers/${id}/suspend`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action: 'toggle' }) })
+                      const j = await r.json()
+                      if (!r.ok) throw new Error(j.error || 'Failed')
+                      const d = await fetch(`/api/teachers/${id}`).then(r=>r.json())
+                      setDetail(d)
+                    } catch(e){ alert(e.message) }
+                  }}
+                  className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold"
+                >Suspend/Activate</button>
+                <button
+                  onClick={async ()=>{
+                    if (!window.confirm('Delete this staff member?')) return
+                    try{
+                      const r = await fetch(`/api/teachers/${id}`, { method:'DELETE' })
+                      const j = await r.json()
+                      if (!r.ok) throw new Error(j.error || 'Failed')
+                      onClose()
+                    } catch(e){ alert(e.message) }
+                  }}
+                  className="px-3 py-1.5 rounded-lg border border-rose-200 text-xs font-bold text-rose-600"
+                >Delete</button>
+              </>
+            )}
             {edit && (
               <>
                 <button
@@ -378,7 +481,13 @@ const TeacherDrawer = ({ id, onClose, initial, classes = [] }) => {
                   onClick={async ()=>{
                     setSaving(true)
                     try{
-                      await fetch(`/api/teachers/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(form) }).then(async r=>{ if(!r.ok){ const t=await r.json().catch(()=>({})); throw new Error(t.error || 'Failed')} return r.json() })
+                      const body = {
+                        name: form.name.trim(),
+                        email: form.email.trim(),
+                        subject: form.type === 'teaching' ? form.subject.trim() : '',
+                        type: form.type
+                      }
+                      await fetch(`/api/teachers/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }).then(async r=>{ if(!r.ok){ const t=await r.json().catch(()=>({})); throw new Error(t.error || 'Failed')} return r.json() })
                       const payloadProfile = { ...profileForm, classesTaught: profileForm.classesTaught, subjectsTaught: profileForm.subjectsTaught }
                       await fetch(`/api/teachers/${id}/profile`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payloadProfile) }).then(async r=>{ if(!r.ok){ const t=await r.json().catch(()=>({})); throw new Error(t.error || 'Failed')} return r.json() })
                       await fetch(`/api/teachers/${id}/permissions`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(permissionsForm) }).then(async r=>{ if(!r.ok){ const t=await r.json().catch(()=>({})); throw new Error(t.error || 'Failed')} return r.json() })
@@ -472,6 +581,31 @@ const TeacherDrawer = ({ id, onClose, initial, classes = [] }) => {
               <div className="text-[10px] font-black text-muted-text uppercase tracking-widest mt-2">Profile Picture</div>
             </div>
             <Section title="Basic Info">
+              <div className="col-span-2 mb-2">
+                <label className="text-[10px] font-black text-muted-text uppercase tracking-widest px-1">Staff Type</label>
+                <div className="flex gap-4 mt-1">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="radio" 
+                      name="editStaffType" 
+                      checked={form.type === 'teaching'} 
+                      onChange={() => setForm({...form, type: 'teaching'})} 
+                      className="accent-primary-teal"
+                    />
+                    <span className="text-xs font-bold text-dark-text">Teaching</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="radio" 
+                      name="editStaffType" 
+                      checked={form.type === 'non-teaching'} 
+                      onChange={() => setForm({...form, type: 'non-teaching', subject: ''})} 
+                      className="accent-primary-teal"
+                    />
+                    <span className="text-xs font-bold text-dark-text">Non-teaching</span>
+                  </label>
+                </div>
+              </div>
               <EditField label="Full Name" value={form.name} onChange={v=>setForm({...form, name:v})} />
               <div className="grid grid-cols-3 items-center">
                 <div className="text-xs font-bold text-muted-text">Gender</div>
@@ -485,7 +619,9 @@ const TeacherDrawer = ({ id, onClose, initial, classes = [] }) => {
               </div>
               <EditField label="Phone" value={profileForm.phone} onChange={v=>setProfileForm({...profileForm, phone:v})} />
               <EditField label="Email" value={form.email} onChange={v=>setForm({...form, email:v})} />
-              <EditField label="Subject" value={form.subject} onChange={v=>setForm({...form, subject:v})} />
+              {form.type === 'teaching' && (
+                <EditField label="Subject" value={form.subject} onChange={v=>setForm({...form, subject:v})} />
+              )}
               <div className="grid grid-cols-3 items-center">
                 <div className="text-xs font-bold text-muted-text">Reset Password</div>
                 <div className="col-span-2 relative">

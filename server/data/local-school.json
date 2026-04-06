@@ -1,0 +1,9 @@
+{
+  "name": "Skullar Local School",
+  "address": "Accra",
+  "admin": "Mr. Gazi",
+  "phone": "0543131455",
+  "plan": "Premium",
+  "adminPassSalt": "c554dfd260fdc2190095bcd8776ab65f",
+  "adminPassHash": "200e61488a037098872b832567790c23a0280ecbe93c3b33e6cea0ca4ddb0363daaaa5bc4525a5a6e1a857f0fa42db8760c838644564bebd36ed4b9c38f641b9"
+}

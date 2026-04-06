@@ -11,7 +11,7 @@ const StudentProfileModal = ({ studentId, onClose }) => {
         const fetchProfile = async () => {
             setLoading(true);
             try {
-                const res = await fetch(`/api/students/${studentId}`);
+                const res = await fetch(`/api/students/${studentId}`, { headers: { 'x-school-id': localStorage.getItem('schoolId') || 'local' } });
                 const data = await res.json();
                 setStudent(data);
             } catch (error) {

@@ -64,6 +64,7 @@ model Teacher {
   name      String
   email     String   @unique
   subject   String
+  type      String   @default("teaching")
   lessons   Lesson[]
   profile   TeacherProfile?
   teachingAssignments TeachingAssignment[]

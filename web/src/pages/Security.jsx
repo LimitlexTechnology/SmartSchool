@@ -6,6 +6,7 @@ import {
     Users,
     Key,
     Eye,
+    EyeOff,
     ShieldCheck,
     Database,
     FileText,
@@ -23,6 +24,13 @@ import {
 
 const Security = () => {
     const [selectedRole, setSelectedRole] = useState('Admin');
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [showCurrent, setShowCurrent] = useState(false);
+    const [showNew, setShowNew] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [changing, setChanging] = useState(false);
 
     const roles = [
         { name: 'Admin', count: 4, desc: 'Full institutional control', color: 'primary' },
@@ -36,6 +44,48 @@ const Security = () => {
         { id: 2, user: 'Staff (Maria)', action: 'Accessed Attendance Records', time: '45m ago', status: 'Success' },
         { id: 3, user: 'Unknown IP', action: 'Failed Login Attempt', time: '2h ago', status: 'Blocked' },
     ];
+
+    const handleChangePassword = async () => {
+        if (!newPassword || newPassword.length < 6) {
+            alert('New password must be at least 6 characters');
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            alert('New password and confirm password do not match');
+            return;
+        }
+        const role = localStorage.getItem('userRole') || 'admin';
+        let url = '';
+        if (role === 'teacher') {
+            url = '/api/teacher-auth/password';
+        } else if (role === 'admin') {
+            url = '/api/school-auth/password';
+        } else {
+            alert('Super admin password is managed by platform settings.');
+            return;
+        }
+        setChanging(true);
+        try {
+            const r = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ currentPassword, newPassword }),
+            });
+            if (r.ok) {
+                setCurrentPassword('');
+                setNewPassword('');
+                setConfirmPassword('');
+                alert('Password updated successfully');
+            } else {
+                const t = await r.json().catch(() => ({}));
+                alert(t.error || 'Failed to update password');
+            }
+        } catch {
+            alert('Network error while updating password');
+        } finally {
+            setChanging(false);
+        }
+    };
 
     return (
         <div className="flex flex-col gap-8 animate-fade-in pb-20">
@@ -56,6 +106,76 @@ const Security = () => {
                     </Button>
                 </div>
             </div>
+
+            {/* Change Password */}
+            <Card padding="large" className="border-2 border-gray-100">
+                <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                    <Lock className="text-primary-teal" /> Change Password
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="relative">
+                        <label className="block text-sm font-bold text-muted-text mb-2">Current Password</label>
+                        <input
+                            type={showCurrent ? 'text' : 'password'}
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            className="w-full h-12 px-4 pr-12 border border-gray-200 rounded-xl bg-white text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-teal"
+                            placeholder="Enter current password"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowCurrent(v => !v)}
+                            className="absolute right-3 top-[38px] text-gray-500 hover:text-primary-teal"
+                            title={showCurrent ? 'Hide' : 'Show'}
+                        >
+                            {showCurrent ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                    </div>
+                    <div className="relative">
+                        <label className="block text-sm font-bold text-muted-text mb-2">New Password</label>
+                        <input
+                            type={showNew ? 'text' : 'password'}
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            className="w-full h-12 px-4 pr-12 border border-gray-200 rounded-xl bg-white text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-teal"
+                            placeholder="At least 6 characters"
+                            minLength={6}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowNew(v => !v)}
+                            className="absolute right-3 top-[38px] text-gray-500 hover:text-primary-teal"
+                            title={showNew ? 'Hide' : 'Show'}
+                        >
+                            {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                    </div>
+                    <div className="relative">
+                        <label className="block text-sm font-bold text-muted-text mb-2">Confirm New Password</label>
+                        <input
+                            type={showConfirm ? 'text' : 'password'}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            className="w-full h-12 px-4 pr-12 border border-gray-200 rounded-xl bg-white text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-teal"
+                            placeholder="Re-enter new password"
+                            minLength={6}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowConfirm(v => !v)}
+                            className="absolute right-3 top-[38px] text-gray-500 hover:text-primary-teal"
+                            title={showConfirm ? 'Hide' : 'Show'}
+                        >
+                            {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                    </div>
+                </div>
+                <div className="mt-6">
+                    <Button onClick={handleChangePassword} disabled={changing} className="h-11 px-6">
+                        {changing ? 'Updating...' : 'Update Password'}
+                    </Button>
+                </div>
+            </Card>
 
             {/* Role Overview */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

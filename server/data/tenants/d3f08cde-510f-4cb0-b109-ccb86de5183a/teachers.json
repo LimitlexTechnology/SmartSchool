@@ -1,6 +1,28 @@
 {
   "teachers": [
     {
+      "id": "40e87a8d-ae1e-4865-b6bf-ae4d70ba3481",
+      "name": "Super Admin",
+      "email": "superadmin@skullar",
+      "subject": "System Administration",
+      "createdAt": "2026-03-27T13:57:53.707Z"
+    },
+    {
+      "id": "a5415486-7e18-4932-8624-586cf07e4beb",
+      "name": "Admin B",
+      "email": "adminB @gmail.com",
+      "subject": "",
+      "type": "non-teaching",
+      "createdAt": "2026-03-26T18:06:25.806Z"
+    },
+    {
+      "id": "e2002e07-644f-4280-b846-e7ecc410e5a4",
+      "name": "Evander Kwarteng",
+      "email": "ekwarteng@gmail.com",
+      "subject": "none",
+      "createdAt": "2026-03-26T16:52:04.323Z"
+    },
+    {
       "id": "a0d5d214-51ca-41be-8506-5dfbbea11e94",
       "name": "Prosper Yesuli",
       "email": "prosperyesulig@gmail.com",

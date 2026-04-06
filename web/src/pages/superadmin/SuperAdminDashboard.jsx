@@ -1,21 +1,6 @@
-import React from 'react';
-import { Building2, Users, CreditCard, TrendingUp, ShieldAlert, ArrowUpRight, ArrowRight, Plus, RefreshCw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Building2, Users, CreditCard, ShieldAlert, ArrowUpRight, ArrowRight, Plus, RefreshCw, LogIn } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-const kpis = [
-    { label: 'Total Schools', value: '148', sub: '+12 this month', icon: Building2, color: 'teal', up: true },
-    { label: 'Active Users', value: '24,391', sub: 'Across all schools', icon: Users, color: 'blue', up: true },
-    { label: 'Monthly Revenue', value: '$18,240', sub: '+8.4% vs last month', icon: CreditCard, color: 'emerald', up: true },
-    { label: 'Suspended Schools', value: '3', sub: 'Needs attention', icon: ShieldAlert, color: 'rose', up: false },
-];
-
-const recentSchools = [
-    { name: 'Greenfield Academy', plan: 'Premium', admin: 'Mr. Kwarteng', joined: '22 Feb 2026', status: 'active' },
-    { name: 'Mirekua International', plan: 'Premium', admin: 'Mrs. Asante', joined: '20 Feb 2026', status: 'active' },
-    { name: 'Bright Stars School', plan: 'Basic', admin: 'Mr. Mensah', joined: '18 Feb 2026', status: 'pending' },
-    { name: 'Faith Academy', plan: 'Free', admin: 'Sister Grace', joined: '15 Feb 2026', status: 'active' },
-    { name: 'Heritage International', plan: 'Basic', admin: 'Mr. Osei', joined: '12 Feb 2026', status: 'suspended' },
-];
 
 const planBadge = { Premium: 'bg-amber-100 text-amber-700', Basic: 'bg-blue-100 text-blue-700', Free: 'bg-gray-100 text-gray-500' };
 const statusBadge = { active: 'bg-emerald-100 text-emerald-700', pending: 'bg-yellow-100 text-yellow-700', suspended: 'bg-rose-100 text-rose-700' };
@@ -23,16 +8,16 @@ const colorMap = { teal: 'from-primary-teal to-secondary-teal', blue: 'from-blue
 
 const SuperAdminDashboard = () => {
     const navigate = useNavigate();
-    const [stats, setStats] = React.useState({
+    const [stats, setStats] = useState({
         totalSchools: '...',
         activeUsers: '...',
         monthlyRevenue: '...',
         suspendedSchools: '...',
         planDistribution: { Premium: 0, Basic: 0, Free: 0 }
     });
-    const [recentSchools, setRecentSchools] = React.useState([]);
-    const [profile, setProfile] = React.useState({ name: '', role: 'Super Admin', profilePicture: null });
-    const [loading, setLoading] = React.useState(true);
+    const [recentSchools, setRecentSchools] = useState([]);
+    const [profile, setProfile] = useState({ name: '', role: 'Super Admin', profilePicture: null });
+    const [loading, setLoading] = useState(true);
 
     const loadData = async () => {
         setLoading(true);
@@ -53,7 +38,7 @@ const SuperAdminDashboard = () => {
                 setRecentSchools(schools.slice(0, 5));
             }
 
-            const profRes = await fetch('/api/superadmin-auth/profile').then(r => r.ok ? r.json() : null).catch(() => null);
+            const profRes = await fetch('/api/superadmin/profile').then(r => r.ok ? r.json() : null).catch(() => null);
             if (profRes) {
                 setProfile({
                     name: profRes.name || 'Super Admin',
@@ -68,9 +53,37 @@ const SuperAdminDashboard = () => {
         }
     };
 
-    React.useEffect(() => {
+    useEffect(() => {
         loadData();
+        const onUpdate = () => loadData();
+        window.addEventListener('superadmin:schools:update', onUpdate);
+        return () => window.removeEventListener('superadmin:schools:update', onUpdate);
     }, []);
+
+    const handleImpersonate = async (schoolId) => {
+        if (!schoolId || schoolId === 'local') return;
+        try {
+            const r = await fetch(`/api/superadmin/impersonate/${schoolId}`, { method: 'POST' });
+            const d = await r.json();
+            if (d.status === 'ok') {
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('userRole', d.role);
+                localStorage.setItem('schoolId', d.schoolId);
+                localStorage.setItem('teacherId', d.teacherId);
+                localStorage.setItem('adminName', d.name);
+                localStorage.setItem(`adminName:${d.schoolId}`, d.name);
+                document.cookie = `schoolId=${d.schoolId}; path=/`;
+                document.cookie = `teacherId=${d.teacherId}; path=/`;
+                window.dispatchEvent(new CustomEvent('auth:login'));
+                window.dispatchEvent(new CustomEvent('adminProfile:change'));
+                navigate('/dashboard');
+            } else {
+                alert('Failed to login as admin: ' + (d.error || 'unknown error'));
+            }
+        } catch (e) {
+            alert('An error occurred during impersonation');
+        }
+    };
 
     const dynamicKpis = [
         { label: 'Total Schools', value: stats.totalSchools, sub: 'Registered on platform', icon: Building2, color: 'teal', up: true },
@@ -166,7 +179,7 @@ const SuperAdminDashboard = () => {
                                 <th className="px-6 py-3 text-left">Admin</th>
                                 <th className="px-6 py-3 text-left">Plan</th>
                                 <th className="px-6 py-3 text-left">Status</th>
-                                <th className="px-6 py-3 text-left">Action</th>
+                                <th className="px-6 py-3 text-left">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -181,7 +194,10 @@ const SuperAdminDashboard = () => {
                                         <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full capitalize ${statusBadge[s.status]}`}>{s.status}</span>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <button onClick={() => navigate('/superadmin/schools')} className="text-xs font-bold text-primary-teal hover:underline">Manage</button>
+                                        <div className="flex items-center gap-2">
+                                            <button title="Login as Admin" onClick={() => handleImpersonate(s.id)} className="p-1.5 text-gray-400 hover:text-primary-teal transition"><LogIn size={16} /></button>
+                                            <button onClick={() => navigate('/superadmin/schools')} className="text-xs font-bold text-primary-teal hover:underline">Manage</button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
