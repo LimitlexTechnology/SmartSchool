@@ -97,8 +97,50 @@ async function evaluateShortAnswer(question, studentAnswer, maxMarks) {
   }
 }
 
+/**
+ * Evaluates the given text for toxic, explicit, or fraudulent behavior.
+ */
+async function moderateContent(text) {
+  if (!process.env.OPENAI_API_KEY) {
+    console.warn("OPENAI_API_KEY is missing. Skipping AI moderation.");
+    return { passed: true };
+  }
+
+  const prompt = `
+    Analyze the following message intended for a secure intra-school social network.
+    The primary rule is: "The app should entirely frown on nudes, explicit content, sexual behavior, and any fraudulent acts such as scamming, asking for money deceptively, or illicit trades."
+    
+    Message: "${text}"
+    
+    Determine if the message violates these guidelines. In an educational setting, normal discussion is allowed, but explicitly requesting/posting nudes, adult matters, or performing scams is strictly prohibited.
+    
+    Return the response as a valid JSON object:
+    {
+      "passed": boolean,
+      "reason": "string (Why it passed or failed)"
+    }
+  `;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "openai/gpt-4o-mini",
+      messages: [
+        { role: "system", content: "You are a professional content moderator. Always return valid JSON." },
+        { role: "user", content: prompt },
+      ],
+      response_format: { type: 'json_object' }
+    });
+
+    return JSON.parse(response.choices[0].message.content);
+  } catch (error) {
+    console.error("AI Moderation Error:", error);
+    return { passed: true }; // Failsafe pass
+  }
+}
+
 module.exports = {
   generateQuestions,
   evaluateShortAnswer,
+  moderateContent,
   isAvailable: !!process.env.OPENAI_API_KEY
 };

@@ -1,0 +1,32 @@
+{
+  "connections": [
+    {
+      "id": "73a8f4e5-2c94-491e-84e0-00e54d3e16f5",
+      "from": "0543131455",
+      "to": "ee516107-a78f-4b6a-bc9b-e625aa5f267f",
+      "status": "pending",
+      "createdAt": "2026-04-06T05:16:01.387Z"
+    },
+    {
+      "id": "cf906ec4-c114-4318-9359-c7be946f926f",
+      "from": "0543131455",
+      "to": "9382bc4f-13b5-4328-ae72-bc3790308c1d",
+      "status": "pending",
+      "createdAt": "2026-04-06T06:09:37.541Z"
+    },
+    {
+      "id": "9c6cf653-eac3-4be8-8fcd-46ebd6740442",
+      "from": "0543131455",
+      "to": "c95d4fb1-c980-4d3d-9641-b5134d41871c",
+      "status": "pending",
+      "createdAt": "2026-04-06T06:09:38.922Z"
+    },
+    {
+      "id": "c6924dc1-99d9-4ebe-a15c-c0148e09ccf7",
+      "from": "EE516107",
+      "to": "9382bc4f-13b5-4328-ae72-bc3790308c1d",
+      "status": "pending",
+      "createdAt": "2026-04-06T07:21:21.807Z"
+    }
+  ]
+}

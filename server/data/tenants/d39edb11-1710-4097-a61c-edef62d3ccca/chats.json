@@ -1,0 +1,13 @@
+{
+  "chats": [
+    {
+      "id": "b350fe17-dbcc-4d2f-aee0-05bec11f82fc",
+      "fromId": "0543131455",
+      "toId": "ee516107-a78f-4b6a-bc9b-e625aa5f267f",
+      "text": "how are you?",
+      "authorName": "fullname",
+      "authorPhoto": null,
+      "createdAt": "2026-04-06T06:21:21.881Z"
+    }
+  ]
+}

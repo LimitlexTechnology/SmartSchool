@@ -1,0 +1,18 @@
+{
+  "connections": [
+    {
+      "id": "5221ed90-ce23-4b1b-b819-a920ee52ad41",
+      "from": "0000000000",
+      "to": "ef3d4a9a-fd1b-496b-afa5-19e84cc256a9",
+      "status": "pending",
+      "createdAt": "2026-04-06T05:31:51.927Z"
+    },
+    {
+      "id": "8afc8c6a-95f4-4dc3-9439-24535b0c8ff7",
+      "from": "0000000000",
+      "to": "821271ba-c001-4787-85a0-7a3029f2b109",
+      "status": "pending",
+      "createdAt": "2026-04-06T05:31:54.403Z"
+    }
+  ]
+}
