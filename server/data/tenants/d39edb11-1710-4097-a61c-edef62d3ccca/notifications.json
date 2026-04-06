@@ -1,0 +1,40 @@
+{
+  "notifications": [
+    {
+      "id": "99a9394c-07b9-4ba9-9cce-dc1dd1d60317",
+      "recipientId": "ee516107-a78f-4b6a-bc9b-e625aa5f267f",
+      "read": false,
+      "createdAt": "2026-04-06T05:16:01.392Z",
+      "type": "connection_request",
+      "fromId": "0543131455",
+      "message": "Someone sent you a connection request."
+    },
+    {
+      "id": "b5773452-b112-43c8-bdaa-1ccbdf68c02c",
+      "recipientId": "9382bc4f-13b5-4328-ae72-bc3790308c1d",
+      "read": false,
+      "createdAt": "2026-04-06T06:09:37.543Z",
+      "type": "connection_request",
+      "fromId": "0543131455",
+      "message": "Someone sent you a connection request."
+    },
+    {
+      "id": "f194c9cc-4fad-48ef-b838-d8f6214dd570",
+      "recipientId": "c95d4fb1-c980-4d3d-9641-b5134d41871c",
+      "read": false,
+      "createdAt": "2026-04-06T06:09:38.924Z",
+      "type": "connection_request",
+      "fromId": "0543131455",
+      "message": "Someone sent you a connection request."
+    },
+    {
+      "id": "a5127e5a-2aa5-4080-88ce-c8a44b1e3044",
+      "recipientId": "9382bc4f-13b5-4328-ae72-bc3790308c1d",
+      "read": false,
+      "createdAt": "2026-04-06T07:21:21.812Z",
+      "type": "connection_request",
+      "fromId": "EE516107",
+      "message": "Someone sent you a connection request."
+    }
+  ]
+}

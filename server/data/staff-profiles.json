@@ -229,6 +229,107 @@
       "profilePicture": null,
       "allowedFeatures": [],
       "allowedActions": []
+<<<<<<< Updated upstream
+=======
+    },
+    "e2002e07-644f-4280-b846-e7ecc410e5a4": {
+      "phone": "DF94D02A",
+      "passSalt": "235013f8b48b3adf40bc54153a66f3d7",
+      "passHash": "510d764566674aa48dd31432901bbf8f39149e1e394a05af277c5a6ea2c848795a2370607dcb9f758cef7befa7f18bb13fe61270a1df8ad26892e1ae01d9a533",
+      "schoolId": "d3f08cde-510f-4cb0-b109-ccb86de5183a"
+    },
+    "a5415486-7e18-4932-8624-586cf07e4beb": {
+      "phone": "1111111111",
+      "passSalt": "f04858f5d54a8e7ca4f83539ef4dc042",
+      "passHash": "4ba37aa272484ed5da7f4f087f0fb4d151c61ae59fc550862c5ac1a4bd4025d9cb1b9aa2e8d2662a4b39de7b4614a4c003f15c027a828633fd52c9c74d1791d5",
+      "schoolId": "d3f08cde-510f-4cb0-b109-ccb86de5183a"
+    },
+    "505a6bc4-ea4f-4031-a186-d0f4996d082e": {
+      "phone": "0205989397",
+      "passSalt": "545627d657c8ba03b64ca6dabace0d5b",
+      "passHash": "477b755ee7dee7518470cb9715952cc2567380d38369b4cc713d8fc88c8a004b75a88b33d812601209f3ab3c751d04f7c0cc34aa0487c7198517716c125fc9f3",
+      "schoolId": "local",
+      "gender": "Female",
+      "staffId": "",
+      "dateEmployed": "2024-09-06",
+      "ssn": "",
+      "nationalId": "",
+      "dob": "1995-05-10",
+      "momoNumber": "",
+      "accountNumber": "",
+      "bankBranch": "",
+      "bankName": "",
+      "nextOfKin": "",
+      "nextOfKinRelation": "",
+      "nextOfKinPhone": "",
+      "classesTaught": [
+        "5bf8adca-89f3-4551-8237-6926f80d0a56"
+      ],
+      "subjectsTaught": [],
+      "formMaster": "5bf8adca-89f3-4551-8237-6926f80d0a56",
+      "profilePicture": null,
+      "allowedFeatures": [
+        "students",
+        "staff_attendance",
+        "lesson_planner",
+        "classroom",
+        "services",
+        "student_groups",
+        "attendance",
+        "staff",
+        "course_allocation",
+        "timetables",
+        "assessments",
+        "canteen_transport",
+        "inventory"
+      ],
+      "allowedActions": []
+    },
+    "eb83964d-0170-42e2-b949-6fea119a5baa": {
+      "phone": "2323232323",
+      "passSalt": "9da8ace0de3d81230e4de2e613b9fe3f",
+      "passHash": "77e8544fe11130295807b8f1fa29cf3defd74f926d3b6e24ea226638b936ec95089531e28e7ffd53e90a4cbafe4fe4256ef202e4e903fa24696b3d5d9bfe5a0b",
+      "schoolId": "local"
+    },
+    "f8256052-a73f-49a9-8231-769a52adae3e": {
+      "phone": "9999999999",
+      "schoolId": "local",
+      "status": "active",
+      "gender": "Male",
+      "staffId": "",
+      "dateEmployed": "2024-09-04",
+      "ssn": "",
+      "nationalId": "",
+      "dob": "1999-01-28",
+      "momoNumber": "",
+      "accountNumber": "",
+      "bankBranch": "",
+      "bankName": "",
+      "nextOfKin": "",
+      "nextOfKinRelation": "",
+      "nextOfKinPhone": "",
+      "classesTaught": [
+        "5bf8adca-89f3-4551-8237-6926f80d0a56"
+      ],
+      "subjectsTaught": [
+        "Computing"
+      ],
+      "formMaster": "",
+      "profilePicture": null,
+      "allowedFeatures": [
+        "students",
+        "staff_attendance",
+        "lesson_planner",
+        "classroom",
+        "services",
+        "student_groups",
+        "attendance",
+        "course_allocation",
+        "timetables",
+        "assessments"
+      ],
+      "allowedActions": []
+>>>>>>> Stashed changes
     }
   }
 }

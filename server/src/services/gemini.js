@@ -116,7 +116,58 @@ async function evaluateShortAnswer(question, studentAnswer, maxMarks) {
   }
 }
 
+/**
+ * Evaluates the given text for toxic, explicit, or fraudulent behavior.
+ * 
+ * @param {string} text - The text content to analyze.
+ * @returns {Promise<Object>} - Moderation result: { passed: boolean, reason: string }
+ */
+async function moderateContent(text) {
+  if (!process.env.GEMINI_API_KEY) {
+    // If AI is disabled, just pass it
+    console.warn("GEMINI_API_KEY is missing. Skipping AI moderation.");
+    return { passed: true };
+  }
+
+  const prompt = `
+    Analyze the following message intended for a secure intra-school social network.
+    The primary rule is: "The app should entirely frown on nudes, explicit content, sexual behavior, and any fraudulent acts such as scamming, asking for money deceptively, or illicit trades."
+    
+    Message: "${text}"
+    
+    Determine if the message violates these guidelines. In an educational setting, normal discussion is allowed, but explicitly requesting/posting nudes, adult matters, or performing scams is strictly prohibited.
+    
+    Return the response as a valid JSON object:
+    {
+      "passed": boolean,
+      "reason": "string (Why it passed or failed)"
+    }
+    
+    Only return the JSON object, no other text.
+  `;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const rawText = response.text();
+    let cleanedText = rawText.replace(/\`\`\`json|\`\`\`/g, "").trim();
+    
+    try {
+      return JSON.parse(cleanedText);
+    } catch (parseError) {
+      console.error("Failed to parse moderation JSON. Raw text:", rawText);
+      const objectMatch = cleanedText.match(/\{[\s\S]*\}/);
+      if (objectMatch) return JSON.parse(objectMatch[0]);
+      return { passed: true }; // Failsafe pass
+    }
+  } catch (error) {
+    console.error("Content Moderation AI Error:", error);
+    return { passed: true }; // Failsafe pass on network failure
+  }
+}
+
 module.exports = {
   generateQuestions,
-  evaluateShortAnswer
+  evaluateShortAnswer,
+  moderateContent
 };

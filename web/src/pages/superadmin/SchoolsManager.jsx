@@ -19,6 +19,47 @@ const SchoolsManager = () => {
     const [showCreds, setShowCreds] = useState(false);
     const [createdCreds, setCreatedCreds] = useState({ name: '', phone: '', temp: '' });
     const [showEditPass, setShowEditPass] = useState(false);
+    const [fetching, setFetching] = useState(false);
+
+    // Auto-lookup name for Creation Form
+    useEffect(() => {
+        const phone = (form.adminPhone || '').trim();
+        if (phone.length >= 10) {
+            const timer = setTimeout(async () => {
+                setFetching(true);
+                try {
+                    const r = await fetch(`/api/admin/lookup-enrollment?phone=${phone}`);
+                    if (r.ok) {
+                        const j = await r.json();
+                        if (j.name && !form.adminName) { // Only fill if currently empty to avoid overwriting deliberate entries
+                            setForm(prev => ({ ...prev, adminName: j.name }));
+                        }
+                    }
+                } catch (e) {} finally { setFetching(false); }
+            }, 600);
+            return () => clearTimeout(timer);
+        }
+    }, [form.adminPhone]);
+
+    // Auto-lookup name for Edit Form
+    useEffect(() => {
+        const phone = (editForm.adminPhone || '').trim();
+        if (phone.length >= 10) {
+            const timer = setTimeout(async () => {
+                setFetching(true);
+                try {
+                    const r = await fetch(`/api/admin/lookup-enrollment?phone=${phone}`);
+                    if (r.ok) {
+                        const j = await r.json();
+                        if (j.name && (!editForm.adminName || editForm.adminName === '—')) {
+                            setEditForm(prev => ({ ...prev, adminName: j.name }));
+                        }
+                    }
+                } catch (e) {} finally { setFetching(false); }
+            }, 600);
+            return () => clearTimeout(timer);
+        }
+    }, [editForm.adminPhone]);
 
     const load = async () => {
         setLoading(true)
@@ -198,7 +239,11 @@ const SchoolsManager = () => {
                                 { label: 'Admin Temporary Password', key: 'adminTempPassword', placeholder: 'e.g. Temp@1234' },
                             ].map(({ label, key, placeholder }) => (
                                 <div key={key}>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1.5">{label}</label>
+                                    <div className="flex justify-between items-center mb-1.5">
+                                        <label className="block text-xs font-bold text-gray-400">{label}</label>
+                                        {key === 'adminName' && fetching && <span className="text-[10px] text-primary-teal animate-pulse font-bold">Checking enrollment...</span>}
+                                        {key === 'adminName' && form.adminName && !fetching && <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">Found from Enrollment</span>}
+                                    </div>
                                     <input type={key === 'adminTempPassword' ? 'password' : 'text'} value={form[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
                                         placeholder={placeholder}
                                         className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-gray-600 outline-none focus:border-primary-teal/50 transition" />
@@ -266,7 +311,11 @@ const SchoolsManager = () => {
                                 { label: 'Reset Temporary Password', key: 'adminTempPassword', placeholder: 'Leave blank to keep' },
                             ].map(({ label, key, placeholder }) => (
                                 <div key={key}>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1.5">{label}</label>
+                                    <div className="flex justify-between items-center mb-1.5">
+                                        <label className="block text-xs font-bold text-gray-400">{label}</label>
+                                        {key === 'adminName' && fetching && <span className="text-[10px] text-primary-teal animate-pulse font-bold">Checking enrollment...</span>}
+                                        {key === 'adminName' && editForm.adminName && editForm.adminName !== '—' && !fetching && <span className="text-[10px] text-emerald-400 font-bold">Found from Enrollment</span>}
+                                    </div>
                                     {key === 'adminTempPassword' ? (
                                       <div className="relative">
                                         <input
